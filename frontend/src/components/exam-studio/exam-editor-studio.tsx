@@ -4,6 +4,23 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  Strikethrough,
+  Superscript,
+  Subscript,
+  Square,
+  Type,
+  Palette,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  AlignJustify,
+  MoveVertical,
+  ArrowUpDown,
+  Indent,
+  Outdent,
+  ListOrdered,
+  Columns as ColumnsIcon,
+  Columns3,
   FileText,
   Check,
   Share2,
@@ -61,6 +78,11 @@ import {
   SlidersHorizontal,
   LayoutGrid,
   Maximize2,
+  Search,
+  Replace,
+  TrendingUp,
+  BarChart3,
+  FileSpreadsheet,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { useAuth } from "@/context/auth-context";
@@ -68,7 +90,37 @@ import { LatexRenderer } from "@/components/ui/latex-renderer";
 import { exportExamToDocx } from "@/lib/export/docx-exporter";
 import { ExamWithQuestions, Question, createExam, updateExam, getExamById } from "@/lib/api/exams";
 import { QuotaExhaustedModal } from "@/components/modals/quota-exhausted-modal";
-import { SheetBoxSvg, HeaterCircuitSvg, RadiationHazardSvg } from "./svg-illustrations";
+import {
+  SheetBoxSvg,
+  HeaterCircuitSvg,
+  RadiationHazardSvg,
+  VariationTableSvg,
+  FunctionGraphSvg,
+  StatisticsChartSvg,
+  GeometryDiagramSvg,
+} from "./svg-illustrations";
+import { FormulaEditorModal } from "./formula-editor-modal";
+import { FindReplaceModal } from "./find-replace-modal";
+import {
+  VariationTableModal,
+  VariationTableRenderer,
+  VariationTableData,
+} from "./variation-table-modal";
+import {
+  FunctionGraphModal,
+  FunctionGraphRenderer,
+  FunctionGraphData,
+} from "./function-graph-modal";
+import {
+  ChartEditorModal,
+  ChartSvgRenderer,
+  ChartConfigData,
+} from "./chart-editor-modal";
+import {
+  GeometryEditorModal,
+  GeometrySvgRenderer,
+  GeometryConfigData,
+} from "./geometry-editor-modal";
 
 export interface DocItem {
   id: string;
@@ -96,8 +148,18 @@ export interface DocItem {
     | "bubble_sheet"
     | "true_false"
     | "short_answer"
-    | "essay";
-  svgType?: "sheet_box" | "heater" | "radiation";
+    | "essay"
+    | "formula"
+    | "rubric_table"
+    | "rubric_with_geometry";
+  svgType?:
+    | "sheet_box"
+    | "heater"
+    | "radiation"
+    | "variation_table"
+    | "function_graph"
+    | "chart"
+    | "geometry";
   tableRows?: string[][];
   imageUrl?: string;
   sectionTitle?: string;
@@ -105,6 +167,10 @@ export interface DocItem {
   headerType?: "two_col" | "centered" | "student_info" | "grading_guide";
   trueFalseItems?: { label: string; statement: string; isCorrect: boolean }[];
   shortAnswerPrompt?: string;
+  variationTableData?: VariationTableData;
+  functionGraphData?: FunctionGraphData;
+  chartData?: ChartConfigData;
+  geometryData?: GeometryConfigData;
 }
 
 interface ExamStudioProps {
@@ -131,7 +197,54 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
   const [isBold, setIsBold] = useState(false);
   const [isItalic, setIsItalic] = useState(false);
   const [isUnderline, setIsUnderline] = useState(false);
+  const [isStrikethrough, setIsStrikethrough] = useState(false);
+  const [isSuperscript, setIsSuperscript] = useState(false);
+  const [isSubscript, setIsSubscript] = useState(false);
+  const [isBorderBox, setIsBorderBox] = useState(false);
+  const [textColor, setTextColor] = useState("#0f172a");
+  const [bgColor, setBgColor] = useState("transparent");
+  const [textAlign, setTextAlign] = useState<"left" | "center" | "right" | "justify">("left");
+  const [lineSpacing, setLineSpacing] = useState("1.3");
+  const [columnCount, setColumnCount] = useState(1);
   const [teacherMode, setTeacherMode] = useState(true); // true: shows answers & solutions
+  const [showRuler, setShowRuler] = useState(true);
+
+  // Undo / Redo history
+  const [history, setHistory] = useState<DocItem[][]>([]);
+  const [historyIndex, setHistoryIndex] = useState<number>(-1);
+  const isUndoRedoAction = useRef(false);
+
+  // Formula Modal states
+  const [isFormulaModalOpen, setIsFormulaModalOpen] = useState(false);
+  const [formulaModalMode, setFormulaModalMode] = useState<"math" | "chem">("math");
+  const [formulaModalInitialFormula, setFormulaModalInitialFormula] = useState("");
+  const [formulaModalDisplayMode, setFormulaModalDisplayMode] = useState<"inline" | "block">("inline");
+
+  // Find & Replace Modal states
+  const [isFindReplaceOpen, setIsFindReplaceOpen] = useState(false);
+  const [findReplaceMode, setFindReplaceMode] = useState<"find" | "replace">("find");
+  const [searchMatches, setSearchMatches] = useState<number[]>([]);
+  const [currentMatchIdx, setCurrentMatchIdx] = useState(0);
+
+  // Variation Table Modal states
+  const [isVarTableModalOpen, setIsVarTableModalOpen] = useState(false);
+  const [currentVarTableData, setCurrentVarTableData] = useState<VariationTableData | null>(null);
+  const [editingVarTableId, setEditingVarTableId] = useState<string | null>(null);
+
+  // Function Graph Modal states
+  const [isGraphModalOpen, setIsGraphModalOpen] = useState(false);
+  const [currentGraphData, setCurrentGraphData] = useState<FunctionGraphData | null>(null);
+  const [editingGraphId, setEditingGraphId] = useState<string | null>(null);
+
+  // Chart Modal states
+  const [isChartModalOpen, setIsChartModalOpen] = useState(false);
+  const [currentChartData, setCurrentChartData] = useState<ChartConfigData | null>(null);
+  const [editingChartId, setEditingChartId] = useState<string | null>(null);
+
+  // Geometry Modal states
+  const [isGeomModalOpen, setIsGeomModalOpen] = useState(false);
+  const [currentGeomData, setCurrentGeomData] = useState<GeometryConfigData | null>(null);
+  const [editingGeomId, setEditingGeomId] = useState<string | null>(null);
 
   // Layout panels
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(true);
@@ -154,9 +267,52 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
 
   // Questions & Document Content Blocks
   const [questions, setQuestions] = useState<DocItem[]>([]);
-  const [activeSubmenu, setActiveSubmenu] = useState<
-    "table" | "svg" | "header" | "question" | "content" | "layout" | null
-  >(null);
+  const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
+  const submenuTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleSubmenuHover = (
+    menuKey: string
+  ) => {
+    if (submenuTimerRef.current) {
+      clearTimeout(submenuTimerRef.current);
+      submenuTimerRef.current = null;
+    }
+    // If a different submenu is currently open, grace period of 150ms before switching
+    // This allows safe diagonal cursor movement into the currently open submenu
+    if (activeSubmenu && activeSubmenu !== menuKey) {
+      submenuTimerRef.current = setTimeout(() => {
+        setActiveSubmenu(menuKey);
+      }, 150);
+    } else {
+      setActiveSubmenu(menuKey);
+    }
+  };
+
+  const handleSubmenuLeave = () => {
+    if (submenuTimerRef.current) {
+      clearTimeout(submenuTimerRef.current);
+    }
+    submenuTimerRef.current = setTimeout(() => {
+      setActiveSubmenu(null);
+    }, 250);
+  };
+
+  const cancelSubmenuLeave = () => {
+    if (submenuTimerRef.current) {
+      clearTimeout(submenuTimerRef.current);
+      submenuTimerRef.current = null;
+    }
+  };
+
+  const toggleSubmenu = (
+    menuKey: string
+  ) => {
+    if (submenuTimerRef.current) {
+      clearTimeout(submenuTimerRef.current);
+      submenuTimerRef.current = null;
+    }
+    setActiveSubmenu(activeSubmenu === menuKey ? null : menuKey);
+  };
   const [hoveredGridCell, setHoveredGridCell] = useState<{ row: number; col: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
@@ -206,6 +362,227 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
     loadReferralInfo();
   }, []);
 
+  // Undo / Redo logic
+  const handleUndo = () => {
+    if (historyIndex > 0) {
+      isUndoRedoAction.current = true;
+      const prevIdx = historyIndex - 1;
+      setHistoryIndex(prevIdx);
+      setQuestions(history[prevIdx]);
+      setSavedStatus("unsaved");
+    }
+  };
+
+  const handleRedo = () => {
+    if (historyIndex < history.length - 1) {
+      isUndoRedoAction.current = true;
+      const nextIdx = historyIndex + 1;
+      setHistoryIndex(nextIdx);
+      setQuestions(history[nextIdx]);
+      setSavedStatus("unsaved");
+    }
+  };
+
+  // Synchronize history
+  useEffect(() => {
+    if (isUndoRedoAction.current) {
+      isUndoRedoAction.current = false;
+      return;
+    }
+    if (questions.length > 0 || historyIndex >= 0) {
+      setHistory((prev) => {
+        const upToCurrent = prev.slice(0, historyIndex + 1);
+        return [...upToCurrent, questions];
+      });
+      setHistoryIndex((prev) => prev + 1);
+    }
+  }, [questions]);
+
+  // Global Keyboard Shortcuts (Ctrl+Z, Ctrl+Y, Ctrl+F, Ctrl+H)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isInput =
+        e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement;
+
+      // Ctrl+Z: Undo
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z" && !e.shiftKey) {
+        if (!isInput) {
+          e.preventDefault();
+          handleUndo();
+        }
+      }
+      // Ctrl+Y or Ctrl+Shift+Z: Redo
+      if (
+        ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") ||
+        ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "z")
+      ) {
+        if (!isInput) {
+          e.preventDefault();
+          handleRedo();
+        }
+      }
+      // Ctrl+F: Find
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "f") {
+        e.preventDefault();
+        setIsFindReplaceOpen(true);
+        setFindReplaceMode("find");
+      }
+      // Ctrl+H: Replace
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "h") {
+        e.preventDefault();
+        setIsFindReplaceOpen(true);
+        setFindReplaceMode("replace");
+      }
+      // Ctrl+: Reset format
+      if ((e.ctrlKey || e.metaKey) && e.key === "\\") {
+        e.preventDefault();
+        handleResetFormatting();
+      }
+      // Ctrl+B: Bold
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b" && !isInput) {
+        e.preventDefault();
+        setIsBold((b) => !b);
+      }
+      // Ctrl+I: Italic
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "i" && !isInput) {
+        e.preventDefault();
+        setIsItalic((i) => !i);
+      }
+      // Ctrl+U: Underline
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "u" && !isInput) {
+        e.preventDefault();
+        setIsUnderline((u) => !u);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [historyIndex, history]);
+
+
+  const handleSaveVariationTable = (vtData: VariationTableData) => {
+    if (editingVarTableId) {
+      setQuestions((prev) =>
+        prev.map((q) => (q.id === editingVarTableId ? { ...q, variationTableData: vtData } : q))
+      );
+      setSavedStatus("unsaved");
+      return;
+    }
+    const newBlock: DocItem = {
+      id: "vt-" + Date.now(),
+      exam_id: examId || "temp",
+      order_index: questions.length + 1,
+      type: "multiple_choice",
+      content: `Cho hàm số $y = f(x)$ có bảng biến thiên như hình sau:`,
+      options: {
+        A: "Hàm số đồng biến trên khoảng $(-∞; 1)$",
+        B: "Hàm số nghịch biến trên khoảng $(-1; 1)$",
+        C: "Điểm cực đại của đồ thị hàm số là $(1; -2)$",
+        D: "Giá trị nhỏ nhất của hàm số bằng $-2$",
+      },
+      correct_answer: "A",
+      explanation: "Dựa vào bảng biến thiên để xác định khoảng đồng biến/nghịch biến và cực trị.",
+      blockType: "svg",
+      svgType: "variation_table",
+      variationTableData: vtData,
+      created_at: new Date().toISOString(),
+    };
+    setQuestions([...questions, newBlock]);
+    setSavedStatus("unsaved");
+  };
+
+  const handleSaveFunctionGraph = (gData: FunctionGraphData) => {
+    if (editingGraphId) {
+      setQuestions((prev) =>
+        prev.map((q) => (q.id === editingGraphId ? { ...q, functionGraphData: gData } : q))
+      );
+      setSavedStatus("unsaved");
+      return;
+    }
+    const newBlock: DocItem = {
+      id: "graph-" + Date.now(),
+      exam_id: examId || "temp",
+      order_index: questions.length + 1,
+      type: "multiple_choice",
+      content: `Cho hàm số $y = f(x)$ có đồ thị như hình vẽ bên dưới:`,
+      options: {
+        A: "Đồ thị hàm số đạt cực đại tại $x = -2$",
+        B: "Hàm số đồng biến trên toàn $\\mathbb{R}$",
+        C: "Điểm cực tiểu của đồ thị là $(0; -4)$",
+        D: "Phương trình $f(x) = 0$ có 3 nghiệm phân biệt",
+      },
+      correct_answer: "D",
+      explanation: "Đọc đồ thị toạ độ Oxy và số giao điểm với trục hoành.",
+      blockType: "svg",
+      svgType: "function_graph",
+      functionGraphData: gData,
+      created_at: new Date().toISOString(),
+    };
+    setQuestions([...questions, newBlock]);
+    setSavedStatus("unsaved");
+  };
+
+  const handleSaveChart = (cData: ChartConfigData) => {
+    if (editingChartId) {
+      setQuestions((prev) =>
+        prev.map((q) => (q.id === editingChartId ? { ...q, chartData: cData } : q))
+      );
+      setSavedStatus("unsaved");
+      return;
+    }
+    const newBlock: DocItem = {
+      id: "chart-" + Date.now(),
+      exam_id: examId || "temp",
+      order_index: questions.length + 1,
+      type: "multiple_choice",
+      content: `Dựa vào biểu đồ "${cData.title}" sau đây:`,
+      options: {
+        A: "Mục có giá trị cao nhất là " + (cData.items[0]?.label || "Mục 1"),
+        B: "Tổng giá trị các mục vượt quá 100",
+        C: "Số lượng các nhóm được thống kê là " + cData.items.length,
+        D: "Mục có số liệu thấp nhất là " + (cData.items[cData.items.length - 1]?.label || "Mục cuối"),
+      },
+      correct_answer: "A",
+      explanation: "Phân tích và đối chiếu số liệu từ biểu đồ thống kê.",
+      blockType: "svg",
+      svgType: "chart",
+      chartData: cData,
+      created_at: new Date().toISOString(),
+    };
+    setQuestions([...questions, newBlock]);
+    setSavedStatus("unsaved");
+  };
+
+  const handleSaveGeometry = (gData: GeometryConfigData) => {
+    if (editingGeomId) {
+      setQuestions((prev) =>
+        prev.map((q) => (q.id === editingGeomId ? { ...q, geometryData: gData } : q))
+      );
+      setSavedStatus("unsaved");
+      return;
+    }
+    const newBlock: DocItem = {
+      id: "geo-" + Date.now(),
+      exam_id: examId || "temp",
+      order_index: questions.length + 1,
+      type: "multiple_choice",
+      content: `Cho hình vẽ hình học sau (${gData.title || "Hình học"}):`,
+      options: {
+        A: "Khẳng định A đúng",
+        B: "Khẳng định B đúng",
+        C: "Khẳng định C đúng",
+        D: "Khẳng định D đúng",
+      },
+      correct_answer: "A",
+      explanation: "Áp dụng định lý và tính chất hình học tương ứng.",
+      blockType: "svg",
+      svgType: "geometry",
+      geometryData: gData,
+      created_at: new Date().toISOString(),
+    };
+    setQuestions([...questions, newBlock]);
+    setSavedStatus("unsaved");
+  };
 
   // Resizable sidebar drag listeners
   useEffect(() => {
@@ -270,6 +647,46 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
   const handleSelectSuggestion = (promptText: string) => {
     setAiPrompt(promptText);
     executeAiGenerate(promptText);
+  };
+
+  const handleResetFormatting = () => {
+    setIsBold(false);
+    setIsItalic(false);
+    setIsUnderline(false);
+    setIsStrikethrough(false);
+    setIsSuperscript(false);
+    setIsSubscript(false);
+    setIsBorderBox(false);
+    setTextColor("#0f172a");
+    setBgColor("transparent");
+    setTextAlign("left");
+    setLineSpacing("1.3");
+    setColumnCount(1);
+    setFontSize(15);
+    setFontFamily("Times New Roman");
+    setShowActiveMenu(null);
+    setActiveSubmenu(null);
+  };
+
+  const handleShowExamStats = () => {
+    const mcqCount = questions.filter(
+      (q) => !q.blockType || q.blockType === "question" || q.type === "multiple_choice"
+    ).length;
+    const tfCount = questions.filter((q) => q.blockType === "true_false" || q.type === "true_false").length;
+    const saCount = questions.filter((q) => q.blockType === "short_answer" || q.type === "short_answer").length;
+    const essayCount = questions.filter((q) => q.blockType === "essay" || q.type === "essay").length;
+
+    alert(
+      "📊 THỐNG KÊ ĐỀ THI HIỆN TẠI:\n" +
+      "------------------------------------\n" +
+      `• Tổng số khối / câu hỏi: ${questions.length}\n` +
+      `• Câu trắc nghiệm (MCQ): ${mcqCount}\n` +
+      `• Câu Đúng / Sai (Format 2025): ${tfCount}\n` +
+      `• Câu trả lời ngắn (Format 2025): ${saCount}\n` +
+      `• Câu tự luận: ${essayCount}\n` +
+      "------------------------------------\n" +
+      "• Thang điểm quy chuẩn: 10.0 điểm"
+    );
   };
 
   // Execute AI generation
@@ -621,32 +1038,227 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
     );
   };
 
-  // Handlers for "Chèn" Menu Features (Screenshots 1-5)
+  // Handlers for "Chèn" & "Chỉnh sửa" Menu Features
   const handleInsertFormula = (type: "math" | "chem") => {
-    const formula =
-      type === "math"
-        ? "$P = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$"
-        : "$\\text{2H}_2 + \\text{O}_2 \\xrightarrow{t^\\circ} \\text{2H}_2\\text{O}$";
-    const newQ: DocItem = {
+    setFormulaModalMode(type);
+    setFormulaModalInitialFormula("");
+    setFormulaModalDisplayMode("inline");
+    setIsFormulaModalOpen(true);
+    setShowActiveMenu(null);
+    setActiveSubmenu(null);
+  };
+
+  const handleSaveFormula = (
+    formulaLatex: string,
+    displayMode: "inline" | "block",
+    mode: "math" | "chem"
+  ) => {
+    if (!formulaLatex.trim()) return;
+
+    const formattedFormula =
+      displayMode === "inline" ? `$${formulaLatex}$` : `$$${formulaLatex}$$`;
+
+    // Case 1: If user was editing a question inline
+    if (editingQuestionId) {
+      setEditForm((prev) => ({
+        ...prev,
+        content: prev.content ? `${prev.content} ${formattedFormula}` : formattedFormula,
+      }));
+      return;
+    }
+
+    // Case 2: Standalone formula block
+    const newBlock: DocItem = {
       id: "formula-" + Date.now(),
       exam_id: examId || "temp",
       order_index: questions.length + 1,
-      type: "multiple_choice",
-      difficulty: "medium",
-      content: `Cho biểu thức sau: ${formula}. Hãy xác định tính đúng đắn của công thức khi áp dụng vào bài toán.`,
-      options: {
-        A: "Công thức hoàn toàn chính xác",
-        B: "Thiếu điều kiện xác định",
-        C: "Sai dấu ở mẫu số",
-        D: "Không áp dụng được",
-      },
-      correct_answer: "A",
-      explanation: `Áp dụng công thức ${formula} theo đúng quy tắc sách giáo khoa.`,
+      type: "formula",
+      blockType: "formula",
+      content: formattedFormula,
+      options: {},
       created_at: new Date().toISOString(),
     };
-    setQuestions([...questions, newQ]);
+
+    setQuestions([...questions, newBlock]);
+    setSavedStatus("unsaved");
+  };
+
+  const handleOpenFormulaModalForEdit = (q: DocItem) => {
+    let content = q.content || "";
+    let isBlock = false;
+    if (content.startsWith("$$") && content.endsWith("$$")) {
+      content = content.slice(2, -2).trim();
+      isBlock = true;
+    } else if (content.startsWith("$") && content.endsWith("$")) {
+      content = content.slice(1, -1).trim();
+    }
+    setEditingQuestionId(null);
+    setFormulaModalInitialFormula(content);
+    setFormulaModalDisplayMode(isBlock ? "block" : "inline");
+    setFormulaModalMode(
+      /hóa|hoá|acid|->|rightarrow|rightleftharpoons|\\text\{/i.test(content)
+        ? "chem"
+        : "math"
+    );
+    setIsFormulaModalOpen(true);
+  };
+
+  const handleCleanEmptySpaces = () => {
+    const cleaned = questions
+      .filter((q) => {
+        if (q.blockType && q.blockType !== "question") return true;
+        const hasContent = q.content && q.content.trim().length > 0;
+        const hasOpts =
+          q.options &&
+          Object.values(q.options).some(
+            (v) => typeof v === "string" && v.trim().length > 0
+          );
+        return hasContent || hasOpts;
+      })
+      .map((q, idx) => ({
+        ...q,
+        order_index: idx + 1,
+        content: (q.content || "").replace(/\n{3,}/g, "\n\n").trim(),
+      }));
+
+    const removed = questions.length - cleaned.length;
+    setQuestions(cleaned);
     setShowActiveMenu(null);
-    setActiveSubmenu(null);
+    alert(
+      `Đã dọn dẹp các đoạn trống thừa! ${
+        removed > 0 ? `Đã xoá ${removed} đoạn/khối trống.` : "Đề thi đã chuẩn định dạng."
+      }`
+    );
+  };
+
+  const handleSelectAll = () => {
+    setShowActiveMenu(null);
+    const allText = questions
+      .map((q, idx) => `Câu ${idx + 1}: ${q.content}`)
+      .join("\n\n");
+    navigator.clipboard?.writeText(allText).catch(() => {});
+    alert("Đã chọn và sao chép toàn bộ nội dung đề thi vào Clipboard!");
+  };
+
+  const handleFind = (query: string, direction: "next" | "prev") => {
+    if (!query.trim()) {
+      setSearchMatches([]);
+      setCurrentMatchIdx(0);
+      return;
+    }
+    const qLower = query.toLowerCase();
+    const matchedIndices: number[] = [];
+
+    questions.forEach((q, idx) => {
+      const textToSearch = [
+        q.content || "",
+        ...(q.options ? Object.values(q.options) : []),
+        q.explanation || "",
+        q.sectionTitle || "",
+        q.passageContent || "",
+        ...(q.trueFalseItems ? q.trueFalseItems.map((tf) => tf.statement) : []),
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      if (textToSearch.includes(qLower)) {
+        matchedIndices.push(idx);
+      }
+    });
+
+    setSearchMatches(matchedIndices);
+
+    if (matchedIndices.length > 0) {
+      let nextIdx = 0;
+      if (direction === "next") {
+        nextIdx = (currentMatchIdx + 1) % matchedIndices.length;
+      } else {
+        nextIdx = (currentMatchIdx - 1 + matchedIndices.length) % matchedIndices.length;
+      }
+      setCurrentMatchIdx(nextIdx);
+
+      const targetQIdx = matchedIndices[nextIdx];
+      const el = document.getElementById(`question-anchor-${targetQIdx}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    } else {
+      setCurrentMatchIdx(0);
+    }
+  };
+
+  const handleReplace = (query: string, replacement: string) => {
+    if (!query.trim() || searchMatches.length === 0) return;
+    const targetQIdx = searchMatches[currentMatchIdx];
+    const targetQ = questions[targetQIdx];
+    if (!targetQ) return;
+
+    const replaceInText = (str: string) => {
+      const reg = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi");
+      return str.replace(reg, replacement);
+    };
+
+    const updatedQ: DocItem = {
+      ...targetQ,
+      content: replaceInText(targetQ.content || ""),
+      explanation: targetQ.explanation ? replaceInText(targetQ.explanation) : targetQ.explanation,
+      sectionTitle: targetQ.sectionTitle ? replaceInText(targetQ.sectionTitle) : targetQ.sectionTitle,
+      passageContent: targetQ.passageContent ? replaceInText(targetQ.passageContent) : targetQ.passageContent,
+      options: targetQ.options
+        ? Object.fromEntries(
+            Object.entries(targetQ.options).map(([k, v]) => [
+              k,
+              typeof v === "string" ? replaceInText(v) : v,
+            ])
+          )
+        : targetQ.options,
+    };
+
+    const nextQuestions = [...questions];
+    nextQuestions[targetQIdx] = updatedQ;
+    setQuestions(nextQuestions);
+    setSavedStatus("unsaved");
+    handleFind(query, "next");
+  };
+
+  const handleReplaceAll = (query: string, replacement: string) => {
+    if (!query.trim()) return;
+    const replaceInText = (str: string) => {
+      const reg = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi");
+      return str.replace(reg, replacement);
+    };
+
+    let count = 0;
+    const nextQuestions = questions.map((q) => {
+      const textCombined = [
+        q.content || "",
+        ...(q.options ? Object.values(q.options) : []),
+        q.explanation || "",
+      ].join(" ");
+      if (textCombined.toLowerCase().includes(query.toLowerCase())) {
+        count++;
+      }
+      return {
+        ...q,
+        content: replaceInText(q.content || ""),
+        explanation: q.explanation ? replaceInText(q.explanation) : q.explanation,
+        sectionTitle: q.sectionTitle ? replaceInText(q.sectionTitle) : q.sectionTitle,
+        passageContent: q.passageContent ? replaceInText(q.passageContent) : q.passageContent,
+        options: q.options
+          ? Object.fromEntries(
+              Object.entries(q.options).map(([k, v]) => [
+                k,
+                typeof v === "string" ? replaceInText(v) : v,
+              ])
+            )
+          : q.options,
+      };
+    });
+
+    setQuestions(nextQuestions);
+    setSavedStatus("unsaved");
+    setSearchMatches([]);
+    alert(`Đã thay thế nội dung trong ${count} vị trí/câu hỏi.`);
   };
 
   const handleInsertTable = (rows: number, cols: number) => {
@@ -829,9 +1441,112 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
     setActiveSubmenu(null);
   };
 
-  const handleInsertContent = (contentType: "callout" | "dotted_lines" | "answer_sheet") => {
+  const handleInsertContent = (
+    contentType:
+      | "formula_block"
+      | "table"
+      | "rubric_table"
+      | "image"
+      | "variation_table"
+      | "function_graph"
+      | "chart"
+      | "geometry"
+      | "rubric_with_geometry"
+  ) => {
+    setShowActiveMenu(null);
+    setActiveSubmenu(null);
+
+    if (contentType === "formula_block") {
+      setFormulaModalMode("math");
+      setFormulaModalInitialFormula("");
+      setFormulaModalDisplayMode("block");
+      setIsFormulaModalOpen(true);
+      return;
+    }
+
+    if (contentType === "table") {
+      handleInsertTable(3, 4);
+      return;
+    }
+
+    if (contentType === "image") {
+      fileInputRef.current?.click();
+      return;
+    }
+
+    if (contentType === "variation_table") {
+      setEditingVarTableId(null);
+      setCurrentVarTableData(null);
+      setIsVarTableModalOpen(true);
+      return;
+    }
+
+    if (contentType === "function_graph") {
+      setEditingGraphId(null);
+      setCurrentGraphData(null);
+      setIsGraphModalOpen(true);
+      return;
+    }
+
+    if (contentType === "chart") {
+      setEditingChartId(null);
+      setCurrentChartData(null);
+      setIsChartModalOpen(true);
+      return;
+    }
+
+    if (contentType === "geometry") {
+      setEditingGeomId(null);
+      setCurrentGeomData(null);
+      setIsGeomModalOpen(true);
+      return;
+    }
+
     let newBlock: DocItem;
-    if (contentType === "callout") {
+    if (contentType === "rubric_table") {
+      newBlock = {
+        id: "rubric-" + Date.now(),
+        exam_id: examId || "temp",
+        order_index: questions.length + 1,
+        type: "essay",
+        content: "Bảng barem hướng dẫn chấm chi tiết:",
+        options: {},
+        blockType: "rubric_table",
+        tableRows: [
+          ["Ý / Câu", "Nội dung đáp án & Phương pháp giải", "Điểm"],
+          ["a)", "Viết đúng công thức / phương trình phản ứng", "0.25"],
+          ["b)", "Thay số, tính toán và giải thích chi tiết", "0.50"],
+          ["c)", "Kết luận và đối chiếu điều kiện", "0.25"],
+        ],
+        created_at: new Date().toISOString(),
+      };
+    } else {
+      // rubric_with_geometry
+      newBlock = {
+        id: "rubric-geo-" + Date.now(),
+        exam_id: examId || "temp",
+        order_index: questions.length + 1,
+        type: "essay",
+        content: "Bài toán hình học và biểu điểm chi tiết:",
+        options: {},
+        blockType: "rubric_with_geometry",
+        tableRows: [
+          ["Ý", "Nội dung chứng minh", "Điểm"],
+          ["1", "Vẽ hình đúng, chứng minh tam giác ABC đồng dạng với tam giác HBA", "0.50"],
+          ["2", "Suy ra hệ thức liên hệ cạnh và đường cao AH", "0.50"],
+        ],
+        created_at: new Date().toISOString(),
+      };
+    }
+
+    setQuestions([...questions, newBlock]);
+  };
+
+  const handleInsertLayout = (
+    layoutType: "two_columns" | "dotted_lines" | "callout" | "answer_sheet" | "divider" | "page_break"
+  ) => {
+    let newBlock: DocItem;
+    if (layoutType === "callout") {
       newBlock = {
         id: "call-" + Date.now(),
         exam_id: examId || "temp",
@@ -842,7 +1557,7 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
         blockType: "callout",
         created_at: new Date().toISOString(),
       };
-    } else if (contentType === "dotted_lines") {
+    } else if (layoutType === "dotted_lines") {
       newBlock = {
         id: "dot-" + Date.now(),
         exam_id: examId || "temp",
@@ -853,7 +1568,7 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
         blockType: "dotted_lines",
         created_at: new Date().toISOString(),
       };
-    } else {
+    } else if (layoutType === "answer_sheet") {
       newBlock = {
         id: "bubble-" + Date.now(),
         exam_id: examId || "temp",
@@ -864,23 +1579,30 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
         blockType: "bubble_sheet",
         created_at: new Date().toISOString(),
       };
+    } else if (layoutType === "two_columns") {
+      newBlock = {
+        id: "two-col-" + Date.now(),
+        exam_id: examId || "temp",
+        order_index: questions.length + 1,
+        type: "multiple_choice",
+        content: "CỘT TRÁI: Dữ liệu câu hỏi hoặc hình vẽ\n\nCỘT PHẢI: Yêu cầu bài toán và hướng dẫn",
+        options: {},
+        blockType: "header_custom",
+        headerType: "two_col",
+        created_at: new Date().toISOString(),
+      };
+    } else {
+      newBlock = {
+        id: "lay-" + Date.now(),
+        exam_id: examId || "temp",
+        order_index: questions.length + 1,
+        type: "multiple_choice",
+        content: "",
+        options: {},
+        blockType: layoutType,
+        created_at: new Date().toISOString(),
+      };
     }
-    setQuestions([...questions, newBlock]);
-    setShowActiveMenu(null);
-    setActiveSubmenu(null);
-  };
-
-  const handleInsertLayout = (layoutType: "divider" | "page_break") => {
-    const newBlock: DocItem = {
-      id: "lay-" + Date.now(),
-      exam_id: examId || "temp",
-      order_index: questions.length + 1,
-      type: "multiple_choice",
-      content: "",
-      options: {},
-      blockType: layoutType,
-      created_at: new Date().toISOString(),
-    };
     setQuestions([...questions, newBlock]);
     setShowActiveMenu(null);
     setActiveSubmenu(null);
@@ -1360,10 +2082,11 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
 
             {/* Menu options: Tệp, Chỉnh sửa, Xem, Chèn, Định dạng, Công cụ */}
             <div className="flex items-center gap-1 text-xs text-slate-600">
+              {/* 1. Tệp */}
               <div className="relative">
                 <button
                   onClick={() => setShowActiveMenu(showActiveMenu === "file" ? null : "file")}
-                  className="rounded px-2 py-0.5 hover:bg-slate-100"
+                  className={`rounded px-2 py-0.5 transition ${showActiveMenu === "file" ? "bg-slate-200 font-medium" : "hover:bg-slate-100"}`}
                 >
                   Tệp
                 </button>
@@ -1401,6 +2124,235 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
                 )}
               </div>
 
+              {/* 2. Chỉnh sửa */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowActiveMenu(showActiveMenu === "edit" ? null : "edit")}
+                  className={`rounded px-2 py-0.5 transition ${showActiveMenu === "edit" ? "bg-slate-200 font-medium" : "hover:bg-slate-100"}`}
+                >
+                  Chỉnh sửa
+                </button>
+                {showActiveMenu === "edit" && (
+                  <div
+                    onMouseLeave={() => setActiveSubmenu(null)}
+                    className="absolute left-0 top-full z-50 mt-1 w-56 rounded-lg border border-slate-200 bg-white py-1 shadow-xl text-slate-700 text-xs select-none"
+                  >
+                    <button
+                      onClick={() => {
+                        handleUndo();
+                        setShowActiveMenu(null);
+                      }}
+                      disabled={historyIndex <= 0}
+                      className={clsx(
+                        "flex w-full items-center justify-between px-3 py-1.5 text-left transition hover:bg-slate-50",
+                        historyIndex <= 0 && "opacity-40 cursor-not-allowed"
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Undo2 className="h-3.5 w-3.5" />
+                        <span>Hoàn tác</span>
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-mono">Ctrl+Z</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        handleRedo();
+                        setShowActiveMenu(null);
+                      }}
+                      disabled={historyIndex >= history.length - 1}
+                      className={clsx(
+                        "flex w-full items-center justify-between px-3 py-1.5 text-left transition hover:bg-slate-50",
+                        historyIndex >= history.length - 1 && "opacity-40 cursor-not-allowed"
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Redo2 className="h-3.5 w-3.5" />
+                        <span>Làm lại</span>
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-mono">Ctrl+Y</span>
+                    </button>
+
+                    <div className="my-1 border-t border-slate-100" />
+
+                    <button
+                      onClick={() => {
+                        handleSelectAll();
+                        setShowActiveMenu(null);
+                      }}
+                      className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-slate-50"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Check className="h-3.5 w-3.5 text-slate-500" />
+                        <span>Chọn tất cả</span>
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-mono">Ctrl+A</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setIsFindReplaceOpen(true);
+                        setFindReplaceMode("find");
+                        setShowActiveMenu(null);
+                      }}
+                      className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-slate-50"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Search className="h-3.5 w-3.5 text-slate-500" />
+                        <span>Tìm</span>
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-mono">Ctrl+F</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setIsFindReplaceOpen(true);
+                        setFindReplaceMode("replace");
+                        setShowActiveMenu(null);
+                      }}
+                      className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-slate-50"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Replace className="h-3.5 w-3.5 text-slate-500" />
+                        <span>Tìm và thay thế</span>
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-mono">Ctrl+H</span>
+                    </button>
+
+                    <div className="my-1 border-t border-slate-100" />
+
+                    <button
+                      onClick={() => {
+                        handleCleanEmptySpaces();
+                        setShowActiveMenu(null);
+                      }}
+                      className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-slate-700 hover:bg-slate-50"
+                    >
+                      <Trash2 className="h-3.5 w-3.5 text-slate-500" />
+                      <span>Xoá đoạn trống thừa</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* 3. Xem */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowActiveMenu(showActiveMenu === "view" ? null : "view")}
+                  className={`rounded px-2 py-0.5 transition ${showActiveMenu === "view" ? "bg-slate-200 font-medium" : "hover:bg-slate-100"}`}
+                >
+                  Xem
+                </button>
+                {showActiveMenu === "view" && (
+                  <div
+                    onMouseLeave={handleSubmenuLeave}
+                    className="absolute left-0 top-full z-50 mt-1 w-64 rounded-lg border border-slate-200 bg-white py-1 shadow-xl text-slate-700 text-xs select-none"
+                  >
+                    {/* Thu phóng Submenu */}
+                    <div
+                      className="relative"
+                      onMouseEnter={() => handleSubmenuHover("zoom")}
+                      onMouseLeave={handleSubmenuLeave}
+                    >
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleSubmenu("zoom");
+                        }}
+                        className={`flex w-full items-center justify-between px-3 py-1.5 cursor-pointer ${activeSubmenu === "zoom" ? "bg-slate-100 font-medium" : "hover:bg-slate-50"}`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Maximize2 className="h-3.5 w-3.5 text-slate-500" />
+                          <span>Thu phóng</span>
+                        </div>
+                        <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+                      </div>
+
+                      {activeSubmenu === "zoom" && (
+                        <div
+                          onMouseEnter={cancelSubmenuLeave}
+                          onMouseLeave={handleSubmenuLeave}
+                          className="absolute left-[calc(100%-2px)] top-0 z-50 w-44 rounded-lg border border-slate-200 bg-white py-1 shadow-xl before:absolute before:-left-3 before:top-0 before:bottom-0 before:w-4 before:content-['']"
+                        >
+                          <button
+                            onClick={() => {
+                              const availableW = window.innerWidth - (leftSidebarOpen ? leftWidth : 40) - (aiSidebarOpen ? rightWidth : 40) - 100;
+                              const fitZoom = Math.min(130, Math.max(65, Math.round((availableW / 820) * 100)));
+                              setZoom(fitZoom);
+                              setShowActiveMenu(null);
+                              setActiveSubmenu(null);
+                            }}
+                            className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-slate-50 font-medium text-slate-800"
+                          >
+                            <span>Vừa màn hình</span>
+                          </button>
+                          <div className="my-1 border-t border-slate-100" />
+                          {[50, 75, 90, 100, 125, 150, 200].map((z) => (
+                            <button
+                              key={z}
+                              onClick={() => {
+                                setZoom(z);
+                                setShowActiveMenu(null);
+                                setActiveSubmenu(null);
+                              }}
+                              className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-slate-50 text-slate-700"
+                            >
+                              <span>{z}%</span>
+                              {zoom === z && <Check className="h-3.5 w-3.5 text-blue-600" />}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="my-1 border-t border-slate-100" />
+
+                    <button
+                      onClick={() => {
+                        setShowRuler(!showRuler);
+                        setShowActiveMenu(null);
+                      }}
+                      className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-slate-50"
+                    >
+                      <div className="flex items-center gap-2">
+                        <SlidersHorizontal className="h-3.5 w-3.5 text-slate-500" />
+                        <span>Hiện thước kẻ</span>
+                      </div>
+                      {showRuler && <Check className="h-3.5 w-3.5 text-blue-600" />}
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setLeftSidebarOpen(!leftSidebarOpen);
+                        setShowActiveMenu(null);
+                      }}
+                      className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-slate-50"
+                    >
+                      <div className="flex items-center gap-2">
+                        <List className="h-3.5 w-3.5 text-slate-500" />
+                        <span>Hiện dàn ý và mẫu chèn</span>
+                      </div>
+                      {leftSidebarOpen && <Check className="h-3.5 w-3.5 text-blue-600" />}
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setAiSidebarOpen(!aiSidebarOpen);
+                        setShowActiveMenu(null);
+                      }}
+                      className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-slate-50"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="h-3.5 w-3.5 text-blue-600" />
+                        <span>Trợ lý AI</span>
+                      </div>
+                      {aiSidebarOpen && <Check className="h-3.5 w-3.5 text-blue-600" />}
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* 4. Chèn */}
               <div className="relative">
                 <button
                   onClick={() => setShowActiveMenu(showActiveMenu === "insert" ? null : "insert")}
@@ -1410,12 +2362,12 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
                 </button>
                 {showActiveMenu === "insert" && (
                   <div
-                    onMouseLeave={() => setActiveSubmenu(null)}
+                    onMouseLeave={handleSubmenuLeave}
                     className="absolute left-0 top-full z-50 mt-1 w-64 rounded-lg border border-slate-200 bg-white py-1 shadow-xl text-slate-700 text-xs select-none"
                   >
                     {/* 1. Công thức toán */}
                     <button
-                      onMouseEnter={() => setActiveSubmenu(null)}
+                      onMouseEnter={handleSubmenuLeave}
                       onClick={() => handleInsertFormula("math")}
                       className="flex w-full items-center gap-2.5 px-3 py-1.5 text-left hover:bg-slate-50"
                     >
@@ -1425,7 +2377,7 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
 
                     {/* 2. Công thức hoá học */}
                     <button
-                      onMouseEnter={() => setActiveSubmenu(null)}
+                      onMouseEnter={handleSubmenuLeave}
                       onClick={() => handleInsertFormula("chem")}
                       className="flex w-full items-center gap-2.5 px-3 py-1.5 text-left hover:bg-slate-50"
                     >
@@ -1438,9 +2390,16 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
                     {/* 3. Bảng > (Submenu with 8x8 Grid) */}
                     <div
                       className="relative"
-                      onMouseEnter={() => setActiveSubmenu("table")}
+                      onMouseEnter={() => handleSubmenuHover("table")}
+                      onMouseLeave={handleSubmenuLeave}
                     >
-                      <div className={`flex w-full items-center justify-between px-3 py-1.5 cursor-pointer ${activeSubmenu === "table" ? "bg-slate-100 font-medium" : "hover:bg-slate-50"}`}>
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleSubmenu("table");
+                        }}
+                        className={`flex w-full items-center justify-between px-3 py-1.5 cursor-pointer ${activeSubmenu === "table" ? "bg-slate-100 font-medium" : "hover:bg-slate-50"}`}
+                      >
                         <div className="flex items-center gap-2.5">
                           <TableIcon className="h-3.5 w-3.5 text-slate-600" />
                           <span>Bảng</span>
@@ -1449,7 +2408,11 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
                       </div>
 
                       {activeSubmenu === "table" && (
-                        <div className="absolute left-full top-0 ml-1 z-50 rounded-lg border border-slate-200 bg-white p-3 shadow-xl">
+                        <div
+                          onMouseEnter={cancelSubmenuLeave}
+                          onMouseLeave={handleSubmenuLeave}
+                          className="absolute left-[calc(100%-2px)] top-0 z-50 rounded-lg border border-slate-200 bg-white p-3 shadow-xl before:absolute before:-left-3 before:top-0 before:bottom-0 before:w-4 before:content-['']"
+                        >
                           <div className="grid grid-cols-8 gap-1">
                             {Array.from({ length: 8 }).map((_, rIdx) =>
                               Array.from({ length: 8 }).map((_, cIdx) => {
@@ -1498,7 +2461,7 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
 
                     {/* 4. Hình */}
                     <button
-                      onMouseEnter={() => setActiveSubmenu(null)}
+                      onMouseEnter={handleSubmenuLeave}
                       onClick={() => fileInputRef.current?.click()}
                       className="flex w-full items-center gap-2.5 px-3 py-1.5 text-left hover:bg-slate-50"
                     >
@@ -1511,9 +2474,16 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
                     {/* 5. Hình minh hoạ SVG > */}
                     <div
                       className="relative"
-                      onMouseEnter={() => setActiveSubmenu("svg")}
+                      onMouseEnter={() => handleSubmenuHover("svg")}
+                      onMouseLeave={handleSubmenuLeave}
                     >
-                      <div className={`flex w-full items-center justify-between px-3 py-1.5 cursor-pointer ${activeSubmenu === "svg" ? "bg-slate-100 font-medium" : "hover:bg-slate-50"}`}>
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleSubmenu("svg");
+                        }}
+                        className={`flex w-full items-center justify-between px-3 py-1.5 cursor-pointer ${activeSubmenu === "svg" ? "bg-slate-100 font-medium" : "hover:bg-slate-50"}`}
+                      >
                         <div className="flex items-center gap-2.5">
                           <LayoutGrid className="h-3.5 w-3.5 text-slate-600" />
                           <span>Hình minh hoạ SVG</span>
@@ -1522,7 +2492,11 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
                       </div>
 
                       {activeSubmenu === "svg" && (
-                        <div className="absolute left-full top-0 ml-1 z-50 w-56 rounded-lg border border-slate-200 bg-white py-1 shadow-xl">
+                        <div
+                          onMouseEnter={cancelSubmenuLeave}
+                          onMouseLeave={handleSubmenuLeave}
+                          className="absolute left-[calc(100%-2px)] top-0 z-50 w-56 rounded-lg border border-slate-200 bg-white py-1 shadow-xl before:absolute before:-left-3 before:top-0 before:bottom-0 before:w-4 before:content-['']"
+                        >
                           <button
                             onClick={() => handleInsertSvg("sheet_box")}
                             className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-slate-50"
@@ -1551,9 +2525,16 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
                     {/* 6. Đầu đề > */}
                     <div
                       className="relative"
-                      onMouseEnter={() => setActiveSubmenu("header")}
+                      onMouseEnter={() => handleSubmenuHover("header")}
+                      onMouseLeave={handleSubmenuLeave}
                     >
-                      <div className={`flex w-full items-center justify-between px-3 py-1.5 cursor-pointer ${activeSubmenu === "header" ? "bg-slate-100 font-medium" : "hover:bg-slate-50"}`}>
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleSubmenu("header");
+                        }}
+                        className={`flex w-full items-center justify-between px-3 py-1.5 cursor-pointer ${activeSubmenu === "header" ? "bg-slate-100 font-medium" : "hover:bg-slate-50"}`}
+                      >
                         <div className="flex items-center gap-2.5">
                           <Columns2 className="h-3.5 w-3.5 text-slate-600" />
                           <span>Đầu đề</span>
@@ -1562,7 +2543,11 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
                       </div>
 
                       {activeSubmenu === "header" && (
-                        <div className="absolute left-full top-0 ml-1 z-50 w-52 rounded-lg border border-slate-200 bg-white py-1 shadow-xl">
+                        <div
+                          onMouseEnter={cancelSubmenuLeave}
+                          onMouseLeave={handleSubmenuLeave}
+                          className="absolute left-[calc(100%-2px)] top-0 z-50 w-52 rounded-lg border border-slate-200 bg-white py-1 shadow-xl before:absolute before:-left-3 before:top-0 before:bottom-0 before:w-4 before:content-['']"
+                        >
                           <button
                             onClick={() => handleInsertHeader("two_col")}
                             className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-slate-50"
@@ -1598,9 +2583,16 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
                     {/* 7. Câu hỏi > */}
                     <div
                       className="relative"
-                      onMouseEnter={() => setActiveSubmenu("question")}
+                      onMouseEnter={() => handleSubmenuHover("question")}
+                      onMouseLeave={handleSubmenuLeave}
                     >
-                      <div className={`flex w-full items-center justify-between px-3 py-1.5 cursor-pointer ${activeSubmenu === "question" ? "bg-slate-100 font-medium" : "hover:bg-slate-50"}`}>
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleSubmenu("question");
+                        }}
+                        className={`flex w-full items-center justify-between px-3 py-1.5 cursor-pointer ${activeSubmenu === "question" ? "bg-slate-100 font-medium" : "hover:bg-slate-50"}`}
+                      >
                         <div className="flex items-center gap-2.5">
                           <FileText className="h-3.5 w-3.5 text-slate-600" />
                           <span>Câu hỏi</span>
@@ -1609,7 +2601,11 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
                       </div>
 
                       {activeSubmenu === "question" && (
-                        <div className="absolute left-full top-0 ml-1 z-50 w-72 rounded-lg border border-slate-200 bg-white py-1 shadow-xl">
+                        <div
+                          onMouseEnter={cancelSubmenuLeave}
+                          onMouseLeave={handleSubmenuLeave}
+                          className="absolute left-[calc(100%-2px)] top-0 z-50 w-72 rounded-lg border border-slate-200 bg-white py-1 shadow-xl before:absolute before:-left-3 before:top-0 before:bottom-0 before:w-4 before:content-['']"
+                        >
                           <button
                             onClick={() => handleInsertQuestionType("section_title")}
                             className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-slate-50"
@@ -1663,12 +2659,19 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
                       )}
                     </div>
 
-                    {/* 8. Nội dung > */}
+                    {/* 8. Nội dung > (Screenshot 5: 9 items) */}
                     <div
                       className="relative"
-                      onMouseEnter={() => setActiveSubmenu("content")}
+                      onMouseEnter={() => handleSubmenuHover("content")}
+                      onMouseLeave={handleSubmenuLeave}
                     >
-                      <div className={`flex w-full items-center justify-between px-3 py-1.5 cursor-pointer ${activeSubmenu === "content" ? "bg-slate-100 font-medium" : "hover:bg-slate-50"}`}>
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleSubmenu("content");
+                        }}
+                        className={`flex w-full items-center justify-between px-3 py-1.5 cursor-pointer ${activeSubmenu === "content" ? "bg-slate-100 font-medium" : "hover:bg-slate-50"}`}
+                      >
                         <div className="flex items-center gap-2.5">
                           <FileCode className="h-3.5 w-3.5 text-slate-600" />
                           <span>Nội dung</span>
@@ -1677,23 +2680,127 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
                       </div>
 
                       {activeSubmenu === "content" && (
-                        <div className="absolute left-full top-0 ml-1 z-50 w-64 rounded-lg border border-slate-200 bg-white py-1 shadow-xl">
+                        <div
+                          onMouseEnter={cancelSubmenuLeave}
+                          onMouseLeave={handleSubmenuLeave}
+                          className="absolute left-[calc(100%-2px)] top-0 z-50 w-60 rounded-lg border border-slate-200 bg-white py-1 shadow-xl before:absolute before:-left-3 before:top-0 before:bottom-0 before:w-4 before:content-['']"
+                        >
                           <button
-                            onClick={() => handleInsertContent("callout")}
+                            onClick={() => handleInsertContent("formula_block")}
                             className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-slate-50"
                           >
-                            <AlertCircle className="h-3.5 w-3.5 text-amber-500" />
-                            <span>Khung chú ý / Ghi chú</span>
+                            <span className="font-serif font-bold text-slate-700 w-4 text-center">∑</span>
+                            <span>Công thức riêng dòng</span>
                           </button>
                           <button
-                            onClick={() => handleInsertContent("dotted_lines")}
+                            onClick={() => handleInsertContent("table")}
+                            className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-slate-50"
+                          >
+                            <TableIcon className="h-3.5 w-3.5 text-slate-500" />
+                            <span>Bảng</span>
+                          </button>
+                          <button
+                            onClick={() => handleInsertContent("rubric_table")}
+                            className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-slate-50"
+                          >
+                            <FileSpreadsheet className="h-3.5 w-3.5 text-slate-500" />
+                            <span>Bảng barem</span>
+                          </button>
+                          <button
+                            onClick={() => handleInsertContent("image")}
+                            className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-slate-50"
+                          >
+                            <ImageIcon className="h-3.5 w-3.5 text-slate-500" />
+                            <span>Hình</span>
+                          </button>
+                          <button
+                            onClick={() => handleInsertContent("variation_table")}
+                            className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-slate-50"
+                          >
+                            <TrendingUp className="h-3.5 w-3.5 text-slate-500" />
+                            <span>Bảng biến thiên</span>
+                          </button>
+                          <button
+                            onClick={() => handleInsertContent("function_graph")}
+                            className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-slate-50"
+                          >
+                            <TrendingUp className="h-3.5 w-3.5 text-blue-600" />
+                            <span>Đồ thị hàm số</span>
+                          </button>
+                          <button
+                            onClick={() => handleInsertContent("chart")}
+                            className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-slate-50"
+                          >
+                            <BarChart3 className="h-3.5 w-3.5 text-slate-500" />
+                            <span>Biểu đồ</span>
+                          </button>
+                          <button
+                            onClick={() => handleInsertContent("geometry")}
+                            className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-slate-50"
+                          >
+                            <PenTool className="h-3.5 w-3.5 text-slate-500" />
+                            <span>Hình học</span>
+                          </button>
+                          <button
+                            onClick={() => handleInsertContent("rubric_with_geometry")}
+                            className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-slate-50"
+                          >
+                            <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
+                            <span>Barem có hình học</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 9. Bố cục > */}
+                    <div
+                      className="relative"
+                      onMouseEnter={() => handleSubmenuHover("layout")}
+                      onMouseLeave={handleSubmenuLeave}
+                    >
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleSubmenu("layout");
+                        }}
+                        className={`flex w-full items-center justify-between px-3 py-1.5 cursor-pointer ${activeSubmenu === "layout" ? "bg-slate-100 font-medium" : "hover:bg-slate-50"}`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <Columns2 className="h-3.5 w-3.5 text-slate-600" />
+                          <span>Bố cục</span>
+                        </div>
+                        <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+                      </div>
+
+                      {activeSubmenu === "layout" && (
+                        <div
+                          onMouseEnter={cancelSubmenuLeave}
+                          onMouseLeave={handleSubmenuLeave}
+                          className="absolute left-[calc(100%-2px)] top-0 z-50 w-64 rounded-lg border border-slate-200 bg-white py-1 shadow-xl before:absolute before:-left-3 before:top-0 before:bottom-0 before:w-4 before:content-['']"
+                        >
+                          <button
+                            onClick={() => handleInsertLayout("two_columns")}
+                            className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-slate-50"
+                          >
+                            <Columns2 className="h-3.5 w-3.5 text-slate-500" />
+                            <span>Chia 2 cột song song</span>
+                          </button>
+                          <button
+                            onClick={() => handleInsertLayout("dotted_lines")}
                             className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-slate-50"
                           >
                             <PenTool className="h-3.5 w-3.5 text-slate-500" />
                             <span>Dòng kẻ chấm (viết tự luận) ........</span>
                           </button>
                           <button
-                            onClick={() => handleInsertContent("answer_sheet")}
+                            onClick={() => handleInsertLayout("callout")}
+                            className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-slate-50"
+                          >
+                            <AlertCircle className="h-3.5 w-3.5 text-amber-500" />
+                            <span>Khung chú ý / Ghi chú</span>
+                          </button>
+                          <button
+                            onClick={() => handleInsertLayout("answer_sheet")}
                             className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-slate-50"
                           >
                             <CheckCircle2 className="h-3.5 w-3.5 text-slate-500" />
@@ -1703,54 +2810,11 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
                       )}
                     </div>
 
-                    {/* 9. Bố cục > */}
-                    <div
-                      className="relative"
-                      onMouseEnter={() => setActiveSubmenu("layout")}
-                    >
-                      <div className={`flex w-full items-center justify-between px-3 py-1.5 cursor-pointer ${activeSubmenu === "layout" ? "bg-slate-100 font-medium" : "hover:bg-slate-50"}`}>
-                        <div className="flex items-center gap-2.5">
-                          <Columns2 className="h-3.5 w-3.5 text-slate-600" />
-                          <span>Bố cục</span>
-                        </div>
-                        <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
-                      </div>
-
-                      {activeSubmenu === "layout" && (
-                        <div className="absolute left-full top-0 ml-1 z-50 w-56 rounded-lg border border-slate-200 bg-white py-1 shadow-xl">
-                          <button
-                            onClick={() => handleInsertLayout("divider")}
-                            className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-slate-50"
-                          >
-                            <Columns2 className="h-3.5 w-3.5 text-slate-500" />
-                            <span>Chia 2 cột song song</span>
-                          </button>
-                          <button
-                            onClick={() => handleInsertLayout("divider")}
-                            className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-slate-50"
-                          >
-                            <MinusIcon className="h-3.5 w-3.5 text-slate-500" />
-                            <span>Đường kẻ ngang</span>
-                          </button>
-                          <button
-                            onClick={() => handleInsertLayout("page_break")}
-                            className="flex w-full items-center justify-between px-3 py-1.5 text-left text-xs hover:bg-slate-50"
-                          >
-                            <div className="flex items-center gap-2">
-                              <SplitSquareVertical className="h-3.5 w-3.5 text-slate-500" />
-                              <span>Ngắt trang</span>
-                            </div>
-                            <span className="text-[10px] text-slate-400">Ctrl+↵</span>
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
                     <div className="my-1 border-t border-slate-100" />
 
                     {/* 10. Liên kết */}
                     <button
-                      onMouseEnter={() => setActiveSubmenu(null)}
+                      onMouseEnter={handleSubmenuLeave}
                       onClick={() => {
                         const url = prompt("Nhập liên kết URL:");
                         if (url) {
@@ -1772,7 +2836,7 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
 
                     {/* 11. Ngắt trang */}
                     <button
-                      onMouseEnter={() => setActiveSubmenu(null)}
+                      onMouseEnter={handleSubmenuLeave}
                       onClick={() => handleInsertLayout("page_break")}
                       className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-slate-50"
                     >
@@ -1785,7 +2849,7 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
 
                     {/* 12. Đường kẻ ngang */}
                     <button
-                      onMouseEnter={() => setActiveSubmenu(null)}
+                      onMouseEnter={handleSubmenuLeave}
                       onClick={() => handleInsertLayout("divider")}
                       className="flex w-full items-center gap-2.5 px-3 py-1.5 text-left hover:bg-slate-50"
                     >
@@ -1796,19 +2860,855 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
                 )}
               </div>
 
-              <button
-                onClick={() => setTeacherMode(!teacherMode)}
-                className="rounded px-2 py-0.5 hover:bg-slate-100"
-              >
-                {teacherMode ? "Xem bản giáo viên" : "Xem bản học sinh"}
-              </button>
+              {/* 5. Định dạng (Exact match with Screenshots 1 & 2) */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowActiveMenu(showActiveMenu === "format" ? null : "format")}
+                  className={`rounded px-2 py-0.5 transition ${showActiveMenu === "format" ? "bg-slate-200 font-medium" : "hover:bg-slate-100"}`}
+                >
+                  Định dạng
+                </button>
+                {showActiveMenu === "format" && (
+                  <div
+                    onMouseLeave={handleSubmenuLeave}
+                    className="absolute left-0 top-full z-50 mt-1 w-64 rounded-lg border border-slate-200 bg-white py-1 shadow-xl text-slate-700 text-xs select-none"
+                  >
+                    {/* 1. Aa Chữ > (Screenshot 2: 7 items) */}
+                    <div
+                      className="relative"
+                      onMouseEnter={() => handleSubmenuHover("fmt_text")}
+                      onMouseLeave={handleSubmenuLeave}
+                    >
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleSubmenu("fmt_text");
+                        }}
+                        className={`flex w-full items-center justify-between px-3 py-1.5 cursor-pointer ${activeSubmenu === "fmt_text" ? "bg-slate-100 font-medium" : "hover:bg-slate-50"}`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <span className="font-bold font-serif text-slate-700 w-4 text-center">Aa</span>
+                          <span>Chữ</span>
+                        </div>
+                        <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+                      </div>
 
-              <button
-                onClick={handleShuffleQuestions}
-                className="rounded px-2 py-0.5 hover:bg-slate-100"
-              >
-                Trộn đề
-              </button>
+                      {activeSubmenu === "fmt_text" && (
+                        <div
+                          onMouseEnter={cancelSubmenuLeave}
+                          onMouseLeave={handleSubmenuLeave}
+                          className="absolute left-[calc(100%-2px)] top-0 z-50 w-56 rounded-lg border border-slate-200 bg-white py-1 shadow-xl before:absolute before:-left-3 before:top-0 before:bottom-0 before:w-4 before:content-['']"
+                        >
+                          <button
+                            onClick={() => setIsBold(!isBold)}
+                            className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-slate-50"
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <span className="font-bold w-4 text-center">B</span>
+                              <span>Đậm</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              {isBold && <Check className="h-3 w-3 text-blue-600" />}
+                              <span className="text-[10px] text-slate-400 font-mono">Ctrl+B</span>
+                            </div>
+                          </button>
+
+                          <button
+                            onClick={() => setIsItalic(!isItalic)}
+                            className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-slate-50"
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <span className="italic font-serif font-bold w-4 text-center">I</span>
+                              <span>Nghiêng</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              {isItalic && <Check className="h-3 w-3 text-blue-600" />}
+                              <span className="text-[10px] text-slate-400 font-mono">Ctrl+I</span>
+                            </div>
+                          </button>
+
+                          <button
+                            onClick={() => setIsUnderline(!isUnderline)}
+                            className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-slate-50"
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <span className="underline font-bold w-4 text-center">U</span>
+                              <span>Gạch chân</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              {isUnderline && <Check className="h-3 w-3 text-blue-600" />}
+                              <span className="text-[10px] text-slate-400 font-mono">Ctrl+U</span>
+                            </div>
+                          </button>
+
+                          <button
+                            onClick={() => setIsStrikethrough(!isStrikethrough)}
+                            className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-slate-50"
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <span className="line-through font-bold w-4 text-center">S</span>
+                              <span>Gạch ngang</span>
+                            </div>
+                            {isStrikethrough && <Check className="h-3 w-3 text-blue-600" />}
+                          </button>
+
+                          <button
+                            onClick={() => setIsSuperscript(!isSuperscript)}
+                            className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-slate-50"
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <span className="font-mono text-xs font-bold w-4 text-center">x²</span>
+                              <span>Chỉ số trên</span>
+                            </div>
+                            {isSuperscript && <Check className="h-3 w-3 text-blue-600" />}
+                          </button>
+
+                          <button
+                            onClick={() => setIsSubscript(!isSubscript)}
+                            className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-slate-50"
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <span className="font-mono text-xs font-bold w-4 text-center">x₂</span>
+                              <span>Chỉ số dưới</span>
+                            </div>
+                            {isSubscript && <Check className="h-3 w-3 text-blue-600" />}
+                          </button>
+
+                          <div className="my-1 border-t border-slate-100" />
+
+                          <button
+                            onClick={() => setIsBorderBox(!isBorderBox)}
+                            className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-slate-50"
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <Square className="h-3.5 w-3.5 text-slate-500" />
+                              <span>Đóng khung</span>
+                            </div>
+                            {isBorderBox && <Check className="h-3 w-3 text-blue-600" />}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 2. Aa Phông chữ > */}
+                    <div
+                      className="relative"
+                      onMouseEnter={() => handleSubmenuHover("fmt_font")}
+                      onMouseLeave={handleSubmenuLeave}
+                    >
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleSubmenu("fmt_font");
+                        }}
+                        className={`flex w-full items-center justify-between px-3 py-1.5 cursor-pointer ${activeSubmenu === "fmt_font" ? "bg-slate-100 font-medium" : "hover:bg-slate-50"}`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <Type className="h-3.5 w-3.5 text-slate-500" />
+                          <span>Phông chữ</span>
+                        </div>
+                        <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+                      </div>
+
+                      {activeSubmenu === "fmt_font" && (
+                        <div
+                          onMouseEnter={cancelSubmenuLeave}
+                          onMouseLeave={handleSubmenuLeave}
+                          className="absolute left-[calc(100%-2px)] top-0 z-50 w-52 rounded-lg border border-slate-200 bg-white py-1 shadow-xl before:absolute before:-left-3 before:top-0 before:bottom-0 before:w-4 before:content-['']"
+                        >
+                          {["Times New Roman", "Arial", "Calibri", "Roboto"].map((fn) => (
+                            <button
+                              key={fn}
+                              onClick={() => {
+                                setFontFamily(fn);
+                                setShowActiveMenu(null);
+                              }}
+                              className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-slate-50"
+                            >
+                              <span style={{ fontFamily: fn }}>{fn}</span>
+                              {fontFamily === fn && <Check className="h-3 w-3 text-blue-600" />}
+                            </button>
+                          ))}
+                          <div className="my-1 border-t border-slate-100" />
+                          <div className="px-3 py-1 text-[11px] font-semibold text-slate-400 uppercase">
+                            Cỡ chữ nhanh
+                          </div>
+                          <div className="grid grid-cols-4 gap-1 px-3 py-1">
+                            {[12, 13, 14, 15, 16, 18, 20, 24].map((sz) => (
+                              <button
+                                key={sz}
+                                onClick={() => {
+                                  setFontSize(sz);
+                                  setShowActiveMenu(null);
+                                }}
+                                className={`rounded py-1 text-center font-mono font-medium hover:bg-blue-50 hover:text-blue-600 ${fontSize === sz ? "bg-blue-100 text-blue-700 font-bold" : "bg-slate-50"}`}
+                              >
+                                {sz}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 3. Màu chữ > */}
+                    <div
+                      className="relative"
+                      onMouseEnter={() => handleSubmenuHover("fmt_color")}
+                      onMouseLeave={handleSubmenuLeave}
+                    >
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleSubmenu("fmt_color");
+                        }}
+                        className={`flex w-full items-center justify-between px-3 py-1.5 cursor-pointer ${activeSubmenu === "fmt_color" ? "bg-slate-100 font-medium" : "hover:bg-slate-50"}`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <Palette className="h-3.5 w-3.5 text-slate-500" />
+                          <span>Màu chữ</span>
+                        </div>
+                        <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+                      </div>
+
+                      {activeSubmenu === "fmt_color" && (
+                        <div
+                          onMouseEnter={cancelSubmenuLeave}
+                          onMouseLeave={handleSubmenuLeave}
+                          className="absolute left-[calc(100%-2px)] top-0 z-50 w-44 rounded-lg border border-slate-200 bg-white py-2 shadow-xl before:absolute before:-left-3 before:top-0 before:bottom-0 before:w-4 before:content-['']"
+                        >
+                          <div className="grid grid-cols-5 gap-2 px-3 py-1">
+                            {[
+                              { label: "Đen", hex: "#0f172a" },
+                              { label: "Đỏ", hex: "#dc2626" },
+                              { label: "Xanh lam", hex: "#2563eb" },
+                              { label: "Xanh lục", hex: "#16a34a" },
+                              { label: "Tím", hex: "#9333ea" },
+                              { label: "Cam", hex: "#ea580c" },
+                              { label: "Xám", hex: "#64748b" },
+                              { label: "Vàng", hex: "#eab308" },
+                              { label: "Hồng", hex: "#ec4899" },
+                              { label: "Xanh ngọc", hex: "#06b6d4" },
+                            ].map((c) => (
+                              <button
+                                key={c.hex}
+                                onClick={() => {
+                                  setTextColor(c.hex);
+                                  setShowActiveMenu(null);
+                                }}
+                                title={c.label}
+                                className="h-6 w-6 rounded-full border border-slate-300 shadow-sm transition hover:scale-110"
+                                style={{ backgroundColor: c.hex }}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 4. Màu nền chữ > */}
+                    <div
+                      className="relative"
+                      onMouseEnter={() => handleSubmenuHover("fmt_bgcolor")}
+                      onMouseLeave={handleSubmenuLeave}
+                    >
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleSubmenu("fmt_bgcolor");
+                        }}
+                        className={`flex w-full items-center justify-between px-3 py-1.5 cursor-pointer ${activeSubmenu === "fmt_bgcolor" ? "bg-slate-100 font-medium" : "hover:bg-slate-50"}`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <Highlighter className="h-3.5 w-3.5 text-amber-500" />
+                          <span>Màu nền chữ</span>
+                        </div>
+                        <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+                      </div>
+
+                      {activeSubmenu === "fmt_bgcolor" && (
+                        <div
+                          onMouseEnter={cancelSubmenuLeave}
+                          onMouseLeave={handleSubmenuLeave}
+                          className="absolute left-[calc(100%-2px)] top-0 z-50 w-44 rounded-lg border border-slate-200 bg-white py-2 shadow-xl before:absolute before:-left-3 before:top-0 before:bottom-0 before:w-4 before:content-['']"
+                        >
+                          <button
+                            onClick={() => {
+                              setBgColor("transparent");
+                              setShowActiveMenu(null);
+                            }}
+                            className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-slate-50"
+                          >
+                            <RotateCcw className="h-3 w-3 text-slate-400" />
+                            <span>Không màu</span>
+                          </button>
+                          <div className="my-1 border-t border-slate-100" />
+                          <div className="grid grid-cols-5 gap-2 px-3 py-1">
+                            {[
+                              { label: "Vàng dạ quang", hex: "#fef08a" },
+                              { label: "Xanh lục nhạt", hex: "#bbf7d0" },
+                              { label: "Xanh lam nhạt", hex: "#bfdbfe" },
+                              { label: "Hồng nhạt", hex: "#fbcfe8" },
+                              { label: "Cam nhạt", hex: "#fed7aa" },
+                            ].map((c) => (
+                              <button
+                                key={c.hex}
+                                onClick={() => {
+                                  setBgColor(c.hex);
+                                  setShowActiveMenu(null);
+                                }}
+                                title={c.label}
+                                className="h-6 w-6 rounded border border-slate-300 shadow-sm transition hover:scale-110"
+                                style={{ backgroundColor: c.hex }}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 5. Kiểu đoạn > */}
+                    <div
+                      className="relative"
+                      onMouseEnter={() => handleSubmenuHover("fmt_style")}
+                      onMouseLeave={handleSubmenuLeave}
+                    >
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleSubmenu("fmt_style");
+                        }}
+                        className={`flex w-full items-center justify-between px-3 py-1.5 cursor-pointer ${activeSubmenu === "fmt_style" ? "bg-slate-100 font-medium" : "hover:bg-slate-50"}`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <span className="font-bold w-4 text-center">T</span>
+                          <span>Kiểu đoạn</span>
+                        </div>
+                        <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+                      </div>
+
+                      {activeSubmenu === "fmt_style" && (
+                        <div
+                          onMouseEnter={cancelSubmenuLeave}
+                          onMouseLeave={handleSubmenuLeave}
+                          className="absolute left-[calc(100%-2px)] top-0 z-50 w-52 rounded-lg border border-slate-200 bg-white py-1 shadow-xl before:absolute before:-left-3 before:top-0 before:bottom-0 before:w-4 before:content-['']"
+                        >
+                          <button
+                            onClick={() => {
+                              setFontSize(15);
+                              setIsBold(false);
+                              setShowActiveMenu(null);
+                            }}
+                            className="flex w-full items-center px-3 py-1.5 text-left hover:bg-slate-50"
+                          >
+                            <span>Văn bản thường</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setFontSize(18);
+                              setIsBold(true);
+                              setShowActiveMenu(null);
+                            }}
+                            className="flex w-full items-center px-3 py-1.5 text-left font-bold text-sm hover:bg-slate-50"
+                          >
+                            <span>Tiêu đề 1 (Lớn)</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setFontSize(16);
+                              setIsBold(true);
+                              setShowActiveMenu(null);
+                            }}
+                            className="flex w-full items-center px-3 py-1.5 text-left font-bold text-xs hover:bg-slate-50"
+                          >
+                            <span>Tiêu đề 2 (Vừa)</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setFontSize(14);
+                              setIsBold(true);
+                              setShowActiveMenu(null);
+                            }}
+                            className="flex w-full items-center px-3 py-1.5 text-left font-semibold text-xs hover:bg-slate-50"
+                          >
+                            <span>Tiêu đề 3 (Nhỏ)</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 6. Căn lề > */}
+                    <div
+                      className="relative"
+                      onMouseEnter={() => handleSubmenuHover("fmt_align")}
+                      onMouseLeave={handleSubmenuLeave}
+                    >
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleSubmenu("fmt_align");
+                        }}
+                        className={`flex w-full items-center justify-between px-3 py-1.5 cursor-pointer ${activeSubmenu === "fmt_align" ? "bg-slate-100 font-medium" : "hover:bg-slate-50"}`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <AlignLeft className="h-3.5 w-3.5 text-slate-500" />
+                          <span>Căn lề</span>
+                        </div>
+                        <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+                      </div>
+
+                      {activeSubmenu === "fmt_align" && (
+                        <div
+                          onMouseEnter={cancelSubmenuLeave}
+                          onMouseLeave={handleSubmenuLeave}
+                          className="absolute left-[calc(100%-2px)] top-0 z-50 w-52 rounded-lg border border-slate-200 bg-white py-1 shadow-xl before:absolute before:-left-3 before:top-0 before:bottom-0 before:w-4 before:content-['']"
+                        >
+                          <button
+                            onClick={() => {
+                              setTextAlign("left");
+                              setShowActiveMenu(null);
+                            }}
+                            className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-slate-50"
+                          >
+                            <div className="flex items-center gap-2">
+                              <AlignLeft className="h-3.5 w-3.5 text-slate-500" />
+                              <span>Căn trái</span>
+                            </div>
+                            <span className="text-[10px] text-slate-400 font-mono">Ctrl+L</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setTextAlign("center");
+                              setShowActiveMenu(null);
+                            }}
+                            className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-slate-50"
+                          >
+                            <div className="flex items-center gap-2">
+                              <AlignCenter className="h-3.5 w-3.5 text-slate-500" />
+                              <span>Căn giữa</span>
+                            </div>
+                            <span className="text-[10px] text-slate-400 font-mono">Ctrl+E</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setTextAlign("right");
+                              setShowActiveMenu(null);
+                            }}
+                            className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-slate-50"
+                          >
+                            <div className="flex items-center gap-2">
+                              <AlignRight className="h-3.5 w-3.5 text-slate-500" />
+                              <span>Căn phải</span>
+                            </div>
+                            <span className="text-[10px] text-slate-400 font-mono">Ctrl+R</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setTextAlign("justify");
+                              setShowActiveMenu(null);
+                            }}
+                            className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-slate-50"
+                          >
+                            <div className="flex items-center gap-2">
+                              <AlignJustify className="h-3.5 w-3.5 text-slate-500" />
+                              <span>Căn đều 2 bên</span>
+                            </div>
+                            <span className="text-[10px] text-slate-400 font-mono">Ctrl+J</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 7. Giãn dòng > */}
+                    <div
+                      className="relative"
+                      onMouseEnter={() => handleSubmenuHover("fmt_spacing")}
+                      onMouseLeave={handleSubmenuLeave}
+                    >
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleSubmenu("fmt_spacing");
+                        }}
+                        className={`flex w-full items-center justify-between px-3 py-1.5 cursor-pointer ${activeSubmenu === "fmt_spacing" ? "bg-slate-100 font-medium" : "hover:bg-slate-50"}`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <MoveVertical className="h-3.5 w-3.5 text-slate-500" />
+                          <span>Giãn dòng</span>
+                        </div>
+                        <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+                      </div>
+
+                      {activeSubmenu === "fmt_spacing" && (
+                        <div
+                          onMouseEnter={cancelSubmenuLeave}
+                          onMouseLeave={handleSubmenuLeave}
+                          className="absolute left-[calc(100%-2px)] top-0 z-50 w-44 rounded-lg border border-slate-200 bg-white py-1 shadow-xl before:absolute before:-left-3 before:top-0 before:bottom-0 before:w-4 before:content-['']"
+                        >
+                          {["1.0", "1.15", "1.3", "1.5", "2.0"].map((sp) => (
+                            <button
+                              key={sp}
+                              onClick={() => {
+                                setLineSpacing(sp);
+                                setShowActiveMenu(null);
+                              }}
+                              className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-slate-50"
+                            >
+                              <span>{sp} {sp === "1.15" ? "(Chuẩn)" : sp === "1.0" ? "(Đơn)" : sp === "2.0" ? "(Đôi)" : ""}</span>
+                              {lineSpacing === sp && <Check className="h-3 w-3 text-blue-600" />}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 8. Khoảng cách đoạn > */}
+                    <div
+                      className="relative"
+                      onMouseEnter={() => handleSubmenuHover("fmt_paraspacing")}
+                      onMouseLeave={handleSubmenuLeave}
+                    >
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleSubmenu("fmt_paraspacing");
+                        }}
+                        className={`flex w-full items-center justify-between px-3 py-1.5 cursor-pointer ${activeSubmenu === "fmt_paraspacing" ? "bg-slate-100 font-medium" : "hover:bg-slate-50"}`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <ArrowUpDown className="h-3.5 w-3.5 text-slate-500" />
+                          <span>Khoảng cách đoạn</span>
+                        </div>
+                        <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+                      </div>
+
+                      {activeSubmenu === "fmt_paraspacing" && (
+                        <div
+                          onMouseEnter={cancelSubmenuLeave}
+                          onMouseLeave={handleSubmenuLeave}
+                          className="absolute left-[calc(100%-2px)] top-0 z-50 w-56 rounded-lg border border-slate-200 bg-white py-1 shadow-xl before:absolute before:-left-3 before:top-0 before:bottom-0 before:w-4 before:content-['']"
+                        >
+                          <button
+                            onClick={() => {
+                              handleCleanEmptySpaces();
+                              setShowActiveMenu(null);
+                            }}
+                            className="flex w-full items-center px-3 py-1.5 text-left hover:bg-slate-50"
+                          >
+                            <span>Thêm khoảng trống trước đoạn</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              handleCleanEmptySpaces();
+                              setShowActiveMenu(null);
+                            }}
+                            className="flex w-full items-center px-3 py-1.5 text-left hover:bg-slate-50"
+                          >
+                            <span>Thêm khoảng trống sau đoạn</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              handleCleanEmptySpaces();
+                              setShowActiveMenu(null);
+                            }}
+                            className="flex w-full items-center px-3 py-1.5 text-left hover:bg-slate-50 text-blue-600 font-medium"
+                          >
+                            <span>Xoá khoảng trống thừa</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 9. Thụt lề > */}
+                    <div
+                      className="relative"
+                      onMouseEnter={() => handleSubmenuHover("fmt_indent")}
+                      onMouseLeave={handleSubmenuLeave}
+                    >
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleSubmenu("fmt_indent");
+                        }}
+                        className={`flex w-full items-center justify-between px-3 py-1.5 cursor-pointer ${activeSubmenu === "fmt_indent" ? "bg-slate-100 font-medium" : "hover:bg-slate-50"}`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <Indent className="h-3.5 w-3.5 text-slate-500" />
+                          <span>Thụt lề</span>
+                        </div>
+                        <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+                      </div>
+
+                      {activeSubmenu === "fmt_indent" && (
+                        <div
+                          onMouseEnter={cancelSubmenuLeave}
+                          onMouseLeave={handleSubmenuLeave}
+                          className="absolute left-[calc(100%-2px)] top-0 z-50 w-56 rounded-lg border border-slate-200 bg-white py-1 shadow-xl before:absolute before:-left-3 before:top-0 before:bottom-0 before:w-4 before:content-['']"
+                        >
+                          <button
+                            onClick={() => setShowActiveMenu(null)}
+                            className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-slate-50"
+                          >
+                            <Indent className="h-3.5 w-3.5 text-slate-500" />
+                            <span>Tăng thụt lề</span>
+                          </button>
+                          <button
+                            onClick={() => setShowActiveMenu(null)}
+                            className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-slate-50"
+                          >
+                            <Outdent className="h-3.5 w-3.5 text-slate-500" />
+                            <span>Giảm thụt lề</span>
+                          </button>
+                          <button
+                            onClick={() => setShowActiveMenu(null)}
+                            className="flex w-full items-center px-3 py-1.5 text-left hover:bg-slate-50 text-blue-600"
+                          >
+                            <span>Thụt lề dòng đầu (1.27 cm)</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 10. Dấu đầu dòng và đánh số > */}
+                    <div
+                      className="relative"
+                      onMouseEnter={() => handleSubmenuHover("fmt_bullets")}
+                      onMouseLeave={handleSubmenuLeave}
+                    >
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleSubmenu("fmt_bullets");
+                        }}
+                        className={`flex w-full items-center justify-between px-3 py-1.5 cursor-pointer ${activeSubmenu === "fmt_bullets" ? "bg-slate-100 font-medium" : "hover:bg-slate-50"}`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <ListOrdered className="h-3.5 w-3.5 text-slate-500" />
+                          <span>Dấu đầu dòng và đánh số</span>
+                        </div>
+                        <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+                      </div>
+
+                      {activeSubmenu === "fmt_bullets" && (
+                        <div
+                          onMouseEnter={cancelSubmenuLeave}
+                          onMouseLeave={handleSubmenuLeave}
+                          className="absolute left-[calc(100%-2px)] top-0 z-50 w-52 rounded-lg border border-slate-200 bg-white py-1 shadow-xl before:absolute before:-left-3 before:top-0 before:bottom-0 before:w-4 before:content-['']"
+                        >
+                          <button onClick={() => setShowActiveMenu(null)} className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-slate-50">
+                            <span className="w-4 text-center font-bold">•</span>
+                            <span>Danh sách chấm tròn</span>
+                          </button>
+                          <button onClick={() => setShowActiveMenu(null)} className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-slate-50">
+                            <span className="w-4 text-center font-bold">1.</span>
+                            <span>Danh sách số (1, 2, 3...)</span>
+                          </button>
+                          <button onClick={() => setShowActiveMenu(null)} className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-slate-50">
+                            <span className="w-4 text-center font-bold">a)</span>
+                            <span>Danh sách chữ (a, b, c...)</span>
+                          </button>
+                          <button onClick={() => setShowActiveMenu(null)} className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-slate-50">
+                            <span className="w-4 text-center font-bold">I.</span>
+                            <span>Số La Mã (I, II, III...)</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 11. Định dạng đoạn, viền và màu nền */}
+                    <button
+                      onClick={() => {
+                        setIsBorderBox(!isBorderBox);
+                        setShowActiveMenu(null);
+                      }}
+                      className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-slate-50"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Square className="h-3.5 w-3.5 text-slate-500" />
+                        <span>Định dạng đoạn, viền và màu nền</span>
+                      </div>
+                      {isBorderBox && <Check className="h-3 w-3 text-blue-600" />}
+                    </button>
+
+                    {/* 12. Cột > */}
+                    <div
+                      className="relative"
+                      onMouseEnter={() => handleSubmenuHover("fmt_columns")}
+                      onMouseLeave={handleSubmenuLeave}
+                    >
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleSubmenu("fmt_columns");
+                        }}
+                        className={`flex w-full items-center justify-between px-3 py-1.5 cursor-pointer ${activeSubmenu === "fmt_columns" ? "bg-slate-100 font-medium" : "hover:bg-slate-50"}`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <ColumnsIcon className="h-3.5 w-3.5 text-slate-500" />
+                          <span>Cột</span>
+                        </div>
+                        <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+                      </div>
+
+                      {activeSubmenu === "fmt_columns" && (
+                        <div
+                          onMouseEnter={cancelSubmenuLeave}
+                          onMouseLeave={handleSubmenuLeave}
+                          className="absolute left-[calc(100%-2px)] top-0 z-50 w-48 rounded-lg border border-slate-200 bg-white py-1 shadow-xl before:absolute before:-left-3 before:top-0 before:bottom-0 before:w-4 before:content-['']"
+                        >
+                          <button
+                            onClick={() => {
+                              setColumnCount(1);
+                              setShowActiveMenu(null);
+                            }}
+                            className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-slate-50"
+                          >
+                            <span>1 cột (Mặc định)</span>
+                            {columnCount === 1 && <Check className="h-3 w-3 text-blue-600" />}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setColumnCount(2);
+                              setShowActiveMenu(null);
+                            }}
+                            className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-slate-50"
+                          >
+                            <span>2 cột song song</span>
+                            {columnCount === 2 && <Check className="h-3 w-3 text-blue-600" />}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setColumnCount(3);
+                              setShowActiveMenu(null);
+                            }}
+                            className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-slate-50"
+                          >
+                            <span>3 cột</span>
+                            {columnCount === 3 && <Check className="h-3 w-3 text-blue-600" />}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 13. Bảng > */}
+                    <div
+                      className="relative"
+                      onMouseEnter={() => handleSubmenuHover("fmt_table")}
+                      onMouseLeave={handleSubmenuLeave}
+                    >
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleSubmenu("fmt_table");
+                        }}
+                        className={`flex w-full items-center justify-between px-3 py-1.5 cursor-pointer ${activeSubmenu === "fmt_table" ? "bg-slate-100 font-medium" : "hover:bg-slate-50"}`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <TableIcon className="h-3.5 w-3.5 text-slate-500" />
+                          <span>Bảng</span>
+                        </div>
+                        <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+                      </div>
+
+                      {activeSubmenu === "fmt_table" && (
+                        <div
+                          onMouseEnter={cancelSubmenuLeave}
+                          onMouseLeave={handleSubmenuLeave}
+                          className="absolute left-[calc(100%-2px)] top-0 z-50 w-52 rounded-lg border border-slate-200 bg-white py-1 shadow-xl before:absolute before:-left-3 before:top-0 before:bottom-0 before:w-4 before:content-['']"
+                        >
+                          <button onClick={() => setShowActiveMenu(null)} className="flex w-full items-center px-3 py-1.5 text-left hover:bg-slate-50">
+                            <span>Chèn hàng phía trên</span>
+                          </button>
+                          <button onClick={() => setShowActiveMenu(null)} className="flex w-full items-center px-3 py-1.5 text-left hover:bg-slate-50">
+                            <span>Chèn hàng phía dưới</span>
+                          </button>
+                          <button onClick={() => setShowActiveMenu(null)} className="flex w-full items-center px-3 py-1.5 text-left hover:bg-slate-50">
+                            <span>Chèn cột bên trái</span>
+                          </button>
+                          <button onClick={() => setShowActiveMenu(null)} className="flex w-full items-center px-3 py-1.5 text-left hover:bg-slate-50">
+                            <span>Chèn cột bên phải</span>
+                          </button>
+                          <div className="my-1 border-t border-slate-100" />
+                          <button onClick={() => setShowActiveMenu(null)} className="flex w-full items-center px-3 py-1.5 text-left text-red-600 hover:bg-red-50">
+                            <span>Xoá hàng / cột</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="my-1 border-t border-slate-100" />
+
+                    {/* 14. Xoá định dạng (Ctrl+) */}
+                    <button
+                      onClick={handleResetFormatting}
+                      className="flex w-full items-center justify-between px-3 py-1.5 text-left text-slate-700 hover:bg-slate-50"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <RotateCcw className="h-3.5 w-3.5 text-slate-500" />
+                        <span>Xoá định dạng</span>
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-mono">Ctrl+\\</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* 6. Công cụ */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowActiveMenu(showActiveMenu === "tools" ? null : "tools")}
+                  className={`rounded px-2 py-0.5 transition ${showActiveMenu === "tools" ? "bg-slate-200 font-medium" : "hover:bg-slate-100"}`}
+                >
+                  Công cụ
+                </button>
+                {showActiveMenu === "tools" && (
+                  <div
+                    onMouseLeave={() => setActiveSubmenu(null)}
+                    className="absolute left-0 top-full z-50 mt-1 w-64 rounded-lg border border-slate-200 bg-white py-1 shadow-xl text-slate-700 text-xs select-none"
+                  >
+                    <button
+                      onClick={() => {
+                        handleShuffleQuestions();
+                        setShowActiveMenu(null);
+                      }}
+                      className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-slate-50"
+                    >
+                      <Shuffle className="h-3.5 w-3.5 text-blue-600" />
+                      <span>Trộn đề ngẫu nhiên</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setTeacherMode(!teacherMode);
+                        setShowActiveMenu(null);
+                      }}
+                      className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-slate-50"
+                    >
+                      <div className="flex items-center gap-2">
+                        {teacherMode ? (
+                          <EyeOff className="h-3.5 w-3.5 text-slate-500" />
+                        ) : (
+                          <Eye className="h-3.5 w-3.5 text-blue-600" />
+                        )}
+                        <span>{teacherMode ? "Xem bản học sinh (ẩn giải)" : "Xem bản giáo viên (hiện giải)"}</span>
+                      </div>
+                    </button>
+
+                    <div className="my-1 border-t border-slate-100" />
+
+                    <button
+                      onClick={() => {
+                        handleShowExamStats();
+                        setShowActiveMenu(null);
+                      }}
+                      className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-slate-50"
+                    >
+                      <BarChart3 className="h-3.5 w-3.5 text-emerald-600" />
+                      <span>Thống kê câu hỏi & thang điểm</span>
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -1906,10 +3806,20 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
       <div className="flex h-11 w-full shrink-0 items-center justify-between border-b border-slate-200 bg-white/95 px-3 backdrop-blur-sm sm:px-4">
         <div className="flex flex-wrap items-center gap-1 overflow-x-auto text-slate-700">
           {/* Undo / Redo */}
-          <button title="Hoàn tác (Ctrl+Z)" className="rounded p-1.5 hover:bg-slate-100">
+          <button
+            onClick={handleUndo}
+            disabled={historyIndex <= 0}
+            title="Hoàn tác (Ctrl+Z)"
+            className={clsx("rounded p-1.5 hover:bg-slate-100 transition", historyIndex <= 0 && "opacity-40 cursor-not-allowed")}
+          >
             <Undo2 className="h-4 w-4" />
           </button>
-          <button title="Làm lại (Ctrl+Y)" className="rounded p-1.5 hover:bg-slate-100">
+          <button
+            onClick={handleRedo}
+            disabled={historyIndex >= history.length - 1}
+            title="Làm lại (Ctrl+Y)"
+            className={clsx("rounded p-1.5 hover:bg-slate-100 transition", historyIndex >= history.length - 1 && "opacity-40 cursor-not-allowed")}
+          >
             <Redo2 className="h-4 w-4" />
           </button>
 
@@ -2049,13 +3959,11 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
 
           {/* Math Equation */}
           <button
-            onClick={() => {
-              setAiPrompt("Chèn công thức toán vào câu hỏi");
-            }}
-            title="Công thức toán LaTeX"
-            className="flex items-center rounded p-1.5 hover:bg-slate-100"
+            onClick={() => handleInsertFormula("math")}
+            title="Bộ soạn thảo công thức Toán & Hoá học"
+            className="flex items-center rounded p-1.5 hover:bg-blue-50 text-blue-600 transition"
           >
-            <Sigma className="h-4 w-4 text-primary" />
+            <Sigma className="h-4 w-4" />
           </button>
 
           {/* Text Color / Highlight */}
@@ -2088,17 +3996,19 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
       {/* ============================================================== */}
       {/* 3. DOCUMENT RULER BAR (THƯỚC ĐO CĂN LỀ A4)                     */}
       {/* ============================================================== */}
-      <div className="relative flex h-5 w-full shrink-0 items-center justify-center border-b border-slate-200 bg-slate-50 select-none">
-        <div className="flex w-[820px] items-center justify-between px-8 text-[9px] text-slate-400">
-          <div className="h-2 w-2 border-t-4 border-l-2 border-r-2 border-blue-600 border-l-transparent border-r-transparent" />
-          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17].map((num) => (
-            <span key={num} className="font-mono">
-              {num}
-            </span>
-          ))}
-          <div className="h-2 w-2 border-t-4 border-l-2 border-r-2 border-blue-600 border-l-transparent border-r-transparent" />
+      {showRuler && (
+        <div className="relative flex h-5 w-full shrink-0 items-center justify-center border-b border-slate-200 bg-slate-50 select-none">
+          <div className="flex w-[820px] items-center justify-between px-8 text-[9px] text-slate-400">
+            <div className="h-2 w-2 border-t-4 border-l-2 border-r-2 border-blue-600 border-l-transparent border-r-transparent" />
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17].map((num) => (
+              <span key={num} className="font-mono">
+                {num}
+              </span>
+            ))}
+            <div className="h-2 w-2 border-t-4 border-l-2 border-r-2 border-blue-600 border-l-transparent border-r-transparent" />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* ============================================================== */}
       {/* 4. THREE-COLUMN MAIN WORKSPACE                                 */}
@@ -2170,9 +4080,18 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
                       } else if (q.blockType === "header_custom") {
                         label = "Đầu đề:";
                         preview = q.headerType === "two_col" ? "Đầu đề hai cột" : q.headerType === "centered" ? "Tên đề căn giữa" : "Thông tin đề";
+                      } else if (q.blockType === "formula") {
+                        label = "∑ Công thức:";
+                        preview = q.content || "Công thức";
+                      } else if (q.blockType === "rubric_table") {
+                        label = "📋 Barem:";
+                        preview = "Bảng barem điểm";
+                      } else if (q.blockType === "rubric_with_geometry") {
+                        label = "📋 Barem hình:";
+                        preview = "Barem có hình học";
                       } else if (q.blockType === "svg") {
                         label = "📐 Hình:";
-                        preview = q.svgType === "sheet_box" ? "Tấm nhôm và hộp" : q.svgType === "heater" ? "Sơ đồ máy sưởi" : "Biển phóng xạ";
+                        preview = q.svgType === "sheet_box" ? "Tấm nhôm và hộp" : q.svgType === "heater" ? "Sơ đồ máy sưởi" : q.svgType === "radiation" ? "Biển phóng xạ" : q.svgType === "variation_table" ? "Bảng biến thiên" : q.svgType === "function_graph" ? "Đồ thị Oxy" : q.svgType === "chart" ? "Biểu đồ" : "Hình học";
                       } else if (q.blockType === "table") {
                         label = "▦ Bảng:";
                         preview = "Bảng dữ liệu";
@@ -2319,6 +4238,15 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
             style={{
               fontFamily: fontFamily === "Times New Roman" ? "'Times New Roman', Times, serif" : fontFamily,
               fontSize: `${fontSize}px`,
+              lineHeight: lineSpacing,
+              textAlign: textAlign,
+              color: textColor,
+              textDecoration: [
+                isUnderline ? "underline" : "",
+                isStrikethrough ? "line-through" : "",
+              ].filter(Boolean).join(" ") || undefined,
+              fontWeight: isBold ? "bold" : "normal",
+              fontStyle: isItalic ? "italic" : "normal",
               transform: `scale(${zoom / 100})`,
               transformOrigin: "top center",
             }}
@@ -2359,8 +4287,16 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
               </>
             )}
 
-            {/* Questions Container */}
-            <div className="mt-8 space-y-6">
+            {/* Questions Container (Supports 1/2/3 columns and Border Box) */}
+            <div
+              className={`mt-8 space-y-6 ${
+                columnCount === 2
+                  ? "columns-2 gap-8 [column-rule:1px_solid_#e2e8f0]"
+                  : columnCount === 3
+                  ? "columns-3 gap-6 [column-rule:1px_solid_#e2e8f0]"
+                  : ""
+              } ${isBorderBox ? "rounded-lg border border-slate-300 p-4 shadow-sm" : ""}`}
+            >
               {questions.length === 0 ? (
                 /* Blank state: Prompt to write or use AI */
                 <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -2830,7 +4766,114 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
                     );
                   }
 
-                  // 14. SVG Illustration (Screenshot 2)
+                  // Formula Standalone Block
+                  if (q.blockType === "formula") {
+                    return (
+                      <div key={q.id} id={`question-anchor-${idx}`} className="group relative my-3 rounded-lg border border-transparent p-2 transition hover:border-blue-200 hover:bg-blue-50/20">
+                        <div className="absolute top-1 right-1 hidden items-center gap-1 rounded-md border border-slate-200 bg-white p-1 shadow-sm group-hover:flex print:hidden">
+                          <button onClick={() => handleOpenFormulaModalForEdit(q)} title="Sửa công thức" className="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800">
+                            <Edit3 className="h-3.5 w-3.5" />
+                          </button>
+                          <button onClick={() => handleDeleteQuestion(q.id)} title="Xóa công thức" className="rounded p-1 text-slate-500 hover:bg-red-50 hover:text-red-600">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                        <div className="flex justify-center py-2 cursor-pointer" onClick={() => handleOpenFormulaModalForEdit(q)}>
+                          <LatexRenderer content={q.content} />
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // Rubric Table Block
+                  if (q.blockType === "rubric_table") {
+                    return (
+                      <div key={q.id} id={`question-anchor-${idx}`} className="group relative my-4 rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+                        <div className="absolute top-2 right-2 hidden items-center gap-1 rounded-md border border-slate-200 bg-white p-1 shadow-sm group-hover:flex print:hidden">
+                          <button onClick={() => handleDeleteQuestion(q.id)} title="Xóa barem" className="rounded p-1 text-slate-500 hover:bg-red-50 hover:text-red-600">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                        <div className="flex items-center gap-2 mb-2 font-bold text-xs uppercase tracking-wide text-slate-800">
+                          <FileSpreadsheet className="h-4 w-4 text-blue-600" />
+                          <span>{q.content || "Bảng barem điểm chi tiết"}</span>
+                        </div>
+                        <div className="overflow-x-auto rounded border border-slate-300">
+                          <table className="w-full text-xs border-collapse">
+                            <tbody>
+                              {(q.tableRows || [
+                                ["Ý / Câu", "Nội dung đáp án & Phương pháp giải", "Điểm"],
+                                ["a)", "Viết đúng công thức / phương trình", "0.25"],
+                                ["b)", "Thay số, tính toán và giải thích", "0.50"],
+                                ["c)", "Kết luận và đối chiếu điều kiện", "0.25"],
+                              ]).map((row, rIdx) => (
+                                <tr key={rIdx} className={rIdx === 0 ? "bg-slate-100 font-bold text-slate-800" : "hover:bg-slate-50"}>
+                                  {row.map((cell, cIdx) => (
+                                    <td key={cIdx} className={`border border-slate-300 p-2 ${cIdx === row.length - 1 ? "text-center font-semibold" : "text-left"} text-slate-700`}>
+                                      <LatexRenderer content={cell} />
+                                    </td>
+                                  ))}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // Rubric With Geometry Block
+                  if (q.blockType === "rubric_with_geometry") {
+                    return (
+                      <div key={q.id} id={`question-anchor-${idx}`} className="group relative my-4 rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+                        <div className="absolute top-2 right-2 hidden items-center gap-1 rounded-md border border-slate-200 bg-white p-1 shadow-sm group-hover:flex print:hidden">
+                          <button onClick={() => handleDeleteQuestion(q.id)} title="Xóa barem hình học" className="rounded p-1 text-slate-500 hover:bg-red-50 hover:text-red-600">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                        <div className="flex items-center gap-2 mb-2 font-bold text-xs uppercase tracking-wide text-slate-800">
+                          <FileSpreadsheet className="h-4 w-4 text-blue-600" />
+                          <span>{q.content || "Barem điểm bài toán hình học"}</span>
+                        </div>
+                        <div
+                          className="my-3 flex justify-center cursor-pointer transition hover:opacity-95"
+                          title="Bấm để chỉnh sửa hình vẽ hình học"
+                          onClick={() => {
+                            setEditingGeomId(q.id);
+                            setCurrentGeomData(q.geometryData || null);
+                            setIsGeomModalOpen(true);
+                          }}
+                        >
+                          {q.geometryData ? (
+                            <GeometrySvgRenderer data={q.geometryData} />
+                          ) : (
+                            <GeometryDiagramSvg onDelete={() => handleDeleteQuestion(q.id)} />
+                          )}
+                        </div>
+                        <div className="overflow-x-auto rounded border border-slate-300">
+                          <table className="w-full text-xs border-collapse">
+                            <tbody>
+                              {(q.tableRows || [
+                                ["Ý", "Nội dung chứng minh", "Điểm"],
+                                ["1", "Vẽ hình đúng, chứng minh tam giác đồng dạng", "0.50"],
+                                ["2", "Suy ra hệ thức liên hệ cạnh và đường cao AH", "0.50"],
+                              ]).map((row, rIdx) => (
+                                <tr key={rIdx} className={rIdx === 0 ? "bg-slate-100 font-bold text-slate-800" : "hover:bg-slate-50"}>
+                                  {row.map((cell, cIdx) => (
+                                    <td key={cIdx} className={`border border-slate-300 p-2 ${cIdx === row.length - 1 ? "text-center font-semibold" : "text-left"} text-slate-700`}>
+                                      <LatexRenderer content={cell} />
+                                    </td>
+                                  ))}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // 14. SVG Illustration (Screenshot 2 & 5)
                   if (q.blockType === "svg") {
                     return (
                       <div key={q.id} id={`question-anchor-${idx}`} className="group relative rounded-lg border border-transparent p-3 transition hover:border-slate-200 hover:bg-slate-50/50">
@@ -2848,6 +4891,74 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
                           {q.svgType === "sheet_box" && <SheetBoxSvg onDelete={() => handleDeleteQuestion(q.id)} />}
                           {q.svgType === "heater" && <HeaterCircuitSvg onDelete={() => handleDeleteQuestion(q.id)} />}
                           {q.svgType === "radiation" && <RadiationHazardSvg onDelete={() => handleDeleteQuestion(q.id)} />}
+                          {q.svgType === "variation_table" && (
+                            <div
+                              className="cursor-pointer transition hover:opacity-95"
+                              title="Bấm để chỉnh sửa bảng biến thiên"
+                              onClick={() => {
+                                setEditingVarTableId(q.id);
+                                setCurrentVarTableData(q.variationTableData || null);
+                                setIsVarTableModalOpen(true);
+                              }}
+                            >
+                              {q.variationTableData ? (
+                                <VariationTableRenderer data={q.variationTableData} />
+                              ) : (
+                                <VariationTableSvg onDelete={() => handleDeleteQuestion(q.id)} />
+                              )}
+                            </div>
+                          )}
+                          {q.svgType === "function_graph" && (
+                            <div
+                              className="cursor-pointer transition hover:opacity-95"
+                              title="Bấm để chỉnh sửa đồ thị hàm số"
+                              onClick={() => {
+                                setEditingGraphId(q.id);
+                                setCurrentGraphData(q.functionGraphData || null);
+                                setIsGraphModalOpen(true);
+                              }}
+                            >
+                              {q.functionGraphData ? (
+                                <FunctionGraphRenderer data={q.functionGraphData} />
+                              ) : (
+                                <FunctionGraphSvg onDelete={() => handleDeleteQuestion(q.id)} />
+                              )}
+                            </div>
+                          )}
+                          {q.svgType === "chart" && (
+                            <div
+                              className="cursor-pointer transition hover:opacity-95"
+                              title="Bấm để chỉnh sửa biểu đồ thống kê"
+                              onClick={() => {
+                                setEditingChartId(q.id);
+                                setCurrentChartData(q.chartData || null);
+                                setIsChartModalOpen(true);
+                              }}
+                            >
+                              {q.chartData ? (
+                                <ChartSvgRenderer data={q.chartData} />
+                              ) : (
+                                <StatisticsChartSvg onDelete={() => handleDeleteQuestion(q.id)} />
+                              )}
+                            </div>
+                          )}
+                          {q.svgType === "geometry" && (
+                            <div
+                              className="cursor-pointer transition hover:opacity-95"
+                              title="Bấm để chỉnh sửa hình vẽ hình học"
+                              onClick={() => {
+                                setEditingGeomId(q.id);
+                                setCurrentGeomData(q.geometryData || null);
+                                setIsGeomModalOpen(true);
+                              }}
+                            >
+                              {q.geometryData ? (
+                                <GeometrySvgRenderer data={q.geometryData} />
+                              ) : (
+                                <GeometryDiagramSvg onDelete={() => handleDeleteQuestion(q.id)} />
+                              )}
+                            </div>
+                          )}
                         </div>
                         {/* Options */}
                         {Object.keys(opts).length > 0 && (
@@ -3192,6 +5303,60 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
           </aside>
         ) : null}
       </div>
+
+      {/* Visual Formula Editor Modal (Math & Chemistry) */}
+      <FormulaEditorModal
+        isOpen={isFormulaModalOpen}
+        initialMode={formulaModalMode}
+        initialFormula={formulaModalInitialFormula}
+        initialDisplayMode={formulaModalDisplayMode}
+        onClose={() => setIsFormulaModalOpen(false)}
+        onSave={handleSaveFormula}
+      />
+
+      {/* Find & Replace Modal (Ctrl+F, Ctrl+H) */}
+      <FindReplaceModal
+        isOpen={isFindReplaceOpen}
+        initialMode={findReplaceMode}
+        onClose={() => setIsFindReplaceOpen(false)}
+        onFind={handleFind}
+        onReplace={handleReplace}
+        onReplaceAll={handleReplaceAll}
+        matchIndex={searchMatches.length > 0 ? currentMatchIdx + 1 : 0}
+        totalMatches={searchMatches.length}
+      />
+
+      {/* Variation Table Interactive Modal */}
+      <VariationTableModal
+        isOpen={isVarTableModalOpen}
+        initialData={currentVarTableData}
+        onClose={() => setIsVarTableModalOpen(false)}
+        onSave={handleSaveVariationTable}
+      />
+
+      {/* Function Graph Interactive Modal */}
+      <FunctionGraphModal
+        isOpen={isGraphModalOpen}
+        initialData={currentGraphData}
+        onClose={() => setIsGraphModalOpen(false)}
+        onSave={handleSaveFunctionGraph}
+      />
+
+      {/* Chart Interactive Modal */}
+      <ChartEditorModal
+        isOpen={isChartModalOpen}
+        initialData={currentChartData}
+        onClose={() => setIsChartModalOpen(false)}
+        onSave={handleSaveChart}
+      />
+
+      {/* Geometry Interactive Modal */}
+      <GeometryEditorModal
+        isOpen={isGeomModalOpen}
+        initialData={currentGeomData}
+        onClose={() => setIsGeomModalOpen(false)}
+        onSave={handleSaveGeometry}
+      />
 
       {/* Quota Exhausted & Viral Referral Modal */}
       <QuotaExhaustedModal
