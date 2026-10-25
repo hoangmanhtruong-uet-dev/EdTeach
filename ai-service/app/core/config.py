@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "DEBUG"
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:8080"
 
+    # Security / Auth
+    INTERNAL_API_KEY: Optional[str] = None
+
     # LLM API Keys
     DEEPSEEK_API_KEY: Optional[str] = None
     GOOGLE_AI_API_KEY: Optional[str] = None

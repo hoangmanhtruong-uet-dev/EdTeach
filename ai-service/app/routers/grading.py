@@ -1,15 +1,20 @@
 """API endpoints for AI Grading (MCQ and Essay with Rubric)."""
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
 from typing import Optional, Any
 import json
 import structlog
 from app.gateway.router import LLMRouter
 from app.core.config import settings
+from app.core.dependencies import verify_internal_api_key
 
 logger = structlog.get_logger()
-router = APIRouter(prefix="/ai/grade", tags=["AI Grading"])
+router = APIRouter(
+    prefix="/ai/grade",
+    tags=["AI Grading"],
+    dependencies=[Depends(verify_internal_api_key)],
+)
 llm_router = LLMRouter()
 
 

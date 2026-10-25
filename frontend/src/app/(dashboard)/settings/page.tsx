@@ -210,8 +210,8 @@ export default function SettingsPage() {
     e.preventDefault();
     setPasswordMessage(null);
 
-    if (newPassword.length < 6) {
-      setPasswordMessage({ type: "error", text: "Mật khẩu mới phải có ít nhất 6 ký tự." });
+    if (newPassword.length < 8) {
+      setPasswordMessage({ type: "error", text: "Mật khẩu mới phải có ít nhất 8 ký tự để đảm bảo an toàn bảo mật." });
       return;
     }
 

@@ -1,12 +1,45 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
+// Rate limiter chống spam gọi Gemini API: Tối đa 15 request/phút mỗi IP
+const gradingRateLimits = new Map<string, { count: number; resetTime: number }>();
+
+function checkGradingRateLimit(identifier: string): boolean {
+  const now = Date.now();
+  const windowMs = 60 * 1000; // 1 phút
+  const record = gradingRateLimits.get(identifier);
+
+  if (!record || now > record.resetTime) {
+    gradingRateLimits.set(identifier, { count: 1, resetTime: now + windowMs });
+    return true;
+  }
+
+  if (record.count >= 15) {
+    return false;
+  }
+
+  record.count += 1;
+  return true;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
+
+    const clientIp =
+      req.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
+      req.headers.get("x-real-ip") ||
+      "anonymous";
+
+    if (!checkGradingRateLimit(user?.id || clientIp)) {
+      return NextResponse.json(
+        { error: "Thao tác quá nhanh. Vui lòng chờ 1 phút trước khi tiếp tục chấm bài." },
+        { status: 429 }
+      );
+    }
 
     const body = await req.json();
     const { mode, question, rubric, studentAnswer, answerKey, studentAnswers } = body;
@@ -96,6 +129,44 @@ export async function POST(req: NextRequest) {
     // 2. CHẾ ĐỘ: CHẤM TỰ LUẬN THEO BAREM BẰNG AI (ESSAY)
     // ==========================================
     if (mode === "essay") {
+      // BẢO MẬT: Bắt buộc đăng nhập để bảo vệ hạn mức Gemini API trả phí
+      if (!user) {
+        return NextResponse.json(
+          { error: "Vui lòng đăng nhập để sử dụng tính năng Chấm tự luận bằng AI." },
+          { status: 401 }
+        );
+      }
+
+      // Kiểm tra quyền hạn: Gói PRO được chấm không giới hạn; Gói Free cần tối thiểu 5 credits
+      const { data: userProfile } = await (supabase.from("users") as any)
+        .select("tier")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      const isPro = userProfile?.tier === "pro" || userProfile?.tier === "school";
+      let walletIdToDeduct: string | null = null;
+      let currentBal = 100;
+
+      if (!isPro) {
+        const { data: wallet } = await (supabase.from("wallets") as any)
+          .select("id, balance")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        currentBal = wallet?.balance ?? 0;
+        if (!wallet || currentBal < 5) {
+          return NextResponse.json(
+            {
+              error: "TIER_REQUIRED",
+              message:
+                "Tính năng Chấm tự luận bằng AI yêu cầu Gói Giáo Viên PRO hoặc tối thiểu 5 credits trong ví. Thầy/Cô vui lòng nâng cấp gói hoặc nạp thêm credits.",
+            },
+            { status: 403 }
+          );
+        }
+        walletIdToDeduct = wallet.id;
+      }
+
       if (!question || !studentAnswer) {
         return NextResponse.json(
           { error: "Vui lòng nhập đề bài và bài làm của học sinh." },
@@ -175,6 +246,26 @@ TRẢ VỀ CHÍNH XÁC ĐỊNH DẠNG JSON NHƯ SAU:
             const rawContent = data.candidates?.[0]?.content?.parts?.[0]?.text;
             if (rawContent) {
               const parsed = JSON.parse(rawContent);
+
+              // Nếu là user Free, trừ 5 credits cho lượt chấm bài tự luận AI này
+              if (walletIdToDeduct) {
+                try {
+                  const newBal = Math.max(0, currentBal - 5);
+                  await (supabase.from("wallets") as any)
+                    .update({ balance: newBal, updated_at: new Date().toISOString() })
+                    .eq("id", walletIdToDeduct);
+
+                  await (supabase.from("wallet_txns") as any).insert({
+                    wallet_id: walletIdToDeduct,
+                    amount: -5,
+                    type: "generate_exam",
+                    description: "Chấm bài tự luận bằng AI Gemini Flash",
+                  });
+                } catch (deductErr) {
+                  console.warn("Deduct grading credit warning:", deductErr);
+                }
+              }
+
               return NextResponse.json({
                 success: true,
                 mode: "essay",

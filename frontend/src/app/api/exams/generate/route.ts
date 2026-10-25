@@ -382,7 +382,12 @@ export async function POST(req: NextRequest) {
     try {
       const aiResponse = await fetch(`${AI_SERVICE_URL}/ai/generate`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(process.env.INTERNAL_API_KEY
+            ? { "X-Internal-Key": process.env.INTERNAL_API_KEY }
+            : {}),
+        },
         body: JSON.stringify({
           subject,
           grade: parseInt(grade.toString()) || 4,
@@ -563,22 +568,48 @@ YÊU CẦU ĐẦU RA JSON CHUẨN CÓ CẤU TRÚC:
       })
       .eq("id", exam.id);
 
-    // 7. Cập nhật lượt hàng ngày & trừ credit trong ví
+    // 7. Cập nhật lượt hàng ngày & trừ credit trong ví (BẢO MẬT: Sử dụng Atomic RPC chống Race Condition)
     if (wallet) {
-      const updatePayload: any = { balance };
+      let rpcHandled = false;
+      if (creditsDeducted > 0) {
+        try {
+          const { data: rpcRes, error: rpcErr } = await (db.rpc as any)("deduct_user_credits", {
+            p_user_id: user.id,
+            p_amount: creditsDeducted,
+            p_description: `Tạo đề thi "${name}" (${generatedQuestions.length} câu)`,
+            p_ref_id: exam.id,
+          });
+
+          if (!rpcErr && rpcRes && rpcRes.success) {
+            rpcHandled = true;
+            balance = rpcRes.balance;
+          }
+        } catch {
+          rpcHandled = false;
+        }
+      }
+
+      // Cập nhật lượt sử dụng hàng ngày hoặc cập nhật số dư dự phòng nếu chưa chạy migration RPC
+      const updatePayload: any = {};
+      if (!rpcHandled) {
+        updatePayload.balance = balance;
+      }
       if (wallet.daily_quota !== undefined) {
         updatePayload.daily_quota_used = dailyUsed;
         updatePayload.daily_credit_used = currentDailyCreditUsed + creditsDeducted;
         updatePayload.last_quota_reset = new Date().toISOString();
         updatePayload.updated_at = new Date().toISOString();
       }
-      try {
-        await (db.from("wallets") as any).update(updatePayload).eq("id", wallet.id);
-      } catch (err) {
-        console.warn("Wallet update warning:", err);
+
+      if (Object.keys(updatePayload).length > 0) {
+        try {
+          await (db.from("wallets") as any).update(updatePayload).eq("id", wallet.id);
+        } catch (err) {
+          console.warn("Wallet update warning:", err);
+        }
       }
 
-      if (creditsDeducted > 0) {
+      if (!rpcHandled && creditsDeducted > 0) {
         try {
           await (db.from("wallet_txns") as any).insert({
             wallet_id: wallet.id,

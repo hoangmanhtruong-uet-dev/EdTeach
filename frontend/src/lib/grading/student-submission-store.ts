@@ -29,6 +29,7 @@ export interface StudentSubmission {
 
 export interface StudentSubmissionLink {
   token: string;
+  userId?: string;
   sessionId: string;
   sessionName: string;
   subject: string;
@@ -68,6 +69,7 @@ function generateSubmissionToken(): string {
 }
 
 export function createStudentSubmissionLink(params: {
+  userId?: string;
   sessionId: string;
   sessionName: string;
   subject?: string;
@@ -91,6 +93,7 @@ export function createStudentSubmissionLink(params: {
 
   const newLink: StudentSubmissionLink = {
     token,
+    userId: params.userId,
     sessionId: params.sessionId,
     sessionName: params.sessionName || "Kỳ thi trắc nghiệm",
     subject: params.subject || "Toán",
@@ -116,10 +119,16 @@ export function getStudentSubmissionLink(token: string): StudentSubmissionLink |
   return link;
 }
 
-export function getStudentSubmissionLinksBySession(sessionId: string): StudentSubmissionLink[] {
+export function getStudentSubmissionLinksBySession(
+  sessionId: string,
+  userId?: string
+): StudentSubmissionLink[] {
   const result: StudentSubmissionLink[] = [];
   for (const l of links.values()) {
     if (l.sessionId === sessionId) {
+      if (userId && l.userId && l.userId !== userId) {
+        continue;
+      }
       result.push(l);
     }
   }

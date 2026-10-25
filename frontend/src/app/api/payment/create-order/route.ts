@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { saveFallbackOrder, FallbackPaymentOrder } from "@/lib/payment/payment-fallback-store";
+import { validateAndResolvePackage } from "@/lib/payment/pricing-catalog";
 
 function generateOrderCode(): string {
   const chars = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
@@ -27,17 +28,28 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { amount, credits } = body;
+    const { amount, credits, packageId, isPro } = body;
 
     const numAmount = parseInt(amount, 10);
     const numCredits = parseInt(credits, 10);
 
-    if (!numAmount || numAmount < 10000 || !numCredits || numCredits <= 0) {
+    // BẢO MẬT: Đối chiếu chặt chẽ với Bảng giá chuẩn Server-side để ngăn chặn Price Tampering
+    const resolvedPackage = validateAndResolvePackage({
+      packageId,
+      amount: numAmount,
+      credits: numCredits,
+      isPro: Boolean(isPro),
+    });
+
+    if (!resolvedPackage) {
       return NextResponse.json(
-        { error: "Gói nạp tiền không hợp lệ. Số tiền tối thiểu là 10.000đ." },
+        { error: "Gói nạp tiền không hợp lệ hoặc đã bị thay đổi thông tin giá. Vui lòng chọn gói từ bảng giá chính thức." },
         { status: 400 }
       );
     }
+
+    const verifiedAmount = resolvedPackage.amount;
+    const verifiedCredits = resolvedPackage.credits;
 
     // Sinh mã đơn hàng duy nhất
     let orderCode = generateOrderCode();
@@ -68,7 +80,7 @@ export async function POST(req: NextRequest) {
     const accountName = process.env.NEXT_PUBLIC_PAYMENT_ACCOUNT_NAME || "NGUYEN VAN A";
 
     // Sinh link VietQR chuẩn
-    const qrUrl = `https://img.vietqr.io/image/${bankId}-${accountNo}-compact2.png?amount=${numAmount}&addInfo=${encodeURIComponent(
+    const qrUrl = `https://img.vietqr.io/image/${bankId}-${accountNo}-compact2.png?amount=${verifiedAmount}&addInfo=${encodeURIComponent(
       orderCode
     )}&accountName=${encodeURIComponent(accountName)}`;
 
@@ -78,8 +90,8 @@ export async function POST(req: NextRequest) {
       .insert({
         user_id: user.id,
         order_code: orderCode,
-        amount: numAmount,
-        credits: numCredits,
+        amount: verifiedAmount,
+        credits: verifiedCredits,
         status: "pending",
       })
       .select()
@@ -94,8 +106,8 @@ export async function POST(req: NextRequest) {
         id: "order_" + Date.now(),
         user_id: user.id,
         order_code: orderCode,
-        amount: numAmount,
-        credits: numCredits,
+        amount: verifiedAmount,
+        credits: verifiedCredits,
         status: "pending",
         created_at: new Date().toISOString(),
         bank_id: bankId,

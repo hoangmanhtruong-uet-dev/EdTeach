@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
 import {
   createStudentSubmissionLink,
   getStudentSubmissionLinksBySession,
@@ -7,6 +8,19 @@ import {
 
 export async function POST(req: NextRequest) {
   try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authErr,
+    } = await supabase.auth.getUser();
+
+    if (authErr || !user) {
+      return NextResponse.json(
+        { error: "Vui lòng đăng nhập để tạo link nộp bài cho học sinh." },
+        { status: 401 }
+      );
+    }
+
     const body = await req.json();
     const {
       sessionId,
@@ -28,6 +42,7 @@ export async function POST(req: NextRequest) {
     }
 
     const link = createStudentSubmissionLink({
+      userId: user.id,
       sessionId,
       sessionName,
       subject,
@@ -66,6 +81,19 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authErr,
+    } = await supabase.auth.getUser();
+
+    if (authErr || !user) {
+      return NextResponse.json(
+        { error: "Vui lòng đăng nhập để xem danh sách bài làm của học sinh." },
+        { status: 401 }
+      );
+    }
+
     const { searchParams } = new URL(req.url);
     const sessionId = searchParams.get("sessionId");
 
@@ -76,7 +104,8 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const links = getStudentSubmissionLinksBySession(sessionId);
+    // BẢO MẬT: Chỉ trả về link và bài làm thuộc về giáo viên đang đăng nhập
+    const links = getStudentSubmissionLinksBySession(sessionId, user.id);
     const submissions = getStudentSubmissionsBySession(sessionId);
 
     const host = req.headers.get("host") || "localhost:3000";

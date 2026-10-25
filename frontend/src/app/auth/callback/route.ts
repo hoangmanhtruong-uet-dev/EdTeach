@@ -4,9 +4,22 @@ import { NextResponse } from "next/server";
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/dashboard";
 
-  // Check forwarded host (Vercel deployment proxy)
+  // BẢO MẬT: Chống Open Redirect - Đảm bảo next là đường dẫn tương đối an toàn
+  let safeNext = "/dashboard";
+  const rawNext = searchParams.get("next");
+  if (
+    rawNext &&
+    rawNext.startsWith("/") &&
+    !rawNext.startsWith("//") &&
+    !rawNext.startsWith("/\\") &&
+    !rawNext.includes(":") &&
+    !rawNext.includes("@")
+  ) {
+    safeNext = rawNext;
+  }
+
+  // Kiểm tra host ủy quyền từ reverse proxy Vercel
   const forwardedHost = request.headers.get("x-forwarded-host");
   const forwardedProto = request.headers.get("x-forwarded-proto") || "https";
   const redirectBase = forwardedHost ? `${forwardedProto}://${forwardedHost}` : origin;
@@ -52,7 +65,7 @@ export async function GET(request: Request) {
         console.warn("User wallet sync on OAuth callback warning:", dbErr);
       }
 
-      return NextResponse.redirect(`${redirectBase}${next}`);
+      return NextResponse.redirect(`${redirectBase}${safeNext}`);
     }
   }
 

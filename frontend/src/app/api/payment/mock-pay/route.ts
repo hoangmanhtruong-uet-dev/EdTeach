@@ -3,6 +3,14 @@ import { createClient } from "@/lib/supabase/server";
 import { getFallbackOrder, markFallbackOrderPaid } from "@/lib/payment/payment-fallback-store";
 
 export async function POST(req: NextRequest) {
+  // BẢO MẬT: Chặn tuyệt đối endpoint mock-pay trên môi trường Production
+  if (process.env.NODE_ENV === "production" || process.env.ENABLE_MOCK_PAY !== "true") {
+    return NextResponse.json(
+      { error: "Cổng thanh toán thử nghiệm đã bị vô hiệu hóa trên môi trường Production." },
+      { status: 403 }
+    );
+  }
+
   try {
     const supabase = await createClient();
     const {

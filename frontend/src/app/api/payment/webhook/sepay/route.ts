@@ -1,23 +1,38 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@supabase/supabase-js";
+
+function getServiceSupabase() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+  const key =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    "";
+  return createClient(url, key);
+}
 
 export async function POST(req: NextRequest) {
   try {
-    // 1. Kiểm tra xác thực SePay API Key (nếu có cấu hình)
+    // 1. Kiểm tra xác thực SePay API Key bắt buộc (BẢO MẬT: Chặn bypass nếu chưa cấu hình KEY)
     const expectedApiKey = process.env.SEPAY_API_KEY?.trim();
-    if (expectedApiKey) {
-      const authHeader = req.headers.get("authorization") || "";
-      const isApiKeyMatch =
-        authHeader.includes(expectedApiKey) ||
-        authHeader === `Apikey ${expectedApiKey}` ||
-        authHeader === `Bearer ${expectedApiKey}`;
+    if (!expectedApiKey) {
+      console.warn("SePay webhook invoked but SEPAY_API_KEY is not configured.");
+      return NextResponse.json(
+        { error: "Cổng SePay webhook hiện chưa được kích hoạt hoặc chưa cấu hình API Key." },
+        { status: 403 }
+      );
+    }
 
-      if (!isApiKeyMatch) {
-        return NextResponse.json(
-          { error: "Unauthorized: Invalid SePay API Key" },
-          { status: 401 }
-        );
-      }
+    const authHeader = req.headers.get("authorization") || "";
+    const isApiKeyMatch =
+      authHeader.includes(expectedApiKey) ||
+      authHeader === `Apikey ${expectedApiKey}` ||
+      authHeader === `Bearer ${expectedApiKey}`;
+
+    if (!isApiKeyMatch) {
+      return NextResponse.json(
+        { error: "Unauthorized: Invalid SePay API Key" },
+        { status: 401 }
+      );
     }
 
     const body = await req.json();
@@ -49,7 +64,7 @@ export async function POST(req: NextRequest) {
     }
 
     const orderCode = match[0];
-    const supabase = await createClient();
+    const supabase = getServiceSupabase();
 
     // 3. Tìm đơn hàng tương ứng
     const { data: order, error: orderError } = await (supabase

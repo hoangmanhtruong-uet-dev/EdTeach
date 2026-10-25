@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { payOSService } from "@/lib/payment/payos";
 import { saveFallbackOrder } from "@/lib/payment/payment-fallback-store";
+import { validateAndResolvePackage } from "@/lib/payment/pricing-catalog";
 
 export async function POST(req: NextRequest) {
   try {
@@ -19,17 +20,29 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { amount, credits, isPro } = body;
+    const { amount, credits, packageId, isPro } = body;
 
     const numAmount = parseInt(amount, 10);
     const numCredits = parseInt(credits, 10);
 
-    if (!numAmount || numAmount < 10000 || !numCredits || numCredits <= 0) {
+    // BẢO MẬT: Đối chiếu chặt chẽ với Bảng giá chuẩn Server-side để ngăn chặn Price Tampering
+    const resolvedPackage = validateAndResolvePackage({
+      packageId,
+      amount: numAmount,
+      credits: numCredits,
+      isPro: Boolean(isPro),
+    });
+
+    if (!resolvedPackage) {
       return NextResponse.json(
-        { error: "Gói nạp tiền không hợp lệ. Số tiền tối thiểu là 10.000đ." },
+        { error: "Gói nạp tiền không hợp lệ hoặc đã bị thay đổi thông tin giá. Vui lòng chọn gói từ bảng giá chính thức." },
         { status: 400 }
       );
     }
+
+    const verifiedAmount = resolvedPackage.amount;
+    const verifiedCredits = resolvedPackage.credits;
+    const verifiedIsPro = resolvedPackage.isPro;
 
     // PayOS yêu cầu orderCode là số nguyên dương duy nhất (tối đa 9007199254740991)
     const orderCode = Math.floor(Date.now() / 1000) * 1000 + Math.floor(Math.random() * 1000);
@@ -38,16 +51,16 @@ export async function POST(req: NextRequest) {
     const protocol = req.headers.get("x-forwarded-proto") || "http";
     const baseUrl = `${protocol}://${host}`;
 
-    const returnUrl = isPro
-      ? `${baseUrl}/wallet?status=PAID&orderCode=${orderCode}&tier=pro&credits=${numCredits}`
-      : `${baseUrl}/wallet?status=PAID&orderCode=${orderCode}&credits=${numCredits}`;
+    const returnUrl = verifiedIsPro
+      ? `${baseUrl}/wallet?status=PAID&orderCode=${orderCode}&tier=pro&credits=${verifiedCredits}`
+      : `${baseUrl}/wallet?status=PAID&orderCode=${orderCode}&credits=${verifiedCredits}`;
     const cancelUrl = `${baseUrl}/wallet?status=CANCELLED&orderCode=${orderCode}`;
 
     // 1. Tạo đơn hàng qua cổng PayOS
     const payosResult = await payOSService.createPaymentLink({
       orderCode,
-      amount: numAmount,
-      description: isPro ? "NANG CAP GOI PRO" : `NAP ${numCredits} CREDITS`,
+      amount: verifiedAmount,
+      description: verifiedIsPro ? "NANG CAP GOI PRO" : `NAP ${verifiedCredits} CREDITS`,
       returnUrl,
       cancelUrl,
       buyerEmail: user.email || undefined,
@@ -58,8 +71,8 @@ export async function POST(req: NextRequest) {
       await (supabase.from("payment_orders") as any).insert({
         user_id: user.id,
         order_code: orderCode.toString(),
-        amount: numAmount,
-        credits: numCredits,
+        amount: verifiedAmount,
+        credits: verifiedCredits,
         status: "pending",
       });
     } catch {
@@ -68,8 +81,8 @@ export async function POST(req: NextRequest) {
         id: "payos_" + orderCode,
         user_id: user.id,
         order_code: orderCode.toString(),
-        amount: numAmount,
-        credits: numCredits,
+        amount: verifiedAmount,
+        credits: verifiedCredits,
         status: "pending",
         created_at: new Date().toISOString(),
         bank_id: payosResult.bin,

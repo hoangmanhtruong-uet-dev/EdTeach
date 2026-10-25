@@ -87,7 +87,14 @@ export class PayOSService {
       .update(signStr)
       .digest("hex");
 
-    return expectedSignature.toLowerCase() === signature.toLowerCase();
+    try {
+      const a = Buffer.from(expectedSignature.toLowerCase(), "utf8");
+      const b = Buffer.from(signature.toLowerCase(), "utf8");
+      if (a.length !== b.length) return false;
+      return crypto.timingSafeEqual(a, b);
+    } catch {
+      return false;
+    }
   }
 
   /**

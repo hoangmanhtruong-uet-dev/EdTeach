@@ -1,13 +1,18 @@
 """API endpoints for exam question generation."""
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
 from typing import Optional, Any
 
 from app.agents.question_generator import QuestionGeneratorAgent, QuestionRequest
 from app.agents.verifier import VerifierAgent
+from app.core.dependencies import verify_internal_api_key
 
-router = APIRouter(prefix="/ai", tags=["AI Generation"])
+router = APIRouter(
+    prefix="/ai",
+    tags=["AI Generation"],
+    dependencies=[Depends(verify_internal_api_key)],
+)
 
 generator = QuestionGeneratorAgent()
 verifier = VerifierAgent()

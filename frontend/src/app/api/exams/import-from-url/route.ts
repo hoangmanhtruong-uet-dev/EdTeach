@@ -16,10 +16,80 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { url } = body;
 
-    if (!url || typeof url !== "string" || !url.startsWith("http")) {
+    if (!url || typeof url !== "string") {
       return NextResponse.json(
-        { error: "Vui lòng nhập đường link hợp lệ (bắt đầu bằng http:// hoặc https://)." },
+        { error: "Vui lòng nhập đường link hợp lệ." },
         { status: 400 }
+      );
+    }
+
+    // BẢO MẬT (SSRF Prevention): Xác thực URL chặt chẽ, chặn triệt để Private IP, Localhost & Cloud Metadata
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(url);
+    } catch {
+      return NextResponse.json(
+        { error: "Định dạng đường link không hợp lệ." },
+        { status: 400 }
+      );
+    }
+
+    if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+      return NextResponse.json(
+        { error: "Chỉ hỗ trợ giao thức web http:// hoặc https://." },
+        { status: 400 }
+      );
+    }
+
+    const hostname = parsedUrl.hostname.toLowerCase();
+
+    // Chặn localhost, dải tên miền nội bộ
+    if (
+      hostname === "localhost" ||
+      hostname.endsWith(".localhost") ||
+      hostname.endsWith(".local") ||
+      hostname.endsWith(".internal") ||
+      hostname.endsWith(".lan") ||
+      hostname === "127.0.0.1" ||
+      hostname === "::1" ||
+      hostname === "0.0.0.0"
+    ) {
+      return NextResponse.json(
+        { error: "Không được phép truy cập địa chỉ máy chủ cục bộ hoặc mạng nội bộ (SSRF)." },
+        { status: 403 }
+      );
+    }
+
+    // Chặn toàn bộ dải IP Private và Link-Local Metadata (AWS/GCP: 169.254.169.254)
+    const ipv4Regex = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+    const ipMatch = hostname.match(ipv4Regex);
+    if (ipMatch) {
+      const p1 = parseInt(ipMatch[1], 10);
+      const p2 = parseInt(ipMatch[2], 10);
+
+      const isPrivateOrLoopback =
+        p1 === 10 || // 10.0.0.0/8
+        p1 === 127 || // 127.0.0.0/8
+        p1 === 0 || // 0.0.0.0/8
+        (p1 === 172 && p2 >= 16 && p2 <= 31) || // 172.16.0.0/12
+        (p1 === 192 && p2 === 168) || // 192.168.0.0/16
+        (p1 === 169 && p2 === 254) || // 169.254.0.0/16 (Cloud Metadata)
+        (p1 === 100 && p2 >= 64 && p2 <= 127); // CGNAT
+
+      if (isPrivateOrLoopback) {
+        return NextResponse.json(
+          { error: "Địa chỉ IP đích thuộc vùng mạng riêng hoặc hạ tầng nội bộ, bị từ chối truy cập vì lý do bảo mật." },
+          { status: 403 }
+        );
+      }
+    }
+
+    // Chặn các cổng dịch vụ nội bộ (Database, Redis, SSH...)
+    const port = parsedUrl.port;
+    if (port && port !== "80" && port !== "443" && port !== "8080") {
+      return NextResponse.json(
+        { error: "Chỉ cho phép kết nối đến các cổng web tiêu chuẩn (80, 443)." },
+        { status: 403 }
       );
     }
 
