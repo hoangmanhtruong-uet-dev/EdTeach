@@ -1,0 +1,205 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import {
+  BookOpen,
+  LayoutDashboard,
+  FilePlus,
+  FolderOpen,
+  Wallet,
+  User,
+  LogOut,
+  Menu,
+  X,
+  Store,
+  ScanLine,
+} from "lucide-react";
+import { useState, useEffect, Suspense } from "react";
+import { useAuth } from "@/context/auth-context";
+import { getUserWallet } from "@/lib/api/wallet";
+
+const sidebarLinks = [
+  { href: "/dashboard", label: "Trang chủ", icon: LayoutDashboard },
+  { href: "/exams/create", label: "Soạn đề", icon: FilePlus },
+  { href: "/exams", label: "Đề thi của tôi", icon: FolderOpen },
+  { href: "/grading", label: "Chấm trắc nghiệm", icon: ScanLine },
+  { href: "/marketplace", label: "Đề thi cộng đồng", icon: Store },
+  { href: "/wallet", label: "Nạp điểm", icon: Wallet },
+  { href: "/settings", label: "Cài đặt", icon: User },
+];
+
+function NavLinks({ onClose }: { onClose: () => void }) {
+  const pathname = usePathname();
+  return (
+    <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+      {sidebarLinks.map((link) => {
+        const isActive =
+          pathname === link.href ||
+          (link.href !== "/dashboard" && pathname.startsWith(link.href));
+        return (
+          <Link
+            key={link.href}
+            href={link.href}
+            onClick={onClose}
+            className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+              isActive
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+            }`}
+          >
+            <link.icon className="h-5 w-5" />
+            {link.label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
+function DashboardLayoutInner({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { user, profile, signOut } = useAuth();
+  const [credits, setCredits] = useState<number | null>(null);
+
+  useEffect(() => {
+    async function loadWallet() {
+      try {
+        const wallet = await getUserWallet();
+        if (wallet) {
+          setCredits(wallet.balance);
+        }
+      } catch (err) {
+        console.error("Failed to load wallet balance", err);
+      }
+    }
+    if (user) {
+      loadWallet();
+    }
+  }, [user]);
+
+  const initials = profile?.name
+    ? profile.name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase()
+    : "GV";
+
+  const pathname = usePathname();
+  const isEditorRoute =
+    pathname === "/exams/create" ||
+    (pathname.startsWith("/exams/") && pathname !== "/exams");
+
+  if (isEditorRoute) {
+    return <div className="h-screen w-screen overflow-hidden bg-white">{children}</div>;
+  }
+
+  return (
+    <div className="flex h-screen bg-[#ebf3fb] text-slate-800">
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-border bg-card transition-transform lg:static lg:translate-x-0 ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        {/* Logo */}
+        <div className="flex h-16 items-center justify-between border-b border-border px-4">
+          <Link href="/dashboard" className="flex items-center gap-2">
+            <BookOpen className="h-7 w-7 text-primary" />
+            <span className="text-lg font-bold">
+              Edu<span className="text-primary">Test</span> AI
+            </span>
+          </Link>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="rounded-lg p-1 hover:bg-muted lg:hidden"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Nav links wrapped in Suspense */}
+        <Suspense fallback={<div className="flex-1 p-3" />}>
+          <NavLinks onClose={() => setSidebarOpen(false)} />
+        </Suspense>
+
+        {/* User section */}
+        <div className="border-t border-border p-3">
+          <div className="flex items-center gap-3 rounded-lg px-3 py-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+              {initials}
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <p className="truncate text-sm font-medium">
+                {profile?.name || user?.email || "Giáo viên"}
+              </p>
+              <p className="truncate text-xs text-muted-foreground">
+                {user?.email || ""}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => signOut()}
+            className="mt-1 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+          >
+            <LogOut className="h-4 w-4" />
+            Đăng xuất
+          </button>
+        </div>
+      </aside>
+
+      {/* Main content */}
+      <div className="flex flex-1 flex-col overflow-hidden">
+        {/* Top bar */}
+        <header className="flex h-16 items-center gap-4 border-b border-border bg-card px-4 lg:px-6">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="rounded-lg p-2 hover:bg-muted lg:hidden"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+
+          <div className="flex-1" />
+
+          {/* Credits badge */}
+          <Link
+            href="/wallet"
+            className="flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary transition hover:bg-primary/20"
+          >
+            <Wallet className="h-4 w-4" />
+            <span>{credits !== null ? `${credits.toLocaleString()} credits` : "Đang tải..."}</span>
+          </Link>
+        </header>
+
+        {/* Page content */}
+        <main className="flex-1 overflow-y-auto p-4 lg:p-6">{children}</main>
+      </div>
+    </div>
+  );
+}
+
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <Suspense fallback={<div className="h-screen w-screen bg-[#ebf3fb]" />}>
+      <DashboardLayoutInner>{children}</DashboardLayoutInner>
+    </Suspense>
+  );
+}
