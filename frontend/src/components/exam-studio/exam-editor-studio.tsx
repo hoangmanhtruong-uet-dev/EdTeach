@@ -228,14 +228,45 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
     let detectedSubject = subject;
     let detectedGrade = grade;
 
-    if (promptToUse.includes("Toán 4")) {
+    const lower = promptToUse.toLowerCase();
+    if (/hóa|hoá|acid|base|chemistry/i.test(lower)) {
+      detectedSubject = "Hóa học";
+    } else if (/toán|toan|đại số|hình học|math/i.test(lower)) {
       detectedSubject = "Toán";
-      detectedGrade = "4";
-    } else if (promptToUse.includes("Toán 6")) {
-      detectedSubject = "Toán";
-      detectedGrade = "6";
-    } else if (promptToUse.includes("Tiếng Việt") || promptToUse.includes("Ngữ văn")) {
+    } else if (/vật lý|vật lí|lý|lí|physics/i.test(lower)) {
+      detectedSubject = "Vật lý";
+    } else if (/sinh học|sinh|biology/i.test(lower)) {
+      detectedSubject = "Sinh học";
+    } else if (/tiếng anh|anh văn|english/i.test(lower)) {
+      detectedSubject = "Tiếng Anh";
+    } else if (/ngữ văn|văn|tiếng việt|literature/i.test(lower)) {
       detectedSubject = "Ngữ văn";
+    } else if (/lịch sử|sử|history/i.test(lower)) {
+      detectedSubject = "Lịch sử";
+    } else if (/địa lý|địa lí|địa|geography/i.test(lower)) {
+      detectedSubject = "Địa lý";
+    } else if (/tin học|tin/i.test(lower)) {
+      detectedSubject = "Tin học";
+    }
+
+    const gradeMatch = lower.match(/(?:lớp|khối)\s*(\d{1,2})/i);
+    if (gradeMatch && gradeMatch[1]) {
+      const gNum = parseInt(gradeMatch[1]);
+      if (gNum >= 1 && gNum <= 12) {
+        detectedGrade = gNum.toString();
+      }
+    }
+
+    // Parse question count (e.g. 15 câu, 4 câu, 6 câu)
+    let totalQuestions = 10;
+    const countMatches = lower.match(/(\d+)\s*câu/g);
+    if (countMatches) {
+      let sum = 0;
+      for (const m of countMatches) {
+        const val = parseInt(m);
+        if (!isNaN(val) && val > 0 && val <= 50) sum += val;
+      }
+      if (sum > 0) totalQuestions = Math.min(sum, 30);
     }
 
     setSubject(detectedSubject);
@@ -243,7 +274,7 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
 
     try {
       // Auto title
-      const newTitle = promptToUse.length > 50 ? promptToUse.slice(0, 48) + "..." : promptToUse;
+      const newTitle = `Đề kiểm tra ${detectedSubject} Lớp ${detectedGrade} - ${promptToUse.length > 35 ? promptToUse.slice(0, 32) + "..." : promptToUse}`;
       setTitle(newTitle);
 
       const res = await fetch("/api/exams/generate", {
@@ -255,7 +286,7 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
           grade: detectedGrade,
           topic: promptToUse,
           question_type: "MCQ",
-          num_questions: 6,
+          num_questions: totalQuestions,
           difficulty: aiDifficulty === "Dễ" ? 1 : aiDifficulty === "Khó" ? 3 : 2,
           additional_context: promptToUse,
         }),
@@ -269,7 +300,7 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
           setAiStatusMessage("Thầy cô đã dùng hết 3 lượt tạo đề miễn phí hôm nay.");
           return;
         }
-        throw new Error(data.message || data.error || "Lỗi kết nối máy chủ sinh đề");
+        throw new Error(data.message || data.error || "Lỗi máy chủ sinh đề AI");
       }
 
       if (data.daily_quota !== undefined) {
@@ -277,28 +308,37 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
         setDailyUsed(data.daily_quota_used);
       }
 
-      if (data.exam_id) {
+      if (data.questions && Array.isArray(data.questions) && data.questions.length > 0) {
+        const mappedQuestions: Question[] = data.questions.map((q: any, i: number) => ({
+          id: `gen-${Date.now()}-${i}`,
+          exam_id: data.exam_id || "temp",
+          order_index: i + 1,
+          type: q.type || "multiple_choice",
+          difficulty: q.difficulty || "medium",
+          content: q.content,
+          options: q.options || { A: "A", B: "B", C: "C", D: "D" },
+          correct_answer: q.correct_answer || "A",
+          explanation: q.explanation || q.solution || "",
+          points: 1,
+        }));
+        setQuestions(mappedQuestions);
+      } else if (data.exam_id) {
         setExamId(data.exam_id);
-        // Fetch freshly generated questions
         const fullExam: any = await getExamById(data.exam_id);
-        if (fullExam && fullExam.questions) {
+        if (fullExam && fullExam.questions && fullExam.questions.length > 0) {
           setQuestions(fullExam.questions as Question[]);
         }
-      } else {
-        // Fallback default sample questions
-        createMockQuestions(detectedSubject, detectedGrade);
       }
 
-      setAiStatusMessage("Đã tạo đề thi thành công và chèn vào văn bản!");
+      setAiStatusMessage(`Đã tạo thành công đề thi ${detectedSubject} lớp ${detectedGrade}!`);
       setTimeout(() => setAiStatusMessage(null), 4000);
       setSavedStatus("saved");
       setAiPrompt("");
     } catch (err: any) {
-      console.warn("AI generation fallback to direct preview questions:", err);
-      createMockQuestions(detectedSubject, detectedGrade);
-      setSavedStatus("saved");
-      setAiStatusMessage("Đã nạp đề mẫu vào trang soạn thảo!");
-      setTimeout(() => setAiStatusMessage(null), 4000);
+      console.error("AI generation failed:", err);
+      setSavedStatus("error");
+      setAiStatusMessage(`Lỗi sinh đề: ${err.message || "Vui lòng thử lại"}`);
+      setTimeout(() => setAiStatusMessage(null), 6000);
     } finally {
       setIsGenerating(false);
     }

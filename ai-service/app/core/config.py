@@ -26,8 +26,8 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379"
 
     # LLM Routing Config
-    DEFAULT_MODEL: str = "deepseek-chat"
-    FALLBACK_MODEL: str = "gemini-1.5-flash"
+    DEFAULT_MODEL: str = "gemini-3.8-flash"
+    FALLBACK_MODEL: str = "gemini-3.8-flash"
     MAX_RETRIES: int = 3
     REQUEST_TIMEOUT: int = 30
 

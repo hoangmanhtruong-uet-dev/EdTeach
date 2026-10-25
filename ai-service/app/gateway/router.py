@@ -1,5 +1,6 @@
 """
-LLM Router - Routes requests to the most cost-effective model.
+LLM Router - Routes requests to appropriate models based on task and cost.
+Prioritizes quality for high-stakes tasks, cost for high-volume tasks.
 """
 
 from dataclasses import dataclass
@@ -11,16 +12,19 @@ logger = structlog.get_logger()
 
 @dataclass
 class ModelConfig:
-    """Configuration for a selected model."""
+    """Configuration for an LLM model."""
     model: str
     tier: str  # "premium", "balanced", "economy"
-    provider: str
-    input_cost_per_1m: float  # $/1M tokens
-    output_cost_per_1m: float
+    provider: str  # "deepseek", "google", "openai"
+    input_cost_per_1m: float  # USD
+    output_cost_per_1m: float  # USD
+    max_tokens: int = 4096
+    supports_vision: bool = False
+    supports_structured: bool = True
 
 
-# Model registry with pricing
-MODEL_REGISTRY: dict[str, ModelConfig] = {
+# Model registry
+MODELS: dict[str, ModelConfig] = {
     # Premium tier
     "deepseek-reasoner": ModelConfig(
         model="deepseek-reasoner",
@@ -38,63 +42,63 @@ MODEL_REGISTRY: dict[str, ModelConfig] = {
         output_cost_per_1m=1.10,
     ),
     # Economy tier
-    "gemini-1.5-flash": ModelConfig(
-        model="gemini-1.5-flash",
+    "gemini-3.8-flash": ModelConfig(
+        model="gemini-3.8-flash",
         tier="economy",
         provider="google",
         input_cost_per_1m=0.075,
         output_cost_per_1m=0.30,
     ),
-    "gemini-2.0-flash": ModelConfig(
-        model="gemini-2.0-flash",
+    "gemini-flash-latest": ModelConfig(
+        model="gemini-flash-latest",
         tier="economy",
         provider="google",
-        input_cost_per_1m=0.10,
-        output_cost_per_1m=0.40,
+        input_cost_per_1m=0.075,
+        output_cost_per_1m=0.30,
     ),
 }
 
 # Agent → Task → Model mapping
 AGENT_MODEL_MAPPING: dict[str, dict[str, str]] = {
     "question_generator": {
-        "essay": "gemini-1.5-flash",
-        "mcq": "gemini-1.5-flash",
-        "true_false": "gemini-1.5-flash",
-        "fill_blank": "gemini-1.5-flash",
-        "matching": "gemini-1.5-flash",
-        "short_answer": "gemini-1.5-flash",
-        "default": "gemini-1.5-flash",
+        "essay": "gemini-3.8-flash",
+        "mcq": "gemini-3.8-flash",
+        "true_false": "gemini-3.8-flash",
+        "fill_blank": "gemini-3.8-flash",
+        "matching": "gemini-3.8-flash",
+        "short_answer": "gemini-3.8-flash",
+        "default": "gemini-3.8-flash",
     },
     "verifier": {
-        "math_verify": "gemini-1.5-flash",
-        "logic_verify": "gemini-1.5-flash",
-        "default": "gemini-1.5-flash",
+        "math_verify": "gemini-3.8-flash",
+        "logic_verify": "gemini-3.8-flash",
+        "default": "gemini-3.8-flash",
     },
     "content_analyzer": {
-        "bloom_classify": "gemini-1.5-flash",
-        "topic_extract": "gemini-1.5-flash",
-        "keyword_extract": "gemini-1.5-flash",
-        "default": "gemini-1.5-flash",
+        "bloom_classify": "gemini-3.8-flash",
+        "topic_extract": "gemini-3.8-flash",
+        "keyword_extract": "gemini-3.8-flash",
+        "default": "gemini-3.8-flash",
     },
     "ocr": {
-        "default": "gemini-1.5-flash",
+        "default": "gemini-3.8-flash",
     },
     "grading": {
-        "essay_grade": "deepseek-reasoner",
-        "mcq_grade": "gemini-1.5-flash",
-        "default": "deepseek-chat",
+        "essay_grade": "gemini-3.8-flash",
+        "mcq_grade": "gemini-3.8-flash",
+        "default": "gemini-3.8-flash",
     },
     "general": {
-        "default": "deepseek-chat",
+        "default": "gemini-3.8-flash",
     },
 }
 
 # Fallback chain
 FALLBACK_CHAIN: dict[str, str] = {
     "deepseek-reasoner": "deepseek-chat",
-    "deepseek-chat": "gemini-1.5-flash",
-    "gemini-1.5-flash": "gemini-2.0-flash",
-    "gemini-2.0-flash": "deepseek-chat",
+    "deepseek-chat": "gemini-3.8-flash",
+    "gemini-3.8-flash": "gemini-flash-latest",
+    "gemini-flash-latest": "gemini-3.8-flash",
 }
 
 
@@ -110,39 +114,13 @@ class LLMRouter:
             task_type: The specific task (e.g., "mcq", "essay")
 
         Returns:
-            ModelConfig with the selected model details
+            ModelConfig for the chosen model
         """
-        # Look up in agent mapping
         agent_mapping = AGENT_MODEL_MAPPING.get(agent_type, {})
-        model_name = agent_mapping.get(task_type) or agent_mapping.get("default")
+        model_name = agent_mapping.get(task_type, agent_mapping.get("default", "gemini-3.8-flash"))
 
-        if not model_name:
-            model_name = "deepseek-chat"  # Global default
-            logger.warning(
-                "No mapping found, using default",
-                agent=agent_type,
-                task=task_type,
-                model=model_name,
-            )
+        return MODELS.get(model_name, MODELS["gemini-3.8-flash"])
 
-        config = MODEL_REGISTRY.get(model_name)
-        if not config:
-            raise ValueError(f"Model '{model_name}' not found in registry")
-
-        return config
-
-    def get_fallback(self, model: str) -> Optional[str]:
-        """Get fallback model for a given model."""
-        return FALLBACK_CHAIN.get(model)
-
-    def estimate_cost(
-        self, model: str, input_tokens: int, output_tokens: int
-    ) -> float:
-        """Estimate cost for a request."""
-        config = MODEL_REGISTRY.get(model)
-        if not config:
-            return 0.0
-
-        input_cost = (input_tokens / 1_000_000) * config.input_cost_per_1m
-        output_cost = (output_tokens / 1_000_000) * config.output_cost_per_1m
-        return input_cost + output_cost
+    def get_fallback(self, current_model: str) -> Optional[str]:
+        """Get the fallback model if the current one fails."""
+        return FALLBACK_CHAIN.get(current_model)

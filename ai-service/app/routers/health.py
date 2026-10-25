@@ -42,19 +42,8 @@ async def debug_gemini():
     if settings.GOOGLE_AI_API_KEY:
         try:
             genai.configure(api_key=settings.GOOGLE_AI_API_KEY)
-            models = [
-                m.name for m in genai.list_models()
-                if "generateContent" in getattr(m, "supported_generation_methods", [])
-            ]
-            info["models"] = models
-
-            # Test generation
-            test_model = "gemini-1.5-flash"
-            if "models/gemini-1.5-flash" in models:
-                test_model = "models/gemini-1.5-flash"
-            elif models:
-                test_model = models[0]
-
+            # Test with gemini-3.8-flash
+            test_model = "gemini-3.8-flash"
             m = genai.GenerativeModel(test_model)
             res = await m.generate_content_async("Xin chào, hãy trả lời 1 chữ: OK")
             info["test_call"] = {"model_used": test_model, "reply": res.text}

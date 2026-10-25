@@ -12,9 +12,11 @@ logger = structlog.get_logger()
 
 # Gemini pricing (per 1M tokens)
 GEMINI_PRICING = {
+    "gemini-3.8-flash": {"input": 0.075, "output": 0.30},
+    "gemini-flash-latest": {"input": 0.075, "output": 0.30},
+    "gemini-3.5-flash": {"input": 0.075, "output": 0.30},
+    "gemini-2.5-flash": {"input": 0.075, "output": 0.30},
     "gemini-1.5-flash": {"input": 0.075, "output": 0.30},
-    "gemini-1.5-pro": {"input": 1.25, "output": 5.00},
-    "gemini-2.0-flash": {"input": 0.10, "output": 0.40},
 }
 
 
@@ -26,7 +28,7 @@ class GoogleProvider(BaseLLMProvider):
         genai.configure(api_key=api_key)
 
     async def generate(self, request: LLMRequest) -> LLMResponse:
-        model_name = request.model or "gemini-1.5-flash"
+        model_name = request.model or "gemini-3.8-flash"
 
         # Convert messages to Gemini format
         system_prompt = None
@@ -58,22 +60,33 @@ class GoogleProvider(BaseLLMProvider):
         response = await model.generate_content_async(contents)
 
         # Extract token counts
-        input_tokens = response.usage_metadata.prompt_token_count if response.usage_metadata else 0
-        output_tokens = response.usage_metadata.candidates_token_count if response.usage_metadata else 0
+        input_tokens = 0
+        output_tokens = 0
+        if hasattr(response, "usage_metadata") and response.usage_metadata:
+            input_tokens = getattr(response.usage_metadata, "prompt_token_count", 0)
+            output_tokens = getattr(response.usage_metadata, "candidates_token_count", 0)
+
+        # Calculate cost
+        cost = self.estimate_cost(
+            model=model_name,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+        )
 
         return LLMResponse(
             content=response.text,
             model=model_name,
+            provider="google",
             input_tokens=input_tokens,
             output_tokens=output_tokens,
-            cost_usd=self.calculate_cost(model_name, input_tokens, output_tokens),
+            cost_usd=cost,
             finish_reason="stop",
         )
 
-    def calculate_cost(
+    def estimate_cost(
         self, model: str, input_tokens: int, output_tokens: int
     ) -> float:
-        pricing = GEMINI_PRICING.get(model, GEMINI_PRICING["gemini-1.5-flash"])
+        pricing = GEMINI_PRICING.get(model, GEMINI_PRICING["gemini-3.8-flash"])
         input_cost = (input_tokens / 1_000_000) * pricing["input"]
         output_cost = (output_tokens / 1_000_000) * pricing["output"]
         return input_cost + output_cost
