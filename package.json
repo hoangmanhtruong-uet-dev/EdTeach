@@ -1,0 +1,12 @@
+{
+  "name": "edutest-ai",
+  "version": "0.1.0",
+  "private": true,
+  "description": "EduTest AI - Nền tảng tạo đề thi tự động bằng AI",
+  "scripts": {
+    "dev": "npm run dev:frontend",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:ai": "cd ai-service && uvicorn main:app --reload --port 8000",
+    "build:frontend": "npm --prefix frontend run build"
+  }
+}

@@ -1,0 +1,51 @@
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Python
+__pycache__/
+*/__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+
+# Environment Variables
+.env
+*.env
+.env.local
+.env.*.local
+ai-service/.env
+frontend/.env.local
+!.env.example
+!*/.env.example
+!frontend/.env.local.example
+
+# Next.js & Build
+.next/
+*/.next/
+out/
+build/
+dist/
+*.tsbuildinfo
+next-env.d.ts
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS & IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+.agent/
+.agents/
+.kilo/
+.multiagent/
