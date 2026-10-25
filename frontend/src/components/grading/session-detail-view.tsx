@@ -28,6 +28,7 @@ import {
   ShieldCheck,
   AlertTriangle,
 } from "lucide-react";
+import { useAuth } from "@/context/auth-context";
 
 export interface GradedStudent {
   id: string;
@@ -79,6 +80,10 @@ export function SessionDetailView({
   onOpenPrintModal,
   onDeleteSession,
 }: SessionDetailViewProps) {
+  const { profile } = useAuth();
+  const isProUser = profile?.tier === "pro" || profile?.tier === "school";
+  const [showProUpgradeModal, setShowProUpgradeModal] = useState(false);
+
   // Modal states
   const [showCreateLinkModal, setShowCreateLinkModal] = useState(false);
   const [showCreatedLinkModal, setShowCreatedLinkModal] = useState<{
@@ -452,19 +457,41 @@ export function SessionDetailView({
 
             <div className="flex flex-wrap items-center gap-3">
               <button
-                onClick={() => onOpenScanModal(session, "camera")}
+                onClick={() => {
+                  if (!isProUser) {
+                    setShowProUpgradeModal(true);
+                    return;
+                  }
+                  onOpenScanModal(session, "camera");
+                }}
                 className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-neutral-200 hover:bg-neutral-50 text-neutral-800 text-xs font-semibold transition cursor-pointer shadow-xs"
               >
                 <Camera className="w-3.5 h-3.5 text-neutral-600" />
                 <span>Chụp phiếu</span>
+                {!isProUser && (
+                  <span className="ml-1 px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 text-[9px] font-bold">
+                    PRO
+                  </span>
+                )}
               </button>
 
               <button
-                onClick={() => onOpenScanModal(session, "upload")}
+                onClick={() => {
+                  if (!isProUser) {
+                    setShowProUpgradeModal(true);
+                    return;
+                  }
+                  onOpenScanModal(session, "upload");
+                }}
                 className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-neutral-200 hover:bg-neutral-50 text-neutral-800 text-xs font-semibold transition cursor-pointer shadow-xs"
               >
                 <Upload className="w-3.5 h-3.5 text-neutral-600" />
                 <span>Chọn ảnh</span>
+                {!isProUser && (
+                  <span className="ml-1 px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 text-[9px] font-bold">
+                    PRO
+                  </span>
+                )}
               </button>
             </div>
           </div>
@@ -483,6 +510,11 @@ export function SessionDetailView({
                 <Users className="w-4 h-4" />
               </div>
               <h2 className="text-base font-bold text-neutral-900">Để học sinh tự nộp</h2>
+              {!isProUser && (
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                  GÓI PRO
+                </span>
+              )}
             </div>
             <p className="text-xs text-neutral-500 mb-5 leading-relaxed">
               Gửi link hoặc mã QR. Học sinh tự tải ảnh, nhận điểm ngay sau khi nộp tại đây. Không cần
@@ -491,11 +523,22 @@ export function SessionDetailView({
 
             <div>
               <button
-                onClick={() => setShowCreateLinkModal(true)}
+                onClick={() => {
+                  if (!isProUser) {
+                    setShowProUpgradeModal(true);
+                    return;
+                  }
+                  setShowCreateLinkModal(true);
+                }}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-neutral-200 hover:bg-neutral-50 text-neutral-800 text-xs font-semibold transition cursor-pointer shadow-xs"
               >
                 <LinkIcon className="w-3.5 h-3.5 text-neutral-600" />
                 <span>Tạo link / mã QR nộp bài</span>
+                {!isProUser && (
+                  <span className="ml-1 px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 text-[9px] font-bold">
+                    PRO
+                  </span>
+                )}
               </button>
             </div>
           </div>
@@ -1066,6 +1109,76 @@ export function SessionDetailView({
               >
                 Đóng
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL 5: NÂNG CẤP GÓI PRO ĐỂ SỬ DỤNG CHẤM BÀI AI & QR */}
+      {/* ========================================================= */}
+      {showProUpgradeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-neutral-200 text-center relative">
+            <button
+              onClick={() => setShowProUpgradeModal(false)}
+              className="absolute right-4 top-4 p-1.5 rounded-lg text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-400 to-amber-500 text-white flex items-center justify-center mx-auto mb-3 shadow-md shadow-amber-500/20">
+              <Sparkles className="w-8 h-8" />
+            </div>
+
+            <div className="inline-block px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-extrabold uppercase tracking-wider mb-2">
+              PRO EXCLUSIVE
+            </div>
+
+            <h3 className="text-xl font-bold text-neutral-900 mb-2">
+              Tính năng dành riêng cho gói PRO
+            </h3>
+
+            <p className="text-xs text-neutral-600 mb-5 leading-relaxed">
+              Tính năng <strong>Chấm trắc nghiệm AI</strong> và{" "}
+              <strong>Học sinh tự nộp bài qua Link / Mã QR</strong> là đặc quyền của gói PRO.
+              Nâng cấp ngay để tự động hóa 100% khâu chấm thi và xuất bảng điểm Excel!
+            </p>
+
+            <div className="bg-neutral-50 rounded-xl p-3.5 text-left space-y-2 mb-6 border border-neutral-100 text-xs text-neutral-700">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>Chấm bài tự động từ camera điện thoại & tải ảnh</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>Học sinh tự nộp bài qua QR, nhận điểm tức thì</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>Xuất bảng điểm lớp file Excel UTF-8 BOM chuẩn</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>In phiếu trả lời trắc nghiệm A4 chuẩn Bộ GD&ĐT</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowProUpgradeModal(false)}
+                className="flex-1 py-2.5 rounded-xl border border-neutral-200 hover:bg-neutral-50 text-neutral-700 text-xs font-semibold transition cursor-pointer"
+              >
+                Để sau
+              </button>
+
+              <a
+                href="/wallet"
+                className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white text-xs font-bold transition shadow-md shadow-amber-500/20 flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Nâng cấp PRO ngay</span>
+              </a>
             </div>
           </div>
         </div>

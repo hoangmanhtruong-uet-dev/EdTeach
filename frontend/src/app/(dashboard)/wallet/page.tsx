@@ -1,7 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Wallet as WalletIcon, Plus, ArrowUpRight, ArrowDownLeft, Clock, CreditCard, Gift, Loader2 } from "lucide-react";
+import React, { useEffect, useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+import {
+  Wallet as WalletIcon,
+  Plus,
+  ArrowUpRight,
+  ArrowDownLeft,
+  Clock,
+  CheckCircle2,
+  Loader2,
+} from "lucide-react";
 import { getUserWallet, getWalletTransactions, Wallet, WalletTxn } from "@/lib/api/wallet";
 import { PaymentCheckoutModal } from "@/components/modals/payment-checkout-modal";
 
@@ -12,12 +21,17 @@ const pricingPlans = [
   { credits: 500, price: "349.000đ", amount: 349000, perCredit: "698đ", popular: false },
 ];
 
-export default function WalletPage() {
+function WalletContent() {
+  const searchParams = useSearchParams();
+  const paymentStatus = searchParams.get("status");
+  const creditsParam = searchParams.get("credits");
+
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [txns, setTxns] = useState<WalletTxn[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPlanIndex, setSelectedPlanIndex] = useState(1);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [showSuccessBanner, setShowSuccessBanner] = useState(paymentStatus === "PAID");
 
   async function loadData() {
     try {
@@ -36,7 +50,12 @@ export default function WalletPage() {
 
   useEffect(() => {
     loadData();
-  }, []);
+    if (paymentStatus === "PAID") {
+      setShowSuccessBanner(true);
+      // Re-fetch after 2 seconds to make sure webhook completed
+      setTimeout(loadData, 2000);
+    }
+  }, [paymentStatus]);
 
   if (loading) {
     return (
@@ -50,7 +69,35 @@ export default function WalletPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Ví Credits</h1>
+      {/* Banner PayOS thanh toán thành công */}
+      {showSuccessBanner && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-800 flex items-center justify-between shadow-xs animate-in fade-in">
+          <div className="flex items-center gap-3">
+            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+            <div>
+              <p className="font-bold text-sm">Thanh toán PayOS thành công!</p>
+              <p className="text-xs text-emerald-700">
+                Giao dịch đã được xác nhận. {creditsParam ? `+${creditsParam} Credits` : "Credits"} đã được cộng vào ví của bạn.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowSuccessBanner(false)}
+            className="text-xs font-semibold px-2 py-1 rounded-md bg-white border border-emerald-200 text-emerald-800 hover:bg-emerald-100 transition cursor-pointer"
+          >
+            Đóng
+          </button>
+        </div>
+      )}
+
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Ví Credits</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Quản lý số dư và nạp credits tự động qua cổng PayOS / VietQR
+          </p>
+        </div>
+      </div>
 
       {/* Balance cards */}
       <div className="grid gap-4 sm:grid-cols-3">
@@ -83,7 +130,7 @@ export default function WalletPage() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Trạng thái ví</p>
-              <p className="text-2xl font-bold text-green-600">Hoạt động</p>
+              <p className="text-2xl font-bold text-green-600">Hoạt động (PayOS 24/7)</p>
             </div>
           </div>
         </div>
@@ -100,97 +147,92 @@ export default function WalletPage() {
           </div>
           <div className="divide-y divide-border">
             {txns.length === 0 ? (
-              <div className="py-8 text-center text-sm text-muted-foreground">
-                Chưa có giao dịch nào
-              </div>
+              <p className="p-8 text-center text-sm text-muted-foreground">Chưa có giao dịch nào</p>
             ) : (
-              txns.map((tx) => (
-                <div key={tx.id} className="flex items-center gap-4 px-5 py-4">
-                  <div
-                    className={`rounded-lg p-2 ${
-                      tx.amount < 0
-                        ? "bg-red-100 dark:bg-red-950/40"
-                        : tx.type === "purchase"
-                        ? "bg-green-100 dark:bg-green-950/40"
-                        : "bg-purple-100 dark:bg-purple-950/40"
-                    }`}
-                  >
-                    {tx.amount < 0 ? (
-                      <ArrowUpRight className="h-4 w-4 text-red-600" />
-                    ) : tx.type === "purchase" ? (
-                      <CreditCard className="h-4 w-4 text-green-600" />
-                    ) : (
-                      <Gift className="h-4 w-4 text-purple-600" />
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">{tx.description || "Giao dịch"}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(tx.created_at).toLocaleString("vi-VN")}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p
-                      className={`text-sm font-semibold ${
-                        tx.amount > 0 ? "text-green-600" : "text-red-600"
+              txns.map((txn) => (
+                <div key={txn.id} className="flex items-center justify-between p-4">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`rounded-full p-2 ${
+                        txn.amount < 0
+                          ? "bg-red-50 text-red-600 dark:bg-red-950/50"
+                          : "bg-green-50 text-green-600 dark:bg-green-950/50"
                       }`}
                     >
-                      {tx.amount > 0 ? "+" : ""}
-                      {tx.amount.toLocaleString()} credits
-                    </p>
-                    <p className="text-xs text-muted-foreground">Mã: {tx.id.slice(0, 8)}</p>
+                      {txn.amount < 0 ? (
+                        <ArrowUpRight className="h-4 w-4" />
+                      ) : (
+                        <ArrowDownLeft className="h-4 w-4" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">{txn.description || txn.type}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(txn.created_at).toLocaleDateString("vi-VN", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </p>
+                    </div>
                   </div>
+                  <span
+                    className={`font-mono text-sm font-bold ${
+                      txn.amount < 0 ? "text-red-600" : "text-green-600"
+                    }`}
+                  >
+                    {txn.amount < 0 ? `${txn.amount}` : `+${txn.amount}`} credits
+                  </span>
                 </div>
               ))
             )}
           </div>
         </div>
 
-        {/* Top-up plans */}
-        <div className="space-y-4">
+        {/* Pricing plans */}
+        <div>
           <div className="rounded-xl border border-border bg-card p-5">
-            <h2 className="mb-4 font-semibold">Nạp Credits</h2>
+            <h2 className="font-semibold mb-3">Nạp Credits</h2>
             <div className="space-y-3">
               {pricingPlans.map((plan, idx) => {
                 const isSelected = selectedPlanIndex === idx;
                 return (
-                  <button
-                    key={plan.credits}
+                  <div
+                    key={idx}
                     onClick={() => setSelectedPlanIndex(idx)}
-                    className={`relative w-full rounded-lg border p-4 text-left transition-all ${
+                    className={`relative rounded-xl border p-4 transition-all cursor-pointer ${
                       isSelected
-                        ? "border-primary bg-primary/10 ring-1 ring-primary shadow-sm"
-                        : "border-border hover:bg-muted/60"
+                        ? "border-primary bg-primary/5 shadow-xs"
+                        : "border-border hover:border-primary/50"
                     }`}
                   >
                     {plan.popular && (
-                      <span className="absolute -top-2.5 right-3 rounded-full bg-primary px-2 py-0.5 text-xs font-semibold text-primary-foreground shadow-sm">
-                        Phổ biến
+                      <span className="absolute -top-2.5 right-4 rounded-full bg-primary px-2.5 py-0.5 text-[10px] font-bold text-primary-foreground">
+                        Phổ biến nhất
                       </span>
                     )}
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="font-semibold text-foreground">{plan.credits} credits</p>
+                        <p className="font-bold text-base">{plan.credits} Credits</p>
                         <p className="text-xs text-muted-foreground">{plan.perCredit}/credit</p>
                       </div>
-                      <p className="text-lg font-bold text-primary">{plan.price}</p>
+                      <span className="text-lg font-bold text-primary">{plan.price}</span>
                     </div>
-                  </button>
+                  </div>
                 );
               })}
             </div>
             <button
               onClick={() => setIsCheckoutOpen(true)}
-              className="mt-4 flex w-full items-center justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 shadow-sm transition-colors"
+              className="mt-4 flex w-full items-center justify-center rounded-xl bg-primary px-4 py-3 text-sm font-bold text-primary-foreground hover:bg-primary/90 shadow-sm transition-colors cursor-pointer"
             >
               <Plus className="mr-2 inline h-4 w-4" />
-              Nạp ngay qua VietQR ({pricingPlans[selectedPlanIndex].price})
+              Nạp ngay qua PayOS ({pricingPlans[selectedPlanIndex].price})
             </button>
           </div>
         </div>
       </div>
 
-      {/* VietQR / SePay Checkout Modal */}
+      {/* PayOS / VietQR Checkout Modal */}
       <PaymentCheckoutModal
         isOpen={isCheckoutOpen}
         onClose={() => setIsCheckoutOpen(false)}
@@ -201,5 +243,19 @@ export default function WalletPage() {
         }}
       />
     </div>
+  );
+}
+
+export default function WalletPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-64 items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      }
+    >
+      <WalletContent />
+    </Suspense>
   );
 }

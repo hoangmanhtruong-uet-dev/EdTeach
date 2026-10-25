@@ -290,13 +290,33 @@ export async function POST(req: NextRequest) {
     let isFreeUsage = false;
     let creditsDeducted = 0;
 
+    const MAX_DAILY_CREDITS = 5000;
+    const dailyCreditUsed = (wallet as any)?.daily_credit_used ?? 0;
+    let currentDailyCreditUsed = dailyCreditUsed;
+
     // Kiểm tra reset ngày mới (nếu có cột last_quota_reset)
     if (wallet?.last_quota_reset) {
       const todayStr = new Date().toISOString().slice(0, 10);
       const lastResetStr = new Date(wallet.last_quota_reset).toISOString().slice(0, 10);
       if (lastResetStr !== todayStr) {
         dailyUsed = 0;
+        currentDailyCreditUsed = 0;
       }
+    }
+
+    // Kiểm tra trần tối đa 5.000 credits/ngày (chống lạm dụng / abuse API)
+    if (
+      currentDailyCreditUsed + requiredCredits > MAX_DAILY_CREDITS &&
+      userProfile?.tier !== "school"
+    ) {
+      return NextResponse.json(
+        {
+          error: "DAILY_CREDIT_LIMIT_REACHED",
+          message:
+            "Tài khoản của bạn đã đạt hạn mức tối đa 5.000 credits trong ngày hôm nay. Hạn mức sẽ tự động được làm mới vào 00:00 ngày mai.",
+        },
+        { status: 403 }
+      );
     }
 
     if (dailyUsed < dailyQuota) {
@@ -548,6 +568,7 @@ YÊU CẦU ĐẦU RA JSON CHUẨN CÓ CẤU TRÚC:
       const updatePayload: any = { balance };
       if (wallet.daily_quota !== undefined) {
         updatePayload.daily_quota_used = dailyUsed;
+        updatePayload.daily_credit_used = currentDailyCreditUsed + creditsDeducted;
         updatePayload.last_quota_reset = new Date().toISOString();
         updatePayload.updated_at = new Date().toISOString();
       }
