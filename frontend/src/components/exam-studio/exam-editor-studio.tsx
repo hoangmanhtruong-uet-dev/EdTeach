@@ -101,6 +101,7 @@ import {
 } from "./svg-illustrations";
 import { FormulaEditorModal } from "./formula-editor-modal";
 import { FindReplaceModal } from "./find-replace-modal";
+import { ShuffleExamModal } from "./shuffle-exam-modal";
 import {
   VariationTableModal,
   VariationTableRenderer,
@@ -340,6 +341,7 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
 
   // Daily Quota & Viral Referral states
   const [showQuotaModal, setShowQuotaModal] = useState(false);
+  const [showShuffleModal, setShowShuffleModal] = useState(false);
   const [dailyQuota, setDailyQuota] = useState(3);
   const [dailyUsed, setDailyUsed] = useState(0);
   const [userReferralCode, setUserReferralCode] = useState("EDUTEACH");
@@ -2113,6 +2115,15 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
                     </button>
                     <button
                       onClick={() => {
+                        setShowShuffleModal(true);
+                        setShowActiveMenu(null);
+                      }}
+                      className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-slate-50 text-blue-600 font-semibold"
+                    >
+                      <Shuffle className="h-3.5 w-3.5 text-blue-600" /> Trộn bộ 4 mã đề & Ma trận (.docx)
+                    </button>
+                    <button
+                      onClick={() => {
                         handlePrint();
                         setShowActiveMenu(null);
                       }}
@@ -3668,13 +3679,13 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
                   >
                     <button
                       onClick={() => {
-                        handleShuffleQuestions();
+                        setShowShuffleModal(true);
                         setShowActiveMenu(null);
                       }}
-                      className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-slate-50"
+                      className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-slate-50 text-blue-600 font-semibold"
                     >
                       <Shuffle className="h-3.5 w-3.5 text-blue-600" />
-                      <span>Trộn đề ngẫu nhiên</span>
+                      <span>Trộn đề thi & Ma trận đáp án (4 mã)</span>
                     </button>
 
                     <button
@@ -3982,6 +3993,16 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
           >
             {teacherMode ? <Eye className="h-3.5 w-3.5 text-blue-600" /> : <EyeOff className="h-3.5 w-3.5 text-slate-500" />}
             <span className="hidden md:inline">{teacherMode ? "Hiện đáp án" : "Ẩn đáp án"}</span>
+          </button>
+
+          {/* Quick Shuffle Multi-version Modal */}
+          <button
+            onClick={() => setShowShuffleModal(true)}
+            className="ml-2 hidden sm:flex items-center gap-1.5 rounded-full bg-blue-50 border border-blue-200 px-3 py-1 text-xs font-bold text-blue-700 hover:bg-blue-100 shadow-2xs transition cursor-pointer"
+            title="Trộn đề thành các mã đề 101, 102, 103, 104 kèm ma trận đáp án"
+          >
+            <Shuffle className="h-3.5 w-3.5 text-blue-600" />
+            <span>Trộn 4 mã đề (.docx)</span>
           </button>
         </div>
 
@@ -5366,6 +5387,18 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
         dailyQuota={dailyQuota}
         dailyUsed={dailyUsed}
         userId={user?.id || "TEACHER"}
+      />
+
+      {/* Multi-version Exam Shuffler & Answer Matrix Modal */}
+      <ShuffleExamModal
+        isOpen={showShuffleModal}
+        onClose={() => setShowShuffleModal(false)}
+        examName={title}
+        subject={subject}
+        grade={grade}
+        durationMinutes={parseInt(duration, 10) || 45}
+        originalQuestions={questions}
+        isPro={(profile as any)?.tier === "pro" || (profile as any)?.tier === "school"}
       />
     </div>
   );

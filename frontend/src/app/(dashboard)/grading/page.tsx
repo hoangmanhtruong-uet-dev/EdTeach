@@ -782,7 +782,7 @@ export default function GradingPage() {
         {/* Top Header Match Screenshot */}
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-3xl md:text-4xl font-serif font-bold text-neutral-900 tracking-tight">
+            <h1 className="text-2xl md:text-3xl font-bold text-neutral-900">
               Chấm phiếu trắc nghiệm
             </h1>
             <p className="mt-2 text-sm text-neutral-600 max-w-2xl leading-relaxed">
