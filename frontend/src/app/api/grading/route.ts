@@ -11,7 +11,11 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { mode, question, rubric, studentAnswer, answerKey, studentAnswers } = body;
 
-    const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY;
+    // Hỗ trợ riêng API Key trả phí (Pay-as-you-go) cho chấm thi AI để không bị nghẽn quota free
+    const geminiKey =
+      process.env.GEMINI_API_KEY_PAID ||
+      process.env.GEMINI_API_KEY ||
+      process.env.GOOGLE_AI_API_KEY;
 
     // ==========================================
     // 1. CHẾ ĐỘ: CHẤM TRẮC NGHIỆM (MCQ)

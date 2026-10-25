@@ -269,7 +269,7 @@ export async function POST(req: NextRequest) {
           .upsert(
             {
               user_id: user.id,
-              balance: 5000,
+              balance: 100,
             },
             { onConflict: "user_id" }
           )
@@ -286,7 +286,7 @@ export async function POST(req: NextRequest) {
     // Daily Quota Logic:
     let dailyQuota = wallet?.daily_quota ?? 3;
     let dailyUsed = wallet?.daily_quota_used ?? 0;
-    let balance = wallet?.balance ?? 5000;
+    let balance = wallet?.balance ?? 100;
     let isFreeUsage = false;
     let creditsDeducted = 0;
 
