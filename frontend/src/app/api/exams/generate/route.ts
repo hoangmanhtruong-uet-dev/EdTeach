@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
-const AI_SERVICE_URL = process.env.AI_SERVICE_URL || "http://localhost:8000";
+const AI_SERVICE_URL =
+  process.env.AI_SERVICE_URL ||
+  process.env.NEXT_PUBLIC_AI_SERVICE_URL ||
+  "http://localhost:8000";
 
 // Simple in-memory IP rate limiter: max 5 requests per IP per day
 const ipRateLimits = new Map<string, { count: number; date: string }>();
