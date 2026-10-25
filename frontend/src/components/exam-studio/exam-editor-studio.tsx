@@ -60,7 +60,9 @@ import {
   FileCode,
   SlidersHorizontal,
   LayoutGrid,
+  Maximize2,
 } from "lucide-react";
+import { clsx } from "clsx";
 import { useAuth } from "@/context/auth-context";
 import { LatexRenderer } from "@/components/ui/latex-renderer";
 import { exportExamToDocx } from "@/lib/export/docx-exporter";
@@ -134,6 +136,20 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
   // Layout panels
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(true);
   const [aiSidebarOpen, setAiSidebarOpen] = useState(true);
+
+  // Resizable Sidebars (Widths & Dragging state)
+  const [leftWidth, setLeftWidth] = useState(260);
+  const [rightWidth, setRightWidth] = useState(380);
+  const [isDraggingLeft, setIsDraggingLeft] = useState(false);
+  const [isDraggingRight, setIsDraggingRight] = useState(false);
+
+  // Standard Header Visibility (default false for fresh blank canvas)
+  const [showStandardHeader, setShowStandardHeader] = useState(false);
+
+  // Dropdown states for menus
+  const [showZoomMenu, setShowZoomMenu] = useState(false);
+  const [showAddTypeMenu, setShowAddTypeMenu] = useState(false);
+  const [showEmptyAddTypeMenu, setShowEmptyAddTypeMenu] = useState(false);
   const [activeLeftTab, setActiveLeftTab] = useState<"toc" | "templates">("toc");
 
   // Questions & Document Content Blocks
@@ -144,16 +160,19 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
   const [hoveredGridCell, setHoveredGridCell] = useState<{ row: number; col: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
+  const [switchingTypeId, setSwitchingTypeId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<{
     content: string;
     options: Record<string, string>;
     correct_answer: string;
     explanation: string;
+    trueFalseItems?: Array<{ label: string; statement: string; isCorrect: boolean }>;
   }>({
     content: "",
     options: { A: "", B: "", C: "", D: "" },
     correct_answer: "A",
     explanation: "",
+    trueFalseItems: [],
   });
 
   // AI Assistant states
@@ -186,6 +205,43 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
     }
     loadReferralInfo();
   }, []);
+
+
+  // Resizable sidebar drag listeners
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isDraggingLeft) {
+        const newW = Math.max(180, Math.min(e.clientX, 480));
+        setLeftWidth(newW);
+      }
+      if (isDraggingRight) {
+        const newW = Math.max(280, Math.min(window.innerWidth - e.clientX, 650));
+        setRightWidth(newW);
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsDraggingLeft(false);
+      setIsDraggingRight(false);
+    };
+
+    if (isDraggingLeft || isDraggingRight) {
+      document.body.style.userSelect = "none";
+      document.body.style.cursor = "col-resize";
+      window.addEventListener("mousemove", handleMouseMove);
+      window.addEventListener("mouseup", handleMouseUp);
+    } else {
+      document.body.style.userSelect = "";
+      document.body.style.cursor = "";
+    }
+
+    return () => {
+      document.body.style.userSelect = "";
+      document.body.style.cursor = "";
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isDraggingLeft, isDraggingRight]);
 
   // Load existing exam if initialExamId is present
   useEffect(() => {
@@ -309,23 +365,34 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
       }
 
       if (data.questions && Array.isArray(data.questions) && data.questions.length > 0) {
-        const mappedQuestions: Question[] = data.questions.map((q: any, i: number) => ({
+        const mappedQuestions: DocItem[] = data.questions.map((q: any, i: number) => ({
           id: `gen-${Date.now()}-${i}`,
           exam_id: data.exam_id || "temp",
           order_index: i + 1,
-          type: q.type || "multiple_choice",
+          type: q.type || (q.blockType === "true_false" ? "true_false" : q.blockType === "short_answer" ? "short_answer" : q.blockType === "essay" ? "essay" : "multiple_choice"),
+          blockType: q.blockType || (q.trueFalseItems ? "true_false" : q.options ? "multiple_choice" : "multiple_choice"),
           difficulty: q.difficulty || "medium",
-          content: q.content,
-          options: q.options || { A: "A", B: "B", C: "C", D: "D" },
-          correct_answer: q.correct_answer || "A",
+          content: q.content || (q.blockType === "section_title" ? (q.sectionTitle || "") : ""),
+          sectionTitle: q.sectionTitle,
+          trueFalseItems: q.trueFalseItems,
+          options:
+            q.blockType === "true_false" ||
+            q.blockType === "short_answer" ||
+            q.blockType === "essay" ||
+            q.blockType === "section_title"
+              ? undefined
+              : (q.options || { A: "A", B: "B", C: "C", D: "D" }),
+          correct_answer: q.correct_answer || (q.blockType === "short_answer" ? "" : "A"),
           explanation: q.explanation || q.solution || "",
-          points: 1,
+          points: q.points || 1,
         }));
         setQuestions(mappedQuestions);
       } else if (data.exam_id) {
         setExamId(data.exam_id);
         const fullExam: any = await getExamById(data.exam_id);
-        if (fullExam && fullExam.questions && fullExam.questions.length > 0) {
+        if (fullExam?.config?.questions && Array.isArray(fullExam.config.questions)) {
+          setQuestions(fullExam.config.questions);
+        } else if (fullExam && fullExam.questions && fullExam.questions.length > 0) {
           setQuestions(fullExam.questions as Question[]);
         }
       }
@@ -418,27 +485,140 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
     setQuestions(mocks);
   };
 
-  // Add a blank question
-  const handleAddQuestion = () => {
-    const newQ: Question = {
-      id: "q-" + Date.now(),
-      exam_id: examId || "temp",
-      order_index: questions.length + 1,
-      type: "multiple_choice",
-      difficulty: "medium",
-      content: "Nhập nội dung câu hỏi mới tại đây...",
-      options: {
-        A: "Lựa chọn A",
-        B: "Lựa chọn B",
-        C: "Lựa chọn C",
-        D: "Lựa chọn D",
-      },
-      correct_answer: "A",
-      explanation: "Nhập lời giải chi tiết và hướng dẫn giải...",
-      created_at: new Date().toISOString(),
-    };
+  // Add a question with selected type
+  const handleAddQuestion = (
+    qType: "multiple_choice" | "true_false" | "short_answer" | "essay" = "multiple_choice"
+  ) => {
+    let newQ: DocItem;
+    const now = Date.now();
+    const idx = questions.length + 1;
+
+    if (qType === "true_false") {
+      newQ = {
+        id: "tf-" + now,
+        exam_id: examId || "temp",
+        order_index: idx,
+        type: "true_false",
+        blockType: "true_false",
+        difficulty: "medium",
+        content: `Câu ${idx}: Cho các phát biểu sau đây. Xét tính đúng/sai của các mệnh đề:`,
+        options: {},
+        trueFalseItems: [
+          { label: "a", statement: "Mệnh đề a...", isCorrect: true },
+          { label: "b", statement: "Mệnh đề b...", isCorrect: false },
+          { label: "c", statement: "Mệnh đề c...", isCorrect: true },
+          { label: "d", statement: "Mệnh đề d...", isCorrect: false },
+        ],
+        correct_answer: "a - Đ, b - S, c - Đ, d - S",
+        explanation: "Lời giải chi tiết cho từng ý a, b, c, d.",
+        created_at: new Date().toISOString(),
+      };
+    } else if (qType === "short_answer") {
+      newQ = {
+        id: "sa-" + now,
+        exam_id: examId || "temp",
+        order_index: idx,
+        type: "short_answer",
+        blockType: "short_answer",
+        difficulty: "medium",
+        content: `Câu ${idx}: Nhập đề bài câu hỏi trả lời ngắn (học sinh tự tính toán và điền đáp số vào ô trống)...`,
+        options: {},
+        correct_answer: "10",
+        explanation: "Hướng dẫn các bước tính ra đáp số.",
+        created_at: new Date().toISOString(),
+      };
+    } else if (qType === "essay") {
+      newQ = {
+        id: "ess-" + now,
+        exam_id: examId || "temp",
+        order_index: idx,
+        type: "essay",
+        blockType: "essay",
+        difficulty: "medium",
+        content: `Câu ${idx} (Tự luận): Nhập đề bài câu hỏi tự luận tại đây...`,
+        options: {},
+        correct_answer: "Barem điểm...",
+        explanation: "Hướng dẫn chấm chi tiết và thang điểm.",
+        created_at: new Date().toISOString(),
+      };
+    } else {
+      newQ = {
+        id: "q-" + now,
+        exam_id: examId || "temp",
+        order_index: idx,
+        type: "multiple_choice",
+        difficulty: "medium",
+        content: `Câu ${idx}: Nhập nội dung câu hỏi trắc nghiệm tại đây...`,
+        options: {
+          A: "Phương án A",
+          B: "Phương án B",
+          C: "Phương án C",
+          D: "Phương án D",
+        },
+        correct_answer: "A",
+        explanation: "Nhập lời giải chi tiết và hướng dẫn giải...",
+        created_at: new Date().toISOString(),
+      };
+    }
+
     setQuestions([...questions, newQ]);
     handleStartEdit(newQ);
+    setShowAddTypeMenu(false);
+    setShowEmptyAddTypeMenu(false);
+  };
+
+  // Switch type of an existing question
+  const handleSwitchQuestionType = (qId: string, targetType: string) => {
+    setQuestions(
+      questions.map((q) => {
+        if (q.id !== qId) return q;
+
+        if (targetType === "true_false") {
+          return {
+            ...q,
+            type: "true_false",
+            blockType: "true_false",
+            trueFalseItems: q.trueFalseItems || [
+              { label: "a", statement: "Khẳng định a...", isCorrect: true },
+              { label: "b", statement: "Khẳng định b...", isCorrect: false },
+              { label: "c", statement: "Khẳng định c...", isCorrect: true },
+              { label: "d", statement: "Khẳng định d...", isCorrect: false },
+            ],
+            correct_answer: q.correct_answer || "a - Đ, b - S, c - Đ, d - S",
+          };
+        } else if (targetType === "short_answer") {
+          return {
+            ...q,
+            type: "short_answer",
+            blockType: "short_answer",
+            correct_answer: q.correct_answer || "Đáp số",
+          };
+        } else if (targetType === "essay") {
+          return {
+            ...q,
+            type: "essay",
+            blockType: "essay",
+            correct_answer: q.correct_answer || "Barem điểm",
+          };
+        } else {
+          return {
+            ...q,
+            type: "multiple_choice",
+            blockType: "question",
+            options:
+              q.options && Object.keys(q.options).length > 0
+                ? q.options
+                : {
+                    A: "Phương án A",
+                    B: "Phương án B",
+                    C: "Phương án C",
+                    D: "Phương án D",
+                  },
+            correct_answer: q.correct_answer?.length === 1 ? q.correct_answer : "A",
+          };
+        }
+      })
+    );
   };
 
   // Handlers for "Chèn" Menu Features (Screenshots 1-5)
@@ -737,8 +917,16 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
     setEditForm({
       content: q.content,
       options: opts,
-      correct_answer: q.correct_answer || "A",
+      correct_answer: q.correct_answer || (q.blockType === "short_answer" ? "" : "A"),
       explanation: q.explanation || "",
+      trueFalseItems: q.trueFalseItems
+        ? q.trueFalseItems.map((item) => ({ ...item }))
+        : [
+            { label: "a", statement: "", isCorrect: true },
+            { label: "b", statement: "", isCorrect: false },
+            { label: "c", statement: "", isCorrect: true },
+            { label: "d", statement: "", isCorrect: false },
+          ],
     });
   };
 
@@ -753,6 +941,7 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
               options: editForm.options,
               correct_answer: editForm.correct_answer,
               explanation: editForm.explanation,
+              trueFalseItems: editForm.trueFalseItems,
             }
           : q
       )
@@ -825,6 +1014,302 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
   const userInitial = profile?.name ? profile.name[0].toUpperCase() : user?.email ? user.email[0].toUpperCase() : "T";
   const userDisplayName = profile?.name || user?.email?.split("@")[0] || "Trường Hoà...";
   const userCredits = wallet?.balance !== undefined ? wallet.balance : 7095;
+
+  // Helper to render question type switcher dropdown badge
+  const renderQuestionTypeBadge = (q: DocItem) => {
+    const currentType = q.blockType || "multiple_choice";
+    const typeLabel =
+      currentType === "true_false"
+        ? "Đúng / Sai"
+        : currentType === "short_answer"
+        ? "Trả lời ngắn"
+        : currentType === "essay"
+        ? "Tự luận"
+        : "Trắc nghiệm";
+
+    const typeColor =
+      currentType === "true_false"
+        ? "text-emerald-700 bg-emerald-50 border-emerald-200"
+        : currentType === "short_answer"
+        ? "text-amber-700 bg-amber-50 border-amber-200"
+        : currentType === "essay"
+        ? "text-purple-700 bg-purple-50 border-purple-200"
+        : "text-blue-700 bg-blue-50 border-blue-200";
+
+    return (
+      <div className="relative inline-block print:hidden ml-1.5 align-middle">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setSwitchingTypeId(switchingTypeId === q.id ? null : q.id);
+          }}
+          className={clsx(
+            "inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-semibold border transition hover:opacity-85 shadow-xs",
+            typeColor
+          )}
+          title="Bấm để đổi loại câu hỏi này"
+        >
+          <span>{typeLabel}</span>
+          <ChevronDown className="h-2.5 w-2.5 opacity-60" />
+        </button>
+
+        {switchingTypeId === q.id && (
+          <div
+            onMouseLeave={() => setSwitchingTypeId(null)}
+            className="absolute left-0 top-full mt-1 z-50 w-48 rounded-lg border border-slate-200 bg-white py-1 shadow-xl text-xs space-y-0.5 text-left font-normal"
+          >
+            <p className="px-3 py-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+              Đổi loại câu hỏi:
+            </p>
+            <button
+              onClick={() => {
+                handleSwitchQuestionType(q.id, "multiple_choice");
+                setSwitchingTypeId(null);
+              }}
+              className={clsx(
+                "flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-slate-50",
+                currentType === "multiple_choice" || currentType === "question"
+                  ? "font-bold text-blue-700 bg-blue-50/50"
+                  : "text-slate-700"
+              )}
+            >
+              <span className="font-bold text-blue-600 text-[10px] w-6">MCQ</span>
+              <span>Trắc nghiệm 4 lựa chọn</span>
+            </button>
+            <button
+              onClick={() => {
+                handleSwitchQuestionType(q.id, "true_false");
+                setSwitchingTypeId(null);
+              }}
+              className={clsx(
+                "flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-slate-50",
+                currentType === "true_false"
+                  ? "font-bold text-emerald-700 bg-emerald-50/50"
+                  : "text-slate-700"
+              )}
+            >
+              <span className="font-bold text-emerald-600 text-[10px] w-6">Đ/S</span>
+              <span>Trắc nghiệm Đúng / Sai</span>
+            </button>
+            <button
+              onClick={() => {
+                handleSwitchQuestionType(q.id, "short_answer");
+                setSwitchingTypeId(null);
+              }}
+              className={clsx(
+                "flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-slate-50",
+                currentType === "short_answer"
+                  ? "font-bold text-amber-700 bg-amber-50/50"
+                  : "text-slate-700"
+              )}
+            >
+              <span className="font-bold text-amber-600 text-[10px] w-6">TN</span>
+              <span>Trả lời ngắn (Điền số)</span>
+            </button>
+            <button
+              onClick={() => {
+                handleSwitchQuestionType(q.id, "essay");
+                setSwitchingTypeId(null);
+              }}
+              className={clsx(
+                "flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-slate-50",
+                currentType === "essay"
+                  ? "font-bold text-purple-700 bg-purple-50/50"
+                  : "text-slate-700"
+              )}
+            >
+              <span className="font-bold text-purple-600 text-[10px] w-6">TL</span>
+              <span>Tự luận</span>
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Helper to render inline edit form for any question type
+  const renderInlineEditForm = (q: DocItem, idx: number) => {
+    if (editingQuestionId !== q.id) return null;
+    return (
+      <div className="mt-3 rounded-lg border border-primary/40 bg-white p-4 shadow-md text-xs print:hidden">
+        <div className="flex items-center justify-between mb-2 pb-2 border-b border-slate-100">
+          <p className="font-semibold text-slate-800">
+            Chỉnh sửa Câu {idx + 1} (
+            {q.blockType === "true_false"
+              ? "Trắc nghiệm Đúng / Sai"
+              : q.blockType === "short_answer"
+              ? "Trả lời ngắn"
+              : q.blockType === "essay"
+              ? "Tự luận"
+              : "Trắc nghiệm 4 lựa chọn"}
+            ):
+          </p>
+          <button
+            onClick={() => setEditingQuestionId(null)}
+            className="text-slate-400 hover:text-slate-600 rounded p-1"
+            title="Đóng chỉnh sửa"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Stem / Content */}
+        <div className="mb-3">
+          <label className="font-medium text-slate-700 mb-1 block">Nội dung câu hỏi / Đề bài:</label>
+          <textarea
+            value={editForm.content}
+            onChange={(e) => setEditForm({ ...editForm, content: e.target.value })}
+            className="w-full rounded border border-slate-200 p-2 text-xs focus:outline-none focus:ring-1 focus:ring-primary font-normal"
+            rows={3}
+          />
+        </div>
+
+        {/* Type-specific inputs */}
+        {q.blockType === "true_false" ? (
+          <div className="mb-3 space-y-2">
+            <label className="font-medium text-slate-700 block">Các mệnh đề (a, b, c, d) và tính Đúng/Sai:</label>
+            {(editForm.trueFalseItems || []).map((tf, tfIdx) => (
+              <div key={tfIdx} className="flex items-center gap-2">
+                <span className="font-bold text-slate-700 w-5">{tf.label})</span>
+                <input
+                  type="text"
+                  value={tf.statement}
+                  onChange={(e) => {
+                    const updated = [...(editForm.trueFalseItems || [])];
+                    updated[tfIdx] = { ...updated[tfIdx], statement: e.target.value };
+                    setEditForm({ ...editForm, trueFalseItems: updated });
+                  }}
+                  placeholder={`Nội dung mệnh đề ${tf.label}...`}
+                  className="flex-1 rounded border border-slate-200 px-2 py-1.5 text-xs"
+                />
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const updated = [...(editForm.trueFalseItems || [])];
+                      updated[tfIdx] = { ...updated[tfIdx], isCorrect: true };
+                      setEditForm({ ...editForm, trueFalseItems: updated });
+                    }}
+                    className={clsx(
+                      "px-2.5 py-1 rounded text-[11px] font-bold transition",
+                      tf.isCorrect
+                        ? "bg-emerald-600 text-white shadow-xs"
+                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                    )}
+                  >
+                    Đúng
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const updated = [...(editForm.trueFalseItems || [])];
+                      updated[tfIdx] = { ...updated[tfIdx], isCorrect: false };
+                      setEditForm({ ...editForm, trueFalseItems: updated });
+                    }}
+                    className={clsx(
+                      "px-2.5 py-1 rounded text-[11px] font-bold transition",
+                      !tf.isCorrect
+                        ? "bg-red-600 text-white shadow-xs"
+                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                    )}
+                  >
+                    Sai
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : q.blockType === "short_answer" ? (
+          <div className="mb-3">
+            <label className="font-medium text-slate-700 mb-1 block">Đáp số / Kết quả ngắn:</label>
+            <input
+              type="text"
+              value={editForm.correct_answer}
+              onChange={(e) => setEditForm({ ...editForm, correct_answer: e.target.value })}
+              placeholder="Ví dụ: 42 hoặc 3,14 hoặc H2SO4..."
+              className="w-full sm:w-1/2 rounded border border-slate-200 px-2.5 py-1.5 text-xs font-mono"
+            />
+          </div>
+        ) : q.blockType === "essay" ? (
+          <div className="mb-3">
+            <label className="font-medium text-slate-700 mb-1 block">Barem điểm / Thang điểm:</label>
+            <textarea
+              value={editForm.correct_answer}
+              onChange={(e) => setEditForm({ ...editForm, correct_answer: e.target.value })}
+              placeholder="Ví dụ: Ý 1 (0.5đ), Ý 2 (1.0đ)..."
+              className="w-full rounded border border-slate-200 p-2 text-xs font-mono"
+              rows={2}
+            />
+          </div>
+        ) : (
+          /* Standard MCQ */
+          <>
+            <div className="mb-3 grid grid-cols-2 gap-2">
+              {["A", "B", "C", "D"].map((k) => (
+                <div key={k} className="flex items-center gap-1.5">
+                  <span className="text-xs font-bold w-4">{k}:</span>
+                  <input
+                    type="text"
+                    value={editForm.options[k] || ""}
+                    onChange={(e) =>
+                      setEditForm({
+                        ...editForm,
+                        options: { ...editForm.options, [k]: e.target.value },
+                      })
+                    }
+                    className="w-full rounded border border-slate-200 px-2 py-1 text-xs"
+                  />
+                </div>
+              ))}
+            </div>
+
+            <div className="mb-3 flex items-center gap-3">
+              <label className="font-medium text-slate-700">Đáp án đúng:</label>
+              <select
+                value={editForm.correct_answer}
+                onChange={(e) => setEditForm({ ...editForm, correct_answer: e.target.value })}
+                className="rounded border border-slate-200 px-2 py-1 text-xs bg-white font-bold text-emerald-700"
+              >
+                <option value="A">A</option>
+                <option value="B">B</option>
+                <option value="C">C</option>
+                <option value="D">D</option>
+              </select>
+            </div>
+          </>
+        )}
+
+        {/* Explanation */}
+        <div className="mb-3">
+          <label className="font-medium text-slate-700 mb-1 block">
+            Hướng dẫn giải / Lời giải chi tiết:
+          </label>
+          <textarea
+            value={editForm.explanation}
+            onChange={(e) => setEditForm({ ...editForm, explanation: e.target.value })}
+            className="w-full rounded border border-slate-200 p-2 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+            rows={2}
+            placeholder="Giải thích chi tiết các bước để giáo viên và học sinh đối chiếu..."
+          />
+        </div>
+
+        <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+          <button
+            onClick={() => setEditingQuestionId(null)}
+            className="rounded px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100"
+          >
+            Hủy
+          </button>
+          <button
+            onClick={handleSaveEdit}
+            className="rounded bg-primary px-3.5 py-1.5 text-xs font-medium text-primary-foreground shadow-xs hover:bg-primary/90"
+          >
+            Lưu thay đổi
+          </button>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="flex h-screen w-screen flex-col overflow-hidden bg-white text-slate-800 font-sans">
@@ -1439,11 +1924,70 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
 
           <div className="mx-1 h-5 w-[1px] bg-slate-200" />
 
-          {/* Zoom */}
-          <div className="flex items-center gap-1 rounded px-2 py-1 text-xs hover:bg-slate-100 cursor-pointer">
-            <span>{zoom}%</span>
-            <ChevronDown className="h-3 w-3 text-slate-400" />
+          {/* Zoom & View Width */}
+          <div className="relative">
+            <button
+              onClick={() => setShowZoomMenu(!showZoomMenu)}
+              className="flex items-center gap-1 rounded px-2 py-1 text-xs hover:bg-slate-100 transition"
+              title="Phóng to / Thu nhỏ trang soạn thảo"
+            >
+              <span className="font-medium text-slate-700">{zoom}%</span>
+              <ChevronDown className="h-3 w-3 text-slate-400" />
+            </button>
+            {showZoomMenu && (
+              <div
+                onMouseLeave={() => setShowZoomMenu(false)}
+                className="absolute left-0 top-full mt-1 z-50 w-40 rounded-lg border border-slate-200 bg-white py-1 shadow-xl text-xs"
+              >
+                {[75, 85, 90, 100, 110, 125, 150].map((z) => (
+                  <button
+                    key={z}
+                    onClick={() => {
+                      setZoom(z);
+                      setShowZoomMenu(false);
+                    }}
+                    className={clsx(
+                      "flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-slate-50",
+                      zoom === z ? "font-bold text-primary" : "text-slate-700"
+                    )}
+                  >
+                    <span>{z}%</span>
+                    {zoom === z && <Check className="h-3 w-3" />}
+                  </button>
+                ))}
+                <div className="my-1 border-t border-slate-100" />
+                <button
+                  onClick={() => {
+                    const availableW = window.innerWidth - (leftSidebarOpen ? leftWidth : 40) - (aiSidebarOpen ? rightWidth : 40) - 100;
+                    const fitZoom = Math.min(130, Math.max(65, Math.round((availableW / 820) * 100)));
+                    setZoom(fitZoom);
+                    setShowZoomMenu(false);
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-slate-800 hover:bg-slate-50 font-medium"
+                >
+                  <Maximize2 className="h-3 w-3 text-blue-600" />
+                  <span>Vừa chiều rộng</span>
+                </button>
+              </div>
+            )}
           </div>
+
+          <div className="mx-1 h-5 w-[1px] bg-slate-200" />
+
+          {/* Header Toggle Button */}
+          <button
+            onClick={() => setShowStandardHeader(!showStandardHeader)}
+            className={clsx(
+              "flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium transition",
+              showStandardHeader
+                ? "bg-blue-50 text-blue-700 border border-blue-200 shadow-sm"
+                : "text-slate-600 hover:bg-slate-100 border border-slate-200"
+            )}
+            title={showStandardHeader ? "Ẩn đầu đề Sở/Trường" : "Hiện đầu đề Sở/Trường chuẩn"}
+          >
+            <FileText className="h-3.5 w-3.5" />
+            <span>{showStandardHeader ? "Đã bật đầu đề" : "Hiện đầu đề"}</span>
+          </button>
 
           <div className="mx-1 h-5 w-[1px] bg-slate-200" />
 
@@ -1564,7 +2108,7 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
         {/* LEFT COLUMN: TÀI LIỆU (MỤC LỤC & MẪU ĐỀ THI)                */}
         {/* ============================================================ */}
         {leftSidebarOpen ? (
-          <aside className="flex w-64 shrink-0 flex-col border-r border-slate-200 bg-white">
+          <aside style={{ width: `${leftWidth}px` }} className="flex shrink-0 flex-col border-r border-slate-200 bg-white">
             <div className="flex h-12 items-center justify-between border-b border-slate-100 px-4">
               <span className="text-sm font-semibold text-slate-700">Tài liệu</span>
               <button
@@ -1655,12 +2199,58 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
                         </button>
                       );
                     })}
-                    <button
-                      onClick={handleAddQuestion}
-                      className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-slate-300 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 hover:text-primary"
-                    >
-                      <Plus className="h-3.5 w-3.5" /> Thêm câu hỏi
-                    </button>
+                    <div className="relative mt-3">
+                      <div className="flex rounded-lg border border-slate-300 bg-white shadow-sm overflow-hidden">
+                        <button
+                          onClick={() => handleAddQuestion("multiple_choice")}
+                          className="flex flex-1 items-center justify-center gap-1.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                        >
+                          <Plus className="h-3.5 w-3.5 text-slate-500" /> Thêm câu hỏi
+                        </button>
+                        <button
+                          onClick={() => setShowAddTypeMenu(!showAddTypeMenu)}
+                          className="border-l border-slate-200 px-2 hover:bg-slate-50 text-slate-500"
+                          title="Chọn loại câu hỏi"
+                        >
+                          <ChevronDown className="h-3 w-3" />
+                        </button>
+                      </div>
+                      {showAddTypeMenu && (
+                        <div
+                          onMouseLeave={() => setShowAddTypeMenu(false)}
+                          className="absolute left-0 bottom-full mb-1 z-50 w-full rounded-lg border border-slate-200 bg-white py-1 shadow-xl text-xs space-y-0.5"
+                        >
+                          <button
+                            onClick={() => handleAddQuestion("multiple_choice")}
+                            className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-slate-50 text-slate-700"
+                          >
+                            <span className="font-bold text-blue-600 text-[10px] w-6">MCQ</span>
+                            <span>Trắc nghiệm 4 lựa chọn</span>
+                          </button>
+                          <button
+                            onClick={() => handleAddQuestion("true_false")}
+                            className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-slate-50 text-slate-700"
+                          >
+                            <span className="font-bold text-emerald-600 text-[10px] w-6">Đ/S</span>
+                            <span>Trắc nghiệm Đúng / Sai</span>
+                          </button>
+                          <button
+                            onClick={() => handleAddQuestion("short_answer")}
+                            className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-slate-50 text-slate-700"
+                          >
+                            <span className="font-bold text-amber-600 text-[10px] w-6">TN</span>
+                            <span>Trả lời ngắn</span>
+                          </button>
+                          <button
+                            onClick={() => handleAddQuestion("essay")}
+                            className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-slate-50 text-slate-700"
+                          >
+                            <span className="font-bold text-purple-600 text-[10px] w-6">TL</span>
+                            <span>Tự luận</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )
               ) : (
@@ -1712,6 +2302,15 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
           </button>
         )}
 
+        {/* Left Resizer Drag Handle */}
+        {leftSidebarOpen && (
+          <div
+            onMouseDown={() => setIsDraggingLeft(true)}
+            className="w-1.5 cursor-col-resize hover:w-2 hover:bg-primary/50 active:bg-primary bg-slate-200 transition-all shrink-0 z-20 select-none"
+            title="Kéo sang trái/phải để chỉnh độ rộng bảng Tài liệu"
+          />
+        )}
+
         {/* ============================================================ */}
         {/* CENTER COLUMN: A4 DOCUMENT CANVAS                            */}
         {/* ============================================================ */}
@@ -1725,36 +2324,40 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
             }}
             className="w-[820px] min-h-[1160px] shrink-0 rounded-sm border border-slate-200/80 bg-white p-12 shadow-[0_4px_24px_rgba(0,0,0,0.06)] print:shadow-none print:border-none print:m-0 print:p-8"
           >
-            {/* Standard Vietnamese School Exam Header */}
-            <div className="grid grid-cols-2 gap-4 pb-4 border-b border-slate-300 text-center">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wide text-slate-900">
-                  SỞ GIÁO DỤC VÀ ĐÀO TẠO
-                </p>
-                <p className="text-xs font-semibold text-slate-700">
-                  TRƯỜNG ....................................................
-                </p>
-                <p className="text-[11px] text-slate-500 italic mt-0.5">Mã đề thi: 101</p>
-              </div>
+            {/* Standard Vietnamese School Exam Header (Optional - Toggleable) */}
+            {showStandardHeader && (
+              <>
+                <div className="grid grid-cols-2 gap-4 pb-4 border-b border-slate-300 text-center">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wide text-slate-900">
+                      SỞ GIÁO DỤC VÀ ĐÀO TẠO
+                    </p>
+                    <p className="text-xs font-semibold text-slate-700">
+                      TRƯỜNG ....................................................
+                    </p>
+                    <p className="text-[11px] text-slate-500 italic mt-0.5">Mã đề thi: 101</p>
+                  </div>
 
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wide text-slate-900">
-                  ĐỀ KIỂM TRA ĐÁNH GIÁ GIỮA KỲ I
-                </p>
-                <p className="text-xs font-bold text-slate-800">
-                  Môn: {subject} - Khối {grade}
-                </p>
-                <p className="text-[11px] text-slate-500 italic mt-0.5">
-                  Thời gian làm bài: {duration} phút (không kể thời gian phát đề)
-                </p>
-              </div>
-            </div>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wide text-slate-900">
+                      ĐỀ KIỂM TRA ĐÁNH GIÁ GIỮA KỲ I
+                    </p>
+                    <p className="text-xs font-bold text-slate-800">
+                      Môn: {subject} - Khối {grade}
+                    </p>
+                    <p className="text-[11px] text-slate-500 italic mt-0.5">
+                      Thời gian làm bài: {duration} phút (không kể thời gian phát đề)
+                    </p>
+                  </div>
+                </div>
 
-            {/* Student info line */}
-            <div className="mt-3 flex items-center justify-between text-xs text-slate-600 italic">
-              <span>Họ và tên học sinh: .....................................................................</span>
-              <span>Lớp: ................. SBD: .........</span>
-            </div>
+                {/* Student info line */}
+                <div className="mt-3 flex items-center justify-between text-xs text-slate-600 italic">
+                  <span>Họ và tên học sinh: .....................................................................</span>
+                  <span>Lớp: ................. SBD: .........</span>
+                </div>
+              </>
+            )}
 
             {/* Questions Container */}
             <div className="mt-8 space-y-6">
@@ -1765,15 +2368,76 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
                   <p className="mt-2 text-xs text-slate-400 max-w-sm">
                     Gợi ý: Nhập câu hỏi thủ công hoặc sử dụng <strong>Trợ lý AI</strong> ở khung bên phải để tự động tạo toàn bộ đề thi chuẩn ma trận trong tích tắc.
                   </p>
-                  <div className="mt-6 flex items-center gap-3">
+                  <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+                    <div className="relative">
+                      <div className="flex items-center rounded-lg border border-slate-300 bg-white shadow-sm hover:border-slate-400">
+                        <button
+                          onClick={() => handleAddQuestion("multiple_choice")}
+                          className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 rounded-l-lg"
+                        >
+                          <Plus className="h-4 w-4 text-slate-500" /> Thêm câu hỏi thủ công
+                        </button>
+                        <button
+                          onClick={() => setShowEmptyAddTypeMenu(!showEmptyAddTypeMenu)}
+                          className="border-l border-slate-200 px-2 py-2 hover:bg-slate-50 rounded-r-lg text-slate-500"
+                          title="Chọn dạng câu hỏi"
+                        >
+                          <ChevronDown className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                      {showEmptyAddTypeMenu && (
+                        <div
+                          onMouseLeave={() => setShowEmptyAddTypeMenu(false)}
+                          className="absolute left-0 top-full mt-1 z-50 w-60 rounded-lg border border-slate-200 bg-white py-1.5 shadow-xl text-xs space-y-0.5 text-left"
+                        >
+                          <p className="px-3 py-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                            Chọn dạng câu hỏi
+                          </p>
+                          <button
+                            onClick={() => handleAddQuestion("multiple_choice")}
+                            className="flex w-full items-center gap-2.5 px-3 py-2 text-left hover:bg-slate-50 text-slate-800"
+                          >
+                            <span className="flex h-5 w-5 items-center justify-center rounded bg-blue-50 text-[11px] font-bold text-blue-600">MCQ</span>
+                            <div>
+                              <p className="font-semibold">Trắc nghiệm 4 lựa chọn</p>
+                              <p className="text-[10px] text-slate-400">Phương án A, B, C, D</p>
+                            </div>
+                          </button>
+                          <button
+                            onClick={() => handleAddQuestion("true_false")}
+                            className="flex w-full items-center gap-2.5 px-3 py-2 text-left hover:bg-slate-50 text-slate-800"
+                          >
+                            <span className="flex h-5 w-5 items-center justify-center rounded bg-emerald-50 text-[11px] font-bold text-emerald-600">Đ/S</span>
+                            <div>
+                              <p className="font-semibold">Trắc nghiệm Đúng / Sai</p>
+                              <p className="text-[10px] text-slate-400">4 khẳng định a, b, c, d</p>
+                            </div>
+                          </button>
+                          <button
+                            onClick={() => handleAddQuestion("short_answer")}
+                            className="flex w-full items-center gap-2.5 px-3 py-2 text-left hover:bg-slate-50 text-slate-800"
+                          >
+                            <span className="flex h-5 w-5 items-center justify-center rounded bg-amber-50 text-[11px] font-bold text-amber-600">TN</span>
+                            <div>
+                              <p className="font-semibold">Câu trả lời ngắn</p>
+                              <p className="text-[10px] text-slate-400">Điền đáp số vào ô trống</p>
+                            </div>
+                          </button>
+                          <button
+                            onClick={() => handleAddQuestion("essay")}
+                            className="flex w-full items-center gap-2.5 px-3 py-2 text-left hover:bg-slate-50 text-slate-800"
+                          >
+                            <span className="flex h-5 w-5 items-center justify-center rounded bg-purple-50 text-[11px] font-bold text-purple-600">TL</span>
+                            <div>
+                              <p className="font-semibold">Câu hỏi Tự luận</p>
+                              <p className="text-[10px] text-slate-400">Đề bài kèm barem điểm</p>
+                            </div>
+                          </button>
+                        </div>
+                      )}
+                    </div>
                     <button
-                      onClick={handleAddQuestion}
-                      className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50"
-                    >
-                      <Plus className="h-4 w-4 text-slate-500" /> Thêm câu hỏi thủ công
-                    </button>
-                    <button
-                      onClick={() => executeAiGenerate("Soạn đề giữa kì I Toán 4 gồm trắc nghiệm, đúng-sai và tự luận, thang điểm 10 kèm đáp án chi tiết")}
+                      onClick={() => executeAiGenerate("Soạn đề giữa kì I Hóa học 9 gồm trắc nghiệm, đúng-sai và tự luận, thang điểm 10 kèm đáp án chi tiết")}
                       className="flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-xs font-medium text-primary-foreground shadow-sm hover:bg-primary/90"
                     >
                       <Sparkles className="h-4 w-4" /> AI tạo đề mẫu ngay
@@ -2035,10 +2699,14 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
                       <div key={q.id} id={`question-anchor-${idx}`} className="group relative rounded-lg border border-transparent p-3 transition hover:border-slate-200 hover:bg-slate-50/50">
                         <div className="absolute top-2 right-2 hidden items-center gap-1 rounded-md border border-slate-200 bg-white p-1 shadow-sm group-hover:flex print:hidden">
                           <button onClick={() => handleStartEdit(q)} title="Sửa câu" className="rounded p-1 text-slate-500 hover:bg-slate-100"><Edit3 className="h-3.5 w-3.5" /></button>
+                          <button onClick={() => handleDuplicateQuestion(q)} title="Nhân bản câu" className="rounded p-1 text-slate-500 hover:bg-slate-100"><Copy className="h-3.5 w-3.5" /></button>
                           <button onClick={() => handleDeleteQuestion(q.id)} title="Xóa câu" className="rounded p-1 text-slate-500 hover:bg-red-50 hover:text-red-600"><Trash2 className="h-3.5 w-3.5" /></button>
                         </div>
                         <div className="flex items-start gap-2">
-                          <span className="font-bold text-slate-900 shrink-0">Câu {idx + 1}.</span>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <span className="font-bold text-slate-900">Câu {idx + 1}.</span>
+                            {renderQuestionTypeBadge(q)}
+                          </div>
                           <div className="flex-1 leading-relaxed text-slate-800"><LatexRenderer content={q.content} /></div>
                         </div>
                         <div className="mt-3 overflow-hidden rounded border border-slate-200">
@@ -2084,6 +2752,8 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
                             <div className="leading-relaxed"><LatexRenderer content={q.explanation} /></div>
                           </div>
                         )}
+
+                        {renderInlineEditForm(q, idx)}
                       </div>
                     );
                   }
@@ -2094,10 +2764,14 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
                       <div key={q.id} id={`question-anchor-${idx}`} className="group relative rounded-lg border border-transparent p-3 transition hover:border-slate-200 hover:bg-slate-50/50">
                         <div className="absolute top-2 right-2 hidden items-center gap-1 rounded-md border border-slate-200 bg-white p-1 shadow-sm group-hover:flex print:hidden">
                           <button onClick={() => handleStartEdit(q)} title="Sửa câu" className="rounded p-1 text-slate-500 hover:bg-slate-100"><Edit3 className="h-3.5 w-3.5" /></button>
+                          <button onClick={() => handleDuplicateQuestion(q)} title="Nhân bản câu" className="rounded p-1 text-slate-500 hover:bg-slate-100"><Copy className="h-3.5 w-3.5" /></button>
                           <button onClick={() => handleDeleteQuestion(q.id)} title="Xóa câu" className="rounded p-1 text-slate-500 hover:bg-red-50 hover:text-red-600"><Trash2 className="h-3.5 w-3.5" /></button>
                         </div>
                         <div className="flex items-start gap-2">
-                          <span className="font-bold text-slate-900 shrink-0">Câu {idx + 1}.</span>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <span className="font-bold text-slate-900">Câu {idx + 1}.</span>
+                            {renderQuestionTypeBadge(q)}
+                          </div>
                           <div className="flex-1 leading-relaxed text-slate-800"><LatexRenderer content={q.content} /></div>
                         </div>
                         <div className="mt-3 flex items-center gap-3 text-xs pl-6">
@@ -2115,6 +2789,8 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
                             <div className="leading-relaxed"><LatexRenderer content={q.explanation} /></div>
                           </div>
                         )}
+
+                        {renderInlineEditForm(q, idx)}
                       </div>
                     );
                   }
@@ -2125,10 +2801,14 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
                       <div key={q.id} id={`question-anchor-${idx}`} className="group relative rounded-lg border border-transparent p-3 transition hover:border-slate-200 hover:bg-slate-50/50">
                         <div className="absolute top-2 right-2 hidden items-center gap-1 rounded-md border border-slate-200 bg-white p-1 shadow-sm group-hover:flex print:hidden">
                           <button onClick={() => handleStartEdit(q)} title="Sửa câu" className="rounded p-1 text-slate-500 hover:bg-slate-100"><Edit3 className="h-3.5 w-3.5" /></button>
+                          <button onClick={() => handleDuplicateQuestion(q)} title="Nhân bản câu" className="rounded p-1 text-slate-500 hover:bg-slate-100"><Copy className="h-3.5 w-3.5" /></button>
                           <button onClick={() => handleDeleteQuestion(q.id)} title="Xóa câu" className="rounded p-1 text-slate-500 hover:bg-red-50 hover:text-red-600"><Trash2 className="h-3.5 w-3.5" /></button>
                         </div>
                         <div className="flex items-start gap-2">
-                          <span className="font-bold text-slate-900 shrink-0">Câu {idx + 1}.</span>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <span className="font-bold text-slate-900">Câu {idx + 1}.</span>
+                            {renderQuestionTypeBadge(q)}
+                          </div>
                           <div className="flex-1 leading-relaxed text-slate-800 font-normal"><LatexRenderer content={q.content} /></div>
                         </div>
                         <div className="mt-3 space-y-3 py-2 text-slate-300 font-mono tracking-widest text-xs select-none">
@@ -2144,6 +2824,8 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
                             <div className="leading-relaxed"><LatexRenderer content={q.explanation || q.correct_answer || ""} /></div>
                           </div>
                         )}
+
+                        {renderInlineEditForm(q, idx)}
                       </div>
                     );
                   }
@@ -2229,9 +2911,12 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
 
                       {/* Question Stem */}
                       <div className="flex items-start gap-2">
-                        <span className="font-bold text-slate-900 shrink-0">
-                          Câu {idx + 1}.
-                        </span>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <span className="font-bold text-slate-900">
+                            Câu {idx + 1}.
+                          </span>
+                          {renderQuestionTypeBadge(q)}
+                        </div>
                         <div className="flex-1 leading-relaxed text-slate-800 font-normal">
                           <LatexRenderer content={q.content} />
                         </div>
@@ -2276,76 +2961,8 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
                         </div>
                       )}
 
-                      {/* Inline Edit Form if this question is being edited */}
-                      {isEditingThis && (
-                        <div className="mt-3 rounded-lg border border-primary/40 bg-white p-4 shadow-md">
-                          <p className="text-xs font-semibold text-slate-700 mb-2">Chỉnh sửa câu {idx + 1}:</p>
-                          <textarea
-                            value={editForm.content}
-                            onChange={(e) => setEditForm({ ...editForm, content: e.target.value })}
-                            className="w-full rounded border border-slate-200 p-2 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
-                            rows={3}
-                          />
-
-                          <div className="mt-3 grid grid-cols-2 gap-2">
-                            {["A", "B", "C", "D"].map((k) => (
-                              <div key={k} className="flex items-center gap-1">
-                                <span className="text-xs font-bold">{k}:</span>
-                                <input
-                                  type="text"
-                                  value={editForm.options[k] || ""}
-                                  onChange={(e) =>
-                                    setEditForm({
-                                      ...editForm,
-                                      options: { ...editForm.options, [k]: e.target.value },
-                                    })
-                                  }
-                                  className="w-full rounded border border-slate-200 px-2 py-1 text-xs"
-                                />
-                              </div>
-                            ))}
-                          </div>
-
-                          <div className="mt-3 flex items-center gap-4">
-                            <label className="text-xs font-medium text-slate-700">Đáp án đúng:</label>
-                            <select
-                              value={editForm.correct_answer}
-                              onChange={(e) => setEditForm({ ...editForm, correct_answer: e.target.value })}
-                              className="rounded border border-slate-200 px-2 py-1 text-xs"
-                            >
-                              <option value="A">A</option>
-                              <option value="B">B</option>
-                              <option value="C">C</option>
-                              <option value="D">D</option>
-                            </select>
-                          </div>
-
-                          <div className="mt-3">
-                            <label className="text-xs font-medium text-slate-700 mb-1 block">Lời giải chi tiết:</label>
-                            <textarea
-                              value={editForm.explanation}
-                              onChange={(e) => setEditForm({ ...editForm, explanation: e.target.value })}
-                              className="w-full rounded border border-slate-200 p-2 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
-                              rows={2}
-                            />
-                          </div>
-
-                          <div className="mt-3 flex justify-end gap-2">
-                            <button
-                              onClick={() => setEditingQuestionId(null)}
-                              className="rounded px-3 py-1 text-xs text-slate-600 hover:bg-slate-100"
-                            >
-                              Hủy
-                            </button>
-                            <button
-                              onClick={handleSaveEdit}
-                              className="rounded bg-primary px-3 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90"
-                            >
-                              Lưu thay đổi
-                            </button>
-                          </div>
-                        </div>
-                      )}
+                      {/* Inline Edit Form */}
+                      {renderInlineEditForm(q, idx)}
                     </div>
                   );
                 })
@@ -2367,8 +2984,17 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
         {/* ============================================================ */}
         {/* RIGHT COLUMN: TRỢ LÝ AI SOẠN ĐỀ (EXACT MATCHING SCREENSHOT)   */}
         {/* ============================================================ */}
+        {/* Right Resizer Drag Handle */}
+        {aiSidebarOpen && (
+          <div
+            onMouseDown={() => setIsDraggingRight(true)}
+            className="w-1.5 cursor-col-resize hover:w-2 hover:bg-primary/50 active:bg-primary bg-slate-200 transition-all shrink-0 z-20 select-none"
+            title="Kéo sang trái/phải để chỉnh độ rộng bảng Trợ lý AI"
+          />
+        )}
+
         {aiSidebarOpen ? (
-          <aside className="flex w-[390px] shrink-0 flex-col border-l border-slate-200 bg-white">
+          <aside style={{ width: `${rightWidth}px` }} className="flex shrink-0 flex-col border-l border-slate-200 bg-white">
             {/* Header: Title + Trí nhớ badge + Actions */}
             <div className="flex h-12 items-center justify-between border-b border-slate-100 px-4">
               <div className="flex items-center gap-2">
