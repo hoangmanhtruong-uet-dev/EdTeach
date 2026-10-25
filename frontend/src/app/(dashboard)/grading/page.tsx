@@ -34,6 +34,7 @@ import {
   SwitchCamera,
 } from "lucide-react";
 import { getUserExams, Exam } from "@/lib/api/exams";
+import { SessionDetailView } from "@/components/grading/session-detail-view";
 
 interface ExamSession {
   id: string;
@@ -60,6 +61,7 @@ interface ExamSession {
 export default function GradingPage() {
   // Danh sách các kỳ thi đã tạo (lưu trong localStorage để bền vững)
   const [sessions, setSessions] = useState<ExamSession[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [loadingExams, setLoadingExams] = useState(false);
   const [userExams, setUserExams] = useState<Exam[]>([]);
 
@@ -355,6 +357,29 @@ export default function GradingPage() {
 
     saveSessions([newSession, ...sessions]);
     setShowCreateModal(false);
+    setActiveSessionId(newSession.id);
+  };
+
+  // Tạo nhanh kỳ thi mẫu Toán 6 khớp chuẩn ảnh demo
+  const handleCreateSampleSession = () => {
+    const sampleId = "session_sample_" + Date.now();
+    const sample: ExamSession = {
+      id: sampleId,
+      name: "Bộ 3 đề kiểm tra học kỳ I Toán 6 – mức độ 8+, 9+, 10",
+      subject: "Toán",
+      grade: "6",
+      sheetType: "20",
+      questionCount: 15,
+      answerKey: {
+        1: "A", 2: "B", 3: "C", 4: "D", 5: "A",
+        6: "B", 7: "C", 8: "D", 9: "A", 10: "B",
+        11: "C", 12: "D", 13: "A", 14: "B", 15: "C",
+      },
+      createdAt: new Date().toLocaleDateString("vi-VN"),
+      gradedStudents: [],
+    };
+    saveSessions([sample, ...sessions]);
+    setActiveSessionId(sampleId);
   };
 
   // Xóa kỳ thi
@@ -714,8 +739,41 @@ export default function GradingPage() {
         }
       `}</style>
 
-      {/* Main Container */}
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      {/* Session Detail View (Exact match with soandethi.com screenshot) */}
+      {(() => {
+        const currentActiveSession = sessions.find((s) => s.id === activeSessionId);
+        if (currentActiveSession) {
+          return (
+            <SessionDetailView
+              session={currentActiveSession}
+              onBack={() => setActiveSessionId(null)}
+              onUpdateSession={(updated) => {
+                const updatedList = sessions.map((s) => (s.id === updated.id ? updated : s));
+                saveSessions(updatedList);
+              }}
+              onOpenScanModal={(session, mode) => {
+                setScanResult(null);
+                setUploadedImagePreview(null);
+                setShowScanModal(session);
+                setScanMode(mode);
+                if (mode === "camera") {
+                  startWebcam();
+                } else if (mode === "phone") {
+                  initRemoteSession(session);
+                }
+              }}
+              onOpenPrintModal={(session) => setShowPrintModal(session)}
+              onDeleteSession={(sessionId, sessionName) => {
+                handleDeleteSession(sessionId, sessionName);
+                setActiveSessionId(null);
+              }}
+            />
+          );
+        }
+
+        return (
+          /* Main Container */
+          <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Top Header Match Screenshot */}
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-8">
           <div>
@@ -781,13 +839,23 @@ export default function GradingPage() {
               </p>
             </div>
 
-            <button
-              onClick={handleOpenCreateModal}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-white font-medium text-sm transition-all"
-            >
-              <Plus className="w-4 h-4" />
-              Tạo kỳ thi đầu tiên ngay
-            </button>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <button
+                onClick={handleOpenCreateModal}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-white font-medium text-sm transition-all cursor-pointer shadow-sm"
+              >
+                <Plus className="w-4 h-4" />
+                Tạo kỳ thi đầu tiên ngay
+              </button>
+
+              <button
+                onClick={handleCreateSampleSession}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-neutral-300 hover:bg-neutral-50 text-neutral-800 font-semibold text-sm transition-all cursor-pointer shadow-xs"
+              >
+                <Sparkles className="w-4 h-4 text-amber-500" />
+                Thử nhanh kỳ thi mẫu (Toán 6)
+              </button>
+            </div>
           </div>
         ) : (
           /* ======================================================== */
@@ -827,7 +895,12 @@ export default function GradingPage() {
                         <span className="text-xs text-neutral-400">• {session.createdAt}</span>
                       </div>
 
-                      <h3 className="text-lg font-bold text-neutral-900">{session.name}</h3>
+                      <h3
+  onClick={() => setActiveSessionId(session.id)}
+  className="text-lg font-bold text-neutral-900 hover:text-blue-600 transition cursor-pointer"
+>
+  {session.name}
+</h3>
 
                       <div className="flex items-center gap-4 text-xs text-neutral-500">
                         <span>
@@ -844,6 +917,14 @@ export default function GradingPage() {
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2 pt-2 md:pt-0 border-t md:border-t-0 border-neutral-100">
+                      {/* Nút Vào kỳ thi & Tự nộp */}
+                      <button
+                        onClick={() => setActiveSessionId(session.id)}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-semibold transition cursor-pointer shadow-xs"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        Vào kỳ thi & Tự nộp
+                      </button>
                       {/* Nút In phiếu tô */}
                       <button
                         onClick={() => setShowPrintModal(session)}
@@ -895,6 +976,8 @@ export default function GradingPage() {
           </div>
         )}
       </div>
+    );
+  })()}
 
       {/* ======================================================== */}
       {/* MODAL 1: TẠO KỲ THI MỚI */}
