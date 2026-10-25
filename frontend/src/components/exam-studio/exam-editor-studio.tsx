@@ -336,7 +336,7 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
       setAiPrompt("");
     } catch (err: any) {
       console.error("AI generation failed:", err);
-      setSavedStatus("error");
+      setSavedStatus("unsaved");
       setAiStatusMessage(`Lỗi sinh đề: ${err.message || "Vui lòng thử lại"}`);
       setTimeout(() => setAiStatusMessage(null), 6000);
     } finally {

@@ -67,7 +67,7 @@ class GoogleProvider(BaseLLMProvider):
             output_tokens = getattr(response.usage_metadata, "candidates_token_count", 0)
 
         # Calculate cost
-        cost = self.estimate_cost(
+        cost = self.calculate_cost(
             model=model_name,
             input_tokens=input_tokens,
             output_tokens=output_tokens,
@@ -83,7 +83,7 @@ class GoogleProvider(BaseLLMProvider):
             finish_reason="stop",
         )
 
-    def estimate_cost(
+    def calculate_cost(
         self, model: str, input_tokens: int, output_tokens: int
     ) -> float:
         pricing = GEMINI_PRICING.get(model, GEMINI_PRICING["gemini-3.8-flash"])
