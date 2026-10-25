@@ -3,6 +3,8 @@ EduTest AI Service - FastAPI Application
 Main entry point for the AI microservice.
 """
 
+import logging
+import sys
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import structlog
@@ -10,7 +12,14 @@ import structlog
 from app.core.config import settings
 from app.routers import generation, health, grading
 
-# Configure structured logging
+# Configure standard logging & structured logging
+log_level = getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO)
+logging.basicConfig(
+    format="%(message)s",
+    stream=sys.stdout,
+    level=log_level,
+)
+
 structlog.configure(
     processors=[
         structlog.stdlib.filter_by_level,
@@ -21,7 +30,7 @@ structlog.configure(
     ],
     wrapper_class=structlog.stdlib.BoundLogger,
     context_class=dict,
-    logger_factory=structlog.PrintLoggerFactory(),
+    logger_factory=structlog.stdlib.LoggerFactory(),
     cache_logger_on_first_use=True,
 )
 
