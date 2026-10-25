@@ -36,6 +36,8 @@ interface PaymentCheckoutModalProps {
     credits: number;
     price: string;
     amount: number;
+    isPro?: boolean;
+    name?: string;
   } | null;
   onSuccess: (newBalance: number) => void;
 }
@@ -90,6 +92,7 @@ export function PaymentCheckoutModal({
           body: JSON.stringify({
             amount: selectedPlan!.amount,
             credits: selectedPlan!.credits,
+            isPro: selectedPlan!.isPro || false,
           }),
         });
 
@@ -123,6 +126,7 @@ export function PaymentCheckoutModal({
           body: JSON.stringify({
             amount: selectedPlan!.amount,
             credits: selectedPlan!.credits,
+            isPro: selectedPlan!.isPro || false,
           }),
         });
 

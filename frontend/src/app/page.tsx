@@ -56,31 +56,33 @@ const pricingPlans = [
     name: "Miễn phí",
     price: "0₫",
     period: "/tháng",
-    description: "Dùng thử tất cả tính năng",
-    credits: "50 credits/tháng",
+    description: "Trải nghiệm tạo đề thi AI",
+    credits: "3 đề miễn phí mỗi ngày (100 credits tặng sẵn)",
     features: [
-      "Tạo đề thi cơ bản",
-      "Tối đa 5 đề/tháng",
-      "Xuất PDF",
-      "Hỗ trợ qua email",
+      "Tạo đề thi cơ bản chuẩn Bộ GD&ĐT",
+      "3 lượt tạo đề miễn phí mỗi ngày",
+      "100 credits tặng sẵn khi đăng ký",
+      "Xuất file Word & PDF",
+      "Hỗ trợ cộng đồng",
     ],
     cta: "Bắt đầu miễn phí",
     highlighted: false,
   },
   {
-    name: "Giáo viên",
+    name: "Giáo viên PRO",
     price: "99.000₫",
     period: "/tháng",
-    description: "Cho giáo viên cá nhân",
-    credits: "500 credits/tháng",
+    description: "Cho giáo viên giảng dạy & chấm thi tự động",
+    credits: "Tặng kèm 500 credits/tháng",
     features: [
-      "Tạo đề không giới hạn",
-      "Kiểm duyệt AI nâng cao",
-      "Xuất PDF & DOCX",
-      "Ngân hàng câu hỏi",
-      "Hỗ trợ ưu tiên",
+      "Mở khóa 100% Chấm trắc nghiệm AI qua Camera",
+      "Học sinh tự nộp bài online qua Link & Mã QR",
+      "Tạo đề thi không giới hạn mỗi ngày",
+      "Xuất bảng điểm lớp file Excel UTF-8 BOM chuẩn",
+      "In phiếu trả lời trắc nghiệm A4 chuẩn Bộ GD&ĐT",
+      "Hỗ trợ ưu tiên 24/7",
     ],
-    cta: "Chọn gói này",
+    cta: "Nâng cấp gói PRO",
     highlighted: true,
   },
   {
@@ -90,11 +92,11 @@ const pricingPlans = [
     description: "Cho tổ chức giáo dục",
     credits: "Credits tùy chỉnh",
     features: [
-      "Tất cả tính năng Giáo viên",
-      "Quản lý nhiều tài khoản",
-      "API tích hợp LMS",
-      "Báo cáo tổng hợp",
-      "Hỗ trợ chuyên biệt",
+      "Tất cả tính năng Giáo viên PRO",
+      "Quản lý nhiều tài khoản giáo viên",
+      "API tích hợp LMS / VnEdu",
+      "Báo cáo phân tích chất lượng học sinh",
+      "Hỗ trợ chuyên biệt theo trường",
     ],
     cta: "Liên hệ tư vấn",
     highlighted: false,
@@ -141,7 +143,7 @@ export default function LandingPage() {
                 </Link>
               </div>
               <p className="mt-4 text-xs text-muted-foreground">
-                Không cần thẻ tín dụng • 50 credits miễn phí
+                Không cần thẻ tín dụng • 3 đề miễn phí mỗi ngày & 100 credits tặng sẵn
               </p>
             </div>
           </div>

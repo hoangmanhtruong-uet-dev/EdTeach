@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import { getUserExams, Exam } from "@/lib/api/exams";
 import { SessionDetailView } from "@/components/grading/session-detail-view";
+import { useAuth } from "@/context/auth-context";
 
 interface ExamSession {
   id: string;
@@ -59,6 +60,10 @@ interface ExamSession {
 }
 
 export default function GradingPage() {
+  const { profile } = useAuth();
+  const isProUser = profile?.tier === "pro" || profile?.tier === "school";
+  const [showProUpgradeModal, setShowProUpgradeModal] = useState(false);
+
   // Danh sách các kỳ thi đã tạo (lưu trong localStorage để bền vững)
   const [sessions, setSessions] = useState<ExamSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
@@ -938,17 +943,29 @@ export default function GradingPage() {
                       {/* Nút Chấm bài */}
                       <button
                         onClick={() => {
+                          if (!isProUser) {
+                            setShowProUpgradeModal(true);
+                            return;
+                          }
                           setScanResult(null);
                           setUploadedImagePreview(null);
                           setShowScanModal(session);
                           setScanMode("phone");
                           initRemoteSession(session);
                         }}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-semibold transition shadow-sm"
-                        title="Chụp ảnh phiếu hoặc tải ảnh lên để AI chấm"
+                        className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold transition shadow-sm ${
+                          isProUser
+                            ? "bg-neutral-900 hover:bg-neutral-800 text-white"
+                            : "bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white"
+                        }`}
+                        title={isProUser ? "Chụp ảnh phiếu hoặc tải ảnh lên để AI chấm" : "Nâng cấp PRO để mở khóa chấm trắc nghiệm AI"}
                       >
-                        <Camera className="w-3.5 h-3.5" />
-                        Chấm bài AI
+                        {isProUser ? (
+                          <Camera className="w-3.5 h-3.5" />
+                        ) : (
+                          <Sparkles className="w-3.5 h-3.5" />
+                        )}
+                        Chấm bài AI {!isProUser && <span className="bg-amber-400 text-neutral-900 text-[10px] px-1.5 py-0.2 rounded font-extrabold ml-1">PRO</span>}
                       </button>
 
                       {/* Nút Xem bảng điểm */}
@@ -1221,6 +1238,76 @@ export default function GradingPage() {
               >
                 Tạo kỳ thi ngay
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL: NÂNG CẤP GÓI PRO ĐỂ SỬ DỤNG CHẤM BÀI AI & QR */}
+      {/* ========================================================= */}
+      {showProUpgradeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-neutral-200 text-center relative">
+            <button
+              onClick={() => setShowProUpgradeModal(false)}
+              className="absolute right-4 top-4 p-1.5 rounded-lg text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-400 to-amber-500 text-white flex items-center justify-center mx-auto mb-3 shadow-md shadow-amber-500/20">
+              <Sparkles className="w-8 h-8" />
+            </div>
+
+            <div className="inline-block px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-extrabold uppercase tracking-wider mb-2">
+              PRO EXCLUSIVE
+            </div>
+
+            <h3 className="text-xl font-bold text-neutral-900 mb-2">
+              Tính năng dành riêng cho gói PRO
+            </h3>
+
+            <p className="text-xs text-neutral-600 mb-5 leading-relaxed">
+              Tính năng <strong>Chấm trắc nghiệm AI bằng Camera</strong> và{" "}
+              <strong>Học sinh tự nộp bài qua Link / Mã QR</strong> là đặc quyền của gói PRO.
+              Nâng cấp ngay để tự động hóa 100% khâu chấm thi và xuất bảng điểm Excel!
+            </p>
+
+            <div className="bg-neutral-50 rounded-xl p-3.5 text-left space-y-2 mb-6 border border-neutral-100 text-xs text-neutral-700">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>Chấm bài tự động từ camera điện thoại & tải ảnh</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>Học sinh tự nộp bài qua QR, nhận điểm tức thì</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>Xuất bảng điểm lớp file Excel UTF-8 BOM chuẩn</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>In phiếu trả lời trắc nghiệm A4 chuẩn Bộ GD&ĐT</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowProUpgradeModal(false)}
+                className="flex-1 py-2.5 rounded-xl border border-neutral-200 hover:bg-neutral-50 text-neutral-700 text-xs font-semibold transition cursor-pointer"
+              >
+                Để sau
+              </button>
+
+              <a
+                href="/wallet?plan=pro"
+                className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white text-xs font-bold transition shadow-md shadow-amber-500/20 flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Nâng cấp PRO (99k)</span>
+              </a>
             </div>
           </div>
         </div>

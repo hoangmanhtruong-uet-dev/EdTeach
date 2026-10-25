@@ -112,6 +112,18 @@ export async function POST(req: NextRequest) {
           // ignore
         }
       }
+
+      // Nếu là gói PRO (99.000đ hoặc mô tả có PRO), nâng cấp tier cho user
+      if (paidAmount === 99000 || data.description?.includes("PRO")) {
+        try {
+          await (supabase.from("users") as any)
+            .update({ tier: "pro" })
+            .eq("id", userId);
+          console.log(`[PayOS Webhook] Đã nâng cấp tài khoản user ${userId} lên gói PRO!`);
+        } catch (tierErr) {
+          console.warn("Lỗi update tier user:", tierErr);
+        }
+      }
     }
 
     console.log(`[PayOS Webhook] Thành công xử lý đơn ${orderCodeStr}, cộng ${creditsToAdd} credits cho user ${userId}`);

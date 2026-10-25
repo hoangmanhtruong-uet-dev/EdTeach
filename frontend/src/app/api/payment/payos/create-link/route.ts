@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { amount, credits } = body;
+    const { amount, credits, isPro } = body;
 
     const numAmount = parseInt(amount, 10);
     const numCredits = parseInt(credits, 10);
@@ -38,14 +38,16 @@ export async function POST(req: NextRequest) {
     const protocol = req.headers.get("x-forwarded-proto") || "http";
     const baseUrl = `${protocol}://${host}`;
 
-    const returnUrl = `${baseUrl}/wallet?status=PAID&orderCode=${orderCode}&credits=${numCredits}`;
+    const returnUrl = isPro
+      ? `${baseUrl}/wallet?status=PAID&orderCode=${orderCode}&tier=pro&credits=${numCredits}`
+      : `${baseUrl}/wallet?status=PAID&orderCode=${orderCode}&credits=${numCredits}`;
     const cancelUrl = `${baseUrl}/wallet?status=CANCELLED&orderCode=${orderCode}`;
 
     // 1. Tạo đơn hàng qua cổng PayOS
     const payosResult = await payOSService.createPaymentLink({
       orderCode,
       amount: numAmount,
-      description: `NAP ${numCredits} CREDITS`,
+      description: isPro ? "NANG CAP GOI PRO" : `NAP ${numCredits} CREDITS`,
       returnUrl,
       cancelUrl,
       buyerEmail: user.email || undefined,

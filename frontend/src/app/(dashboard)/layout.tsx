@@ -14,6 +14,7 @@ import {
   X,
   Store,
   ScanLine,
+  Sparkles,
 } from "lucide-react";
 import { useState, useEffect, Suspense } from "react";
 import { useAuth } from "@/context/auth-context";
@@ -144,9 +145,20 @@ function DashboardLayoutInner({
               {initials}
             </div>
             <div className="flex-1 overflow-hidden">
-              <p className="truncate text-sm font-medium">
-                {profile?.name || user?.email || "Giáo viên"}
-              </p>
+              <div className="flex items-center gap-1.5">
+                <p className="truncate text-sm font-medium">
+                  {profile?.name || user?.email || "Giáo viên"}
+                </p>
+                {profile?.tier === "pro" || profile?.tier === "school" ? (
+                  <span className="shrink-0 rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold text-amber-600">
+                    PRO
+                  </span>
+                ) : (
+                  <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
+                    Free
+                  </span>
+                )}
+              </div>
               <p className="truncate text-xs text-muted-foreground">
                 {user?.email || ""}
               </p>
@@ -165,7 +177,7 @@ function DashboardLayoutInner({
       {/* Main content */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Top bar */}
-        <header className="flex h-16 items-center gap-4 border-b border-border bg-card px-4 lg:px-6">
+        <header className="flex h-16 items-center gap-3 border-b border-border bg-card px-4 lg:px-6">
           <button
             onClick={() => setSidebarOpen(true)}
             className="rounded-lg p-2 hover:bg-muted lg:hidden"
@@ -174,6 +186,22 @@ function DashboardLayoutInner({
           </button>
 
           <div className="flex-1" />
+
+          {/* PRO status badge or upgrade pill */}
+          {profile?.tier === "pro" || profile?.tier === "school" ? (
+            <span className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 px-3 py-1.5 text-xs font-bold text-white shadow-xs">
+              <Sparkles className="h-3.5 w-3.5" />
+              <span>GÓI PRO</span>
+            </span>
+          ) : (
+            <Link
+              href="/wallet?plan=pro"
+              className="flex items-center gap-1.5 rounded-full bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 px-3 py-1.5 text-xs font-bold transition shadow-2xs"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-amber-600" />
+              <span>Nâng cấp PRO</span>
+            </Link>
+          )}
 
           {/* Credits badge */}
           <Link
