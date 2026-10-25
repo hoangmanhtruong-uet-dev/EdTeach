@@ -63,6 +63,17 @@ app.include_router(generation.router)
 app.include_router(grading.router)
 
 
+@app.get("/", tags=["Root"])
+async def root():
+    """Root endpoint for status check."""
+    return {
+        "status": "online",
+        "service": "EduTest AI Backend",
+        "docs": "/docs",
+        "health": "/health",
+    }
+
+
 @app.on_event("startup")
 async def startup():
     logger.info(
