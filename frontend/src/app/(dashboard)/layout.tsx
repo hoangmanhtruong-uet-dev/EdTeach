@@ -81,6 +81,24 @@ function DashboardLayoutInner({
     if (user) {
       loadWallet();
     }
+
+    // Khởi tạo theme từ localStorage
+    try {
+      const savedTheme = localStorage.getItem("app_theme") || "system";
+      if (savedTheme === "dark") {
+        document.documentElement.classList.add("dark");
+      } else if (savedTheme === "light") {
+        document.documentElement.classList.remove("dark");
+      } else {
+        if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+          document.documentElement.classList.add("dark");
+        } else {
+          document.documentElement.classList.remove("dark");
+        }
+      }
+    } catch {
+      // ignore
+    }
   }, [user]);
 
   const initials = profile?.name
@@ -102,7 +120,7 @@ function DashboardLayoutInner({
   }
 
   return (
-    <div className="flex h-screen bg-[#ebf3fb] text-slate-800">
+    <div className="flex h-screen bg-background text-foreground">
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
@@ -141,9 +159,17 @@ function DashboardLayoutInner({
         {/* User section */}
         <div className="border-t border-border p-3">
           <div className="flex items-center gap-3 rounded-lg px-3 py-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
-              {initials}
-            </div>
+            {profile?.avatar_url ? (
+              <img
+                src={profile.avatar_url}
+                alt="Avatar"
+                className="h-8 w-8 rounded-full object-cover border border-primary/30 shrink-0"
+              />
+            ) : (
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary shrink-0">
+                {initials}
+              </div>
+            )}
             <div className="flex-1 overflow-hidden">
               <div className="flex items-center gap-1.5">
                 <p className="truncate text-sm font-medium">
