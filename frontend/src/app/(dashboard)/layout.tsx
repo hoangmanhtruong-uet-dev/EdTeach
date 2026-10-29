@@ -16,6 +16,8 @@ import {
   ScanLine,
   Sparkles,
   HelpCircle,
+  FlaskConical,
+  Presentation,
 } from "lucide-react";
 import { useState, useEffect, Suspense } from "react";
 import { useAuth } from "@/context/auth-context";
@@ -26,6 +28,8 @@ const sidebarLinks = [
   { href: "/exams/create", label: "Soạn đề", icon: FilePlus },
   { href: "/exams", label: "Đề thi của tôi", icon: FolderOpen },
   { href: "/grading", label: "Chấm trắc nghiệm", icon: ScanLine },
+  { href: "/labs", label: "Phòng TN 3D", icon: FlaskConical },
+  { href: "/whiteboard", label: "Bảng trắng", icon: Presentation },
   { href: "/marketplace", label: "Đề thi cộng đồng", icon: Store },
   { href: "/wallet", label: "Nạp điểm", icon: Wallet },
   { href: "/guide", label: "Hướng dẫn", icon: HelpCircle },
@@ -45,14 +49,15 @@ function NavLinks({ onClose }: { onClose: () => void }) {
             key={link.href}
             href={link.href}
             onClick={onClose}
+            aria-current={isActive ? "page" : undefined}
             className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
               isActive
                 ? "bg-primary text-primary-foreground"
                 : "text-muted-foreground hover:bg-muted hover:text-foreground"
             }`}
           >
-            <link.icon className="h-5 w-5" />
-            {link.label}
+            <link.icon className="h-5 w-5 shrink-0" aria-hidden="true" />
+            <span>{link.label}</span>
           </Link>
         );
       })}
@@ -158,9 +163,9 @@ function DashboardLayoutInner({
           <NavLinks onClose={() => setSidebarOpen(false)} />
         </Suspense>
 
-        {/* User section */}
-        <div className="border-t border-border p-3">
-          <div className="flex items-center gap-3 rounded-lg px-3 py-2">
+        {/* User section (at bottom of sidebar, clear from Next dev badge) */}
+        <div className="mt-auto border-t border-border p-3 pb-6 bg-card/50">
+          <div className="flex items-center gap-3 rounded-lg px-2.5 py-2 min-w-0">
             {profile?.avatar_url ? (
               <img
                 src={profile.avatar_url}
@@ -172,32 +177,39 @@ function DashboardLayoutInner({
                 {initials}
               </div>
             )}
-            <div className="flex-1 overflow-hidden">
-              <div className="flex items-center gap-1.5">
-                <p className="truncate text-sm font-medium">
+            <div className="flex-1 min-w-0 overflow-hidden">
+              <div className="flex items-center justify-between gap-1.5 min-w-0">
+                <p
+                  className="truncate text-sm font-medium text-foreground"
+                  title={profile?.name || user?.email || "Giáo viên"}
+                >
                   {profile?.name || user?.email || "Giáo viên"}
                 </p>
                 {profile?.tier === "pro" || profile?.tier === "school" ? (
-                  <span className="shrink-0 rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold text-amber-600">
+                  <span className="shrink-0 rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold text-amber-600 border border-amber-500/20">
                     PRO
                   </span>
                 ) : (
-                  <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
+                  <span className="shrink-0 rounded bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 text-[10px] font-medium text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
                     Free
                   </span>
                 )}
               </div>
-              <p className="truncate text-xs text-muted-foreground">
+              <p
+                className="truncate text-xs text-muted-foreground"
+                title={user?.email || ""}
+              >
                 {user?.email || ""}
               </p>
             </div>
           </div>
           <button
             onClick={() => signOut()}
-            className="mt-1 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+            aria-label="Đăng xuất khỏi tài khoản"
+            className="mt-1 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive cursor-pointer"
           >
-            <LogOut className="h-4 w-4" />
-            Đăng xuất
+            <LogOut className="h-4 w-4 shrink-0" aria-hidden="true" />
+            <span>Đăng xuất</span>
           </button>
         </div>
       </aside>

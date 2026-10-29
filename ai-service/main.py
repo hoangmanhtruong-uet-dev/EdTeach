@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import structlog
 
 from app.core.config import settings
-from app.routers import generation, health, grading
+from app.routers import generation, health, grading, omr_grading
 
 # Configure standard logging & structured logging
 log_level = getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO)
@@ -61,6 +61,7 @@ app.add_middleware(
 app.include_router(health.router)
 app.include_router(generation.router)
 app.include_router(grading.router)
+app.include_router(omr_grading.router)
 
 
 @app.get("/", tags=["Root"])

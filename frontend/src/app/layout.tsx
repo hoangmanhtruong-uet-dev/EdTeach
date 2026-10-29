@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/auth-context";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { ReferralTracker } from "@/components/referral/referral-tracker";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -38,6 +40,9 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col bg-white text-slate-900" style={{ backgroundColor: "#ffffff", color: "#0f172a" }}>
         <AuthProvider>
+          <Suspense fallback={null}>
+            <ReferralTracker />
+          </Suspense>
           {children}
           <Analytics />
           <SpeedInsights />

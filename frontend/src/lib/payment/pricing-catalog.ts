@@ -16,7 +16,7 @@ export const PRICING_PACKAGES: Record<string, PricingPackage> = {
     id: "pro_monthly",
     name: "Gói Giáo Viên PRO",
     amount: 99000,
-    credits: 500,
+    credits: 30000,
     isPro: true,
   },
   credits_50: {

@@ -22,7 +22,7 @@ const proPlan = {
   name: "Gói Giáo Viên PRO",
   price: "99.000đ",
   amount: 99000,
-  credits: 500,
+  credits: 30000,
   period: "/tháng",
   isPro: true,
 };
@@ -257,29 +257,29 @@ function WalletContent() {
             </div>
 
             <p className="mt-2 text-xs text-neutral-600 leading-relaxed">
-              Mở khóa toàn diện tính năng cho giáo viên giảng dạy & chấm thi tự động.
+              Mở khóa toàn bộ học liệu 3D và tối đa sức mạnh AI soạn đề bám sát chuẩn Bộ GD&ĐT 2025.
             </p>
 
             <ul className="mt-4 space-y-2 text-xs text-neutral-700 border-t border-amber-200/60 pt-3">
               <li className="flex items-center gap-2 font-semibold text-neutral-900">
                 <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>Mở khóa 100% Chấm trắc nghiệm AI bằng Camera</span>
+                <span>Cộng thêm <strong>+30.000 Credits</strong> soạn đề AI vào ví</span>
               </li>
               <li className="flex items-center gap-2 font-semibold text-neutral-900">
                 <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>Học sinh tự nộp bài online qua Link & Mã QR</span>
+                <span>Mở khóa toàn bộ <strong>54+ Phòng Thí Nghiệm 3D</strong> (Lý, Hóa, Sinh, Địa)</span>
               </li>
               <li className="flex items-center gap-2">
                 <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>Tặng kèm <strong>500 Credits</strong> tạo đề mỗi tháng</span>
+                <span>Đủ soạn ~60 đề AI Tiêu chuẩn hoặc ~20 đề AI Chuyên sâu</span>
               </li>
               <li className="flex items-center gap-2">
                 <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>Xuất bảng điểm lớp file Excel UTF-8 BOM chuẩn</span>
+                <span>Chấm trắc nghiệm OMR & Mobile Scanner không giới hạn</span>
               </li>
               <li className="flex items-center gap-2">
                 <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>Không giới hạn số lượt tạo đề mỗi ngày</span>
+                <span>Tải file Word (.docx) & PDF chuẩn Bộ GD&ĐT không giới hạn</span>
               </li>
             </ul>
 

@@ -49,3 +49,5 @@ Thumbs.db
 .agents/
 .kilo/
 .multiagent/
+scratch/
+supabase/.temp/

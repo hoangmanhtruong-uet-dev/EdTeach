@@ -201,6 +201,10 @@ export async function POST(req: NextRequest) {
       num_questions = 10,
       difficulty = 2,
       additional_context = "",
+      model_tier = "medium",
+      thinking_effort = "medium",
+      image_base64,
+      attachment_text,
     } = body;
 
     if (!name || !subject || !grade) {
@@ -269,7 +273,7 @@ export async function POST(req: NextRequest) {
           .upsert(
             {
               user_id: user.id,
-              balance: 100,
+              balance: 5000,
             },
             { onConflict: "user_id" }
           )
@@ -281,65 +285,30 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const requiredCredits = Math.ceil(num_questions / 10) * 20;
+    // Phân bổ chi phí theo Model Tier (Gemini Flash vs Pro/Thinking)
+    const isHighModel = model_tier === "high";
+    const requiredCredits = isHighModel ? 1600 : 500;
 
-    // Daily Quota Logic:
-    let dailyQuota = wallet?.daily_quota ?? 3;
-    let dailyUsed = wallet?.daily_quota_used ?? 0;
-    let balance = wallet?.balance ?? 100;
-    let isFreeUsage = false;
+    let balance = wallet?.balance ?? 5000;
     let creditsDeducted = 0;
 
-    const MAX_DAILY_CREDITS = 5000;
-    const dailyCreditUsed = (wallet as any)?.daily_credit_used ?? 0;
-    let currentDailyCreditUsed = dailyCreditUsed;
-
-    // Kiểm tra reset ngày mới (nếu có cột last_quota_reset)
-    if (wallet?.last_quota_reset) {
-      const todayStr = new Date().toISOString().slice(0, 10);
-      const lastResetStr = new Date(wallet.last_quota_reset).toISOString().slice(0, 10);
-      if (lastResetStr !== todayStr) {
-        dailyUsed = 0;
-        currentDailyCreditUsed = 0;
-      }
-    }
-
-    // Kiểm tra trần tối đa 5.000 credits/ngày (chống lạm dụng / abuse API)
-    if (
-      currentDailyCreditUsed + requiredCredits > MAX_DAILY_CREDITS &&
-      userProfile?.tier !== "school"
-    ) {
-      return NextResponse.json(
-        {
-          error: "DAILY_CREDIT_LIMIT_REACHED",
-          message:
-            "Tài khoản của bạn đã đạt hạn mức tối đa 5.000 credits trong ngày hôm nay. Hạn mức sẽ tự động được làm mới vào 00:00 ngày mai.",
-        },
-        { status: 403 }
-      );
-    }
-
-    if (dailyUsed < dailyQuota) {
-      isFreeUsage = true;
-      dailyUsed += 1;
-      creditsDeducted = 0;
-    } else if (balance >= requiredCredits) {
-      isFreeUsage = false;
-      creditsDeducted = requiredCredits;
-      balance -= requiredCredits;
-    } else {
+    // Kiểm tra số dư Credits
+    if (balance < requiredCredits) {
       return NextResponse.json(
         {
           error: "QUOTA_EXHAUSTED",
-          message: "Thầy/Cô đã dùng hết 3 lượt tạo đề miễn phí trong ngày hôm nay.",
-          daily_quota: dailyQuota,
-          daily_quota_used: dailyUsed,
+          message: `Thầy/Cô không đủ credits để tạo đề thi này. Cần ${requiredCredits.toLocaleString()} credits (Số dư hiện tại: ${balance.toLocaleString()} credits). Thầy/Cô vui lòng nâng cấp Gói PRO (+30.000 credits & mở full 54+ Thí nghiệm 3D) hoặc nạp thêm credits.`,
+          required_credits: requiredCredits,
           remaining_credits: balance,
+          model_tier,
           referral_code: userProfile?.referral_code || "EDU" + user.id.slice(0, 4).toUpperCase(),
         },
         { status: 403 }
       );
     }
+
+    creditsDeducted = requiredCredits;
+    balance -= requiredCredits;
 
     // 3. Tạo record exam ở trạng thái "generating"
     const { data: exam, error: examError } = await (db
@@ -354,10 +323,11 @@ export async function POST(req: NextRequest) {
         question_count: 0,
         config: {
           difficulty,
+          thinking_effort,
           topic,
           additional_context,
           question_type,
-          is_free_quota: isFreeUsage,
+          model_tier,
         },
       })
       .select()
@@ -485,7 +455,64 @@ YÊU CẦU ĐẦU RA JSON CHUẨN CÓ CẤU TRÚC:
   ]
 }`;
 
-          const modelsToTry = ["gemini-3.8-flash", "gemini-flash-latest"];
+          // Thêm chỉ thị Thinking Effort của Agent AI
+          let thinkingPrompt = "";
+          if (thinking_effort === "high") {
+            thinkingPrompt = `
+[MỨC ĐỘ SUY LUẬN AI: CAO (DEEP REASONING & VERIFICATION)]:
+- Bước 1 (Phân tích): Xác định rõ chuẩn kiến thức kỹ năng, mục tiêu nhận thức (Vận dụng / Vận dụng cao).
+- Bước 2 (Tự giải & kiểm chứng): AI tự giải chi tiết bài toán từng bước để đảm bảo tính chính xác 100% của đáp số, công thức toán/hóa.
+- Bước 3 (Thiết kế bẫy): Dự đoán các sai lầm phổ biến của học sinh (nhầm dấu, sai đơn vị, bỏ quên điều kiện) để tạo các phương án nhiễu có tính phân loại cao.
+- Bước 4 (Soát lỗi chéo): Đảm bảo chỉ có duy nhất 1 đáp án đúng, tuyệt đối không có 2 đáp án cùng đúng hoặc mâu thuẫn đề bài.`;
+          } else if (thinking_effort === "low") {
+            thinkingPrompt = `
+[MỨC ĐỘ SUY LUẬN AI: THẤP (FAST RESPONSE)]:
+Tập trung phản hồi nhanh chóng, trực diện, sinh câu hỏi ngắn gọn ở mức độ Nhận biết và Thông hiểu cơ bản.`;
+          } else {
+            thinkingPrompt = `
+[MỨC ĐỘ SUY LUẬN AI: TRUNG BÌNH (STANDARD BALANCED - KHUYÊN DÙNG)]:
+Cân bằng tối ưu giữa thời gian và độ chuẩn xác ma trận đề, đối soát 4 phương án A, B, C, D chuẩn theo chương trình GDPT.`;
+          }
+
+          // Thêm tài liệu đính kèm nếu có
+          let docPrompt = "";
+          if (attachment_text && attachment_text.trim()) {
+            docPrompt = `\n\n[TÀI LIỆU ĐÍNH KÈM TỪ GIÁO VIÊN]:\n${attachment_text}\nHãy ưu tiên bám sát các câu hỏi, lý thuyết hoặc dữ liệu trong tài liệu đính kèm trên để biên soạn đề thi.`;
+          }
+
+          // Thêm chỉ thị OCR nếu có ảnh
+          let ocrPrompt = "";
+          if (image_base64) {
+            ocrPrompt = `\n\n[ẢNH ĐỀ THI ĐÍNH KÈM / OCR]: Hãy nhận diện toàn bộ câu hỏi, công thức toán/hóa, bảng biểu từ ảnh đính kèm để trích xuất hoặc biên soạn lại thành các câu hỏi trắc nghiệm hoàn chỉnh theo đúng định dạng JSON yêu cầu.`;
+          }
+
+          const fullPromptText = `${geminiPrompt}${thinkingPrompt}${docPrompt}${ocrPrompt}`;
+
+          const promptParts: any[] = [{ text: fullPromptText }];
+
+          if (image_base64) {
+            let mimeType = "image/jpeg";
+            let base64Data = image_base64;
+            if (image_base64.includes(";base64,")) {
+              const split = image_base64.split(";base64,");
+              mimeType = split[0].replace("data:", "") || "image/jpeg";
+              base64Data = split[1];
+            }
+            promptParts.push({
+              inlineData: {
+                mimeType,
+                data: base64Data,
+              },
+            });
+          }
+
+          // Phân bổ mô hình dựa trên Rate Limits thực tế từ Google AI Studio:
+          // - Gói Pro (1.600 cr): Flagship Gemini 3.8 Flash (Deep reasoning) -> Gemini 3.6 Flash -> Gemini 3 Flash -> Fallback 3.5 Lite
+          // - Gói Flash (500 cr): Gemini 3.5 Flash Lite (500 RPD, 15 RPM) -> Gemini 3.1 Flash Lite (500 RPD) -> Gemini 3 Flash
+          const modelsToTry = isHighModel
+            ? ["gemini-3.8-flash", "gemini-3.6-flash", "gemini-3-flash-preview", "gemini-3.5-flash-lite"]
+            : ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3-flash-preview"];
+
           for (const model of modelsToTry) {
             try {
               const geminiRes = await fetch(
@@ -494,9 +521,9 @@ YÊU CẦU ĐẦU RA JSON CHUẨN CÓ CẤU TRÚC:
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
-                    contents: [{ parts: [{ text: geminiPrompt }] }],
+                    contents: [{ parts: promptParts }],
                     generationConfig: {
-                      temperature: 0.7,
+                      temperature: thinking_effort === "high" ? 0.2 : thinking_effort === "low" ? 0.7 : 0.45,
                       responseMimeType: "application/json",
                     },
                   }),
@@ -559,10 +586,11 @@ YÊU CẦU ĐẦU RA JSON CHUẨN CÓ CẤU TRÚC:
         question_count: generatedQuestions.length,
         config: {
           difficulty,
+          thinking_effort,
           topic,
           additional_context,
           question_type,
-          is_free_quota: isFreeUsage,
+          model_tier,
           questions: generatedQuestions,
         },
       })
@@ -589,17 +617,12 @@ YÊU CẦU ĐẦU RA JSON CHUẨN CÓ CẤU TRÚC:
         }
       }
 
-      // Cập nhật lượt sử dụng hàng ngày hoặc cập nhật số dư dự phòng nếu chưa chạy migration RPC
+      // Cập nhật số dư dự phòng nếu chưa chạy migration RPC
       const updatePayload: any = {};
       if (!rpcHandled) {
         updatePayload.balance = balance;
       }
-      if (wallet.daily_quota !== undefined) {
-        updatePayload.daily_quota_used = dailyUsed;
-        updatePayload.daily_credit_used = currentDailyCreditUsed + creditsDeducted;
-        updatePayload.last_quota_reset = new Date().toISOString();
-        updatePayload.updated_at = new Date().toISOString();
-      }
+      updatePayload.updated_at = new Date().toISOString();
 
       if (Object.keys(updatePayload).length > 0) {
         try {
@@ -615,7 +638,7 @@ YÊU CẦU ĐẦU RA JSON CHUẨN CÓ CẤU TRÚC:
             wallet_id: wallet.id,
             amount: -creditsDeducted,
             type: "generate_exam",
-            description: `Tạo đề thi "${name}" (${generatedQuestions.length} câu)`,
+            description: `Tạo đề thi "${name}" (${generatedQuestions.length} câu) [Model: ${model_tier}]`,
             ref_id: exam.id,
           });
         } catch {
@@ -629,9 +652,8 @@ YÊU CẦU ĐẦU RA JSON CHUẨN CÓ CẤU TRÚC:
       exam_id: exam.id,
       questions: generatedQuestions,
       questions_count: generatedQuestions.length,
-      is_free_quota: isFreeUsage,
-      daily_quota: dailyQuota,
-      daily_quota_used: dailyUsed,
+      model_tier,
+      thinking_effort,
       credits_deducted: creditsDeducted,
       remaining_balance: balance,
     });

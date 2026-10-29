@@ -56,14 +56,14 @@ const pricingPlans = [
     name: "Miễn phí",
     price: "0₫",
     period: "/tháng",
-    description: "Trải nghiệm tạo đề thi AI",
-    credits: "3 đề miễn phí mỗi ngày (100 credits tặng sẵn)",
+    description: "Trải nghiệm tạo đề thi AI & chấm trắc nghiệm",
+    credits: "Tặng sẵn 5.000 credits khi đăng ký",
     features: [
-      "Tạo đề thi cơ bản chuẩn Bộ GD&ĐT",
-      "3 lượt tạo đề miễn phí mỗi ngày",
-      "100 credits tặng sẵn khi đăng ký",
-      "Xuất file Word & PDF",
-      "Hỗ trợ cộng đồng",
+      "Tặng 5.000 credits (soạn ~10 đề Flash hoặc ~3 đề Pro)",
+      "Chấm trắc nghiệm OMR qua camera điện thoại (Miễn phí 100%)",
+      "Dùng thử miễn phí 1 bài học 3D cho mỗi môn",
+      "Bóc tách đề thi tự động từ link web",
+      "Xuất file Word & PDF chuẩn Bộ GD&ĐT",
     ],
     cta: "Bắt đầu miễn phí",
     highlighted: false,
@@ -72,15 +72,14 @@ const pricingPlans = [
     name: "Giáo viên PRO",
     price: "99.000₫",
     period: "/tháng",
-    description: "Cho giáo viên giảng dạy & chấm thi tự động",
-    credits: "Tặng kèm 500 credits/tháng",
+    description: "Cho giáo viên giảng dạy & phòng thí nghiệm 3D",
+    credits: "Cộng thêm +30.000 credits mỗi tháng",
     features: [
-      "Mở khóa 100% Chấm trắc nghiệm AI qua Camera",
-      "Học sinh tự nộp bài online qua Link & Mã QR",
-      "Tạo đề thi không giới hạn mỗi ngày",
+      "Mở khóa toàn bộ 54+ Phòng Thí Nghiệm 3D (Lý, Hóa, Sinh, Địa)",
+      "Cộng ngay +30.000 Credits AI Soạn đề bám sát GDPT 2025",
+      "Chấm trắc nghiệm OMR & Mobile Scanner không giới hạn",
       "Xuất bảng điểm lớp file Excel UTF-8 BOM chuẩn",
-      "In phiếu trả lời trắc nghiệm A4 chuẩn Bộ GD&ĐT",
-      "Hỗ trợ ưu tiên 24/7",
+      "Tải đề thi không watermark & hỗ trợ ưu tiên 24/7",
     ],
     cta: "Nâng cấp gói PRO",
     highlighted: true,
@@ -143,7 +142,7 @@ export default function LandingPage() {
                 </Link>
               </div>
               <p className="mt-4 text-xs text-muted-foreground">
-                Không cần thẻ tín dụng • 3 đề miễn phí mỗi ngày & 100 credits tặng sẵn
+                Không cần thẻ tín dụng • Tặng sẵn 5.000 credits & chấm trắc nghiệm OMR 100% miễn phí
               </p>
             </div>
           </div>

@@ -38,92 +38,7 @@ interface MarketplaceExam {
   hasSolution: boolean;
 }
 
-const SAMPLE_EXAMS: MarketplaceExam[] = [
-  {
-    id: "mk-1",
-    title: "Bộ đề ôn thi Học kì 1 Toán 12 bám sát cấu trúc mới 2025 (Có giải chi tiết)",
-    subject: "Toán",
-    grade: 12,
-    author: "Thầy Nguyễn Quốc Huy",
-    authorRole: "GV Chuyên Toán Hà Nội - Amsterdam",
-    downloads: 1420,
-    rating: 4.9,
-    priceCredits: 10,
-    questionCount: 50,
-    tags: ["Form 2025", "Đúng/Sai", "Trả lời ngắn"],
-    hasSolution: true,
-  },
-  {
-    id: "mk-2",
-    title: "Tuyển tập 30 Đề thi vào 10 Chuyên Anh & Đại trà chuẩn form Sở GD&ĐT",
-    subject: "Tiếng Anh",
-    grade: 9,
-    author: "Cô Mai Phương Thảo",
-    authorRole: "Tổ trưởng Ngoại ngữ THCS Giảng Võ",
-    downloads: 980,
-    rating: 4.8,
-    priceCredits: 15,
-    questionCount: 40,
-    tags: ["Luyện thi vào 10", "Ngữ pháp", "Đọc hiểu"],
-    hasSolution: true,
-  },
-  {
-    id: "mk-3",
-    title: "Đề kiểm tra giữa kì 1 Vật lí 11 - Kết nối tri thức có Barem chấm điểm",
-    subject: "Vật lí",
-    grade: 11,
-    author: "Thầy Trần Đức Anh",
-    authorRole: "Giáo viên THPT Kim Liên",
-    downloads: 650,
-    rating: 4.7,
-    priceCredits: 8,
-    questionCount: 28,
-    tags: ["KNTT", "Dao động điều hòa", "Sóng cơ"],
-    hasSolution: true,
-  },
-  {
-    id: "mk-4",
-    title: "Ngân hàng 200 câu hỏi Hóa học 10 chương Cấu tạo nguyên tử & Bảng tuần hoàn",
-    subject: "Hóa học",
-    grade: 10,
-    author: "Thầy Lê Minh Tuấn",
-    authorRole: "Hóa học Trẻ Việt Nam",
-    downloads: 820,
-    rating: 4.9,
-    priceCredits: 12,
-    questionCount: 60,
-    tags: ["Cánh Diều", "Chân Trời", "Ma trận ma trận"],
-    hasSolution: true,
-  },
-  {
-    id: "mk-5",
-    title: "Đề thi thử Tốt nghiệp THPT 2025 môn Ngữ văn - Kèm dàn ý chi tiết bài nghị luận",
-    subject: "Ngữ văn",
-    grade: 12,
-    author: "Cô Hoàng Lan Anh",
-    authorRole: "Thạc sĩ Văn học ĐH Sư Phạm",
-    downloads: 1250,
-    rating: 5.0,
-    priceCredits: 10,
-    questionCount: 5,
-    tags: ["Đọc hiểu", "Nghị luận xã hội", "Nghị luận văn học"],
-    hasSolution: true,
-  },
-  {
-    id: "mk-6",
-    title: "Đề khảo sát chất lượng Sinh học 12 Chương Di truyền quần thể & Tiến hóa",
-    subject: "Sinh học",
-    grade: 12,
-    author: "Thầy Phạm Văn Cường",
-    authorRole: "Chuyên viên Khảo thí & KĐCLGD",
-    downloads: 510,
-    rating: 4.8,
-    priceCredits: 10,
-    questionCount: 40,
-    tags: ["Di truyền học", "Định luật Hardy-Weinberg"],
-    hasSolution: true,
-  },
-];
+const SAMPLE_EXAMS: MarketplaceExam[] = [];
 
 export default function MarketplacePage() {
   const [search, setSearch] = useState("");
@@ -321,75 +236,114 @@ export default function MarketplacePage() {
         </div>
       </div>
 
-      {/* Exam Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {filteredExams.map((exam) => (
-          <div
-            key={exam.id}
-            className="bg-white rounded-2xl p-5 border border-border shadow-xs hover:shadow-md transition-all flex flex-col justify-between"
-          >
-            <div>
-              <div className="flex items-center justify-between text-xs mb-2">
-                <span className="font-semibold px-2 py-0.5 rounded-lg bg-blue-50 text-blue-700">
-                  {exam.subject} • Lớp {exam.grade}
-                </span>
-                <span className="flex items-center gap-1 text-amber-500 font-bold">
-                  <Star className="w-3.5 h-3.5 fill-amber-400" />
-                  {exam.rating}
-                </span>
-              </div>
-
-              <h3 className="font-bold text-foreground text-sm mb-2 line-clamp-2 leading-snug">
-                {exam.title}
-              </h3>
-
-              <div className="flex flex-wrap gap-1 mb-3">
-                {exam.tags.map((tag, idx) => (
-                  <span
-                    key={idx}
-                    className="text-[10px] bg-muted text-muted-foreground px-2 py-0.5 rounded-md"
-                  >
-                    #{tag}
-                  </span>
-                ))}
-              </div>
-
-              <div className="text-xs text-muted-foreground mb-4 pb-3 border-b border-border flex items-center justify-between">
-                <div>
-                  <div className="font-medium text-foreground">{exam.author}</div>
-                  <div className="text-[11px] text-muted-foreground">{exam.authorRole}</div>
-                </div>
-                <div className="text-right">
-                  <div className="font-semibold text-foreground">{exam.questionCount} câu</div>
-                  <div className="text-[11px] text-emerald-600 font-medium">Có giải chi tiết</div>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between pt-1">
+      {/* Exam Grid or Empty State */}
+      {filteredExams.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {filteredExams.map((exam) => (
+            <div
+              key={exam.id}
+              className="bg-white rounded-2xl p-5 border border-border shadow-xs hover:shadow-md transition-all flex flex-col justify-between"
+            >
               <div>
-                <span className="text-lg font-black text-primary">
-                  {exam.priceCredits}
-                </span>
-                <span className="text-xs font-semibold text-muted-foreground ml-1">Credits</span>
+                <div className="flex items-center justify-between text-xs mb-2">
+                  <span className="font-semibold px-2 py-0.5 rounded-lg bg-blue-50 text-blue-700">
+                    {exam.subject} • Lớp {exam.grade}
+                  </span>
+                  <span className="flex items-center gap-1 text-amber-500 font-bold">
+                    <Star className="w-3.5 h-3.5 fill-amber-400" />
+                    {exam.rating}
+                  </span>
+                </div>
+
+                <h3 className="font-bold text-foreground text-sm mb-2 line-clamp-2 leading-snug">
+                  {exam.title}
+                </h3>
+
+                <div className="flex flex-wrap gap-1 mb-3">
+                  {exam.tags.map((tag, idx) => (
+                    <span
+                      key={idx}
+                      className="text-[10px] bg-muted text-muted-foreground px-2 py-0.5 rounded-md"
+                    >
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+
+                <div className="text-xs text-muted-foreground mb-4 pb-3 border-b border-border flex items-center justify-between">
+                  <div>
+                    <div className="font-medium text-foreground">{exam.author}</div>
+                    <div className="text-[11px] text-muted-foreground">{exam.authorRole}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-semibold text-foreground">{exam.questionCount} câu</div>
+                    <div className="text-[11px] text-emerald-600 font-medium">Có giải chi tiết</div>
+                  </div>
+                </div>
               </div>
 
-              <button
-                onClick={() => handleDownloadWord(exam)}
-                disabled={downloadingId === exam.id}
-                className="px-3.5 py-1.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs flex items-center gap-1.5 transition-all shadow-xs cursor-pointer disabled:opacity-50"
-              >
-                {downloadingId === exam.id ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <Download className="w-3.5 h-3.5" />
-                )}
-                <span>Tải Word (.docx)</span>
-              </button>
+              <div className="flex items-center justify-between pt-1">
+                <div>
+                  <span className="text-lg font-black text-primary">
+                    {exam.priceCredits}
+                  </span>
+                  <span className="text-xs font-semibold text-muted-foreground ml-1">Credits</span>
+                </div>
+
+                <button
+                  onClick={() => handleDownloadWord(exam)}
+                  disabled={downloadingId === exam.id}
+                  className="px-3.5 py-1.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs flex items-center gap-1.5 transition-all shadow-xs cursor-pointer disabled:opacity-50"
+                >
+                  {downloadingId === exam.id ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Download className="w-3.5 h-3.5" />
+                  )}
+                  <span>Tải Word (.docx)</span>
+                </button>
+              </div>
             </div>
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-dashed border-border bg-white p-12 text-center max-w-2xl mx-auto my-6 shadow-xs">
+          <div className="mx-auto w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mb-4 shadow-xs">
+            <Store className="w-7 h-7" />
           </div>
-        ))}
-      </div>
+          <h3 className="text-lg font-bold text-foreground mb-2">
+            Chợ Đề Thi Cộng Đồng Đang Khởi Tạo
+          </h3>
+          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed mb-6 max-w-lg mx-auto">
+            Hiện chưa có đề thi mẫu được chia sẻ công khai. Thầy Cô hãy là người tiên phong chia sẻ đề thi chất lượng từ kho cá nhân hoặc bóc tách trực tiếp đề thi từ các website giáo dục!
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <Link
+              href="/exams"
+              className="px-4 py-2.5 rounded-xl bg-primary text-primary-foreground font-semibold text-xs flex items-center gap-2 hover:bg-primary/90 transition shadow-xs"
+            >
+              <BookOpen className="w-4 h-4" />
+              <span>Kho Đề Thi Của Tôi</span>
+            </Link>
+
+            <Link
+              href="/exams/create"
+              className="px-4 py-2.5 rounded-xl border border-border bg-white text-foreground hover:bg-muted font-semibold text-xs flex items-center gap-2 transition"
+            >
+              <Sparkles className="w-4 h-4 text-amber-500" />
+              <span>Soạn Đề Mới Bằng AI</span>
+            </Link>
+
+            <button
+              onClick={() => setShowImportModal(true)}
+              className="px-4 py-2.5 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-semibold text-xs flex items-center gap-2 transition cursor-pointer"
+            >
+              <Globe className="w-4 h-4 text-emerald-600" />
+              <span>Bóc Tách Link Web</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ========================================================= */}
       {/* MODAL: NHẬP LINK ĐỀ THI TỪ WEB GIÁO DỤC (AI CÀO & BÓC TÁCH) */}

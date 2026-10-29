@@ -22,7 +22,8 @@ function cleanMathSymbols(text: string): string {
 export async function exportExamToDocx(
   exam: ExamWithQuestions,
   includeAnswers = false,
-  isPro = false
+  isPro = false,
+  fontFamily = "Times New Roman"
 ) {
   const children: (Paragraph | Table)[] = [];
 
@@ -146,9 +147,116 @@ export async function exportExamToDocx(
     (a, b) => a.order_index - b.order_index
   );
 
-  // 2. Render each question
-  questions.forEach((q: Question, idx: number) => {
-    const qNum = idx + 1;
+  let realQuestionCounter = 0;
+
+  // 2. Render each block / question
+  questions.forEach((q: any) => {
+    const blockType = q.blockType || q.type;
+
+    // A. Section Title (Tiêu đề 1)
+    if (blockType === "section_title") {
+      children.push(
+        new Paragraph({
+          spacing: { before: 280, after: 120 },
+          children: [
+            new TextRun({
+              text: q.sectionTitle || q.content,
+              bold: true,
+              size: 24,
+              color: "0F172A",
+              font: fontFamily,
+            }),
+          ],
+        })
+      );
+      return;
+    }
+
+    // B. Heading 2 (Tiêu đề 2)
+    if (blockType === "heading_2") {
+      children.push(
+        new Paragraph({
+          spacing: { before: 220, after: 100 },
+          children: [
+            new TextRun({
+              text: q.content,
+              bold: true,
+              size: 22,
+              color: "1E293B",
+              font: fontFamily,
+            }),
+          ],
+        })
+      );
+      return;
+    }
+
+    // C. Heading 3 (Tiêu đề 3)
+    if (blockType === "heading_3") {
+      children.push(
+        new Paragraph({
+          spacing: { before: 180, after: 80 },
+          children: [
+            new TextRun({
+              text: q.content,
+              bold: true,
+              size: 20,
+              color: "334155",
+              font: fontFamily,
+            }),
+          ],
+        })
+      );
+      return;
+    }
+
+    // D. Passage / Trích dẫn đọc hiểu
+    if (blockType === "passage") {
+      children.push(
+        new Paragraph({
+          indent: { left: 400, right: 400 },
+          spacing: { before: 180, after: 180 },
+          children: [
+            new TextRun({
+              text: q.passageContent || q.content,
+              italics: true,
+              size: 21,
+              font: fontFamily,
+            }),
+          ],
+        })
+      );
+      return;
+    }
+
+    // E. Callout / Hộp ghi chú
+    if (blockType === "callout") {
+      children.push(
+        new Paragraph({
+          indent: { left: 240, right: 240 },
+          spacing: { before: 160, after: 160 },
+          children: [
+            new TextRun({
+              text: `[LƯU Ý] ${q.content}`,
+              bold: true,
+              size: 20,
+              color: "B45309",
+              font: fontFamily,
+            }),
+          ],
+        })
+      );
+      return;
+    }
+
+    // F. Divider
+    if (blockType === "divider" || blockType === "page_break") {
+      return;
+    }
+
+    // G. Actual Question
+    realQuestionCounter += 1;
+    const qNum = realQuestionCounter;
     const content = cleanMathSymbols(q.content);
 
     // Question content
@@ -157,13 +265,15 @@ export async function exportExamToDocx(
         spacing: { before: 200, after: 120 },
         children: [
           new TextRun({
-            text: `Câu ${qNum} (${q.type.toUpperCase()}): `,
+            text: `Câu ${qNum}: `,
             bold: true,
             size: 22,
+            font: fontFamily,
           }),
           new TextRun({
             text: content,
             size: 22,
+            font: fontFamily,
           }),
         ],
       })
@@ -286,6 +396,15 @@ export async function exportExamToDocx(
   }
 
   const doc = new Document({
+    styles: {
+      default: {
+        document: {
+          run: {
+            font: fontFamily,
+          },
+        },
+      },
+    },
     sections: [
       {
         properties: {},

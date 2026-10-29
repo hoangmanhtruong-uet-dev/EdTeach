@@ -56,6 +56,9 @@ interface ExamSession {
     emptyCount?: number;
     gradedAt: string;
     studentAnswers: Record<number, string>;
+    annotatedImage?: string;
+    flaggedQuestions?: any[];
+    omrEngine?: string;
   }>;
 }
 
@@ -86,13 +89,18 @@ export default function GradingPage() {
   const [manualAnswers, setManualAnswers] = useState<Record<number, string>>({});
 
   // Scan modal state
-  const [scanMode, setScanMode] = useState<"phone" | "camera" | "upload">("phone");
+  const [scanMode, setScanMode] = useState<"phone" | "camera" | "upload" | "batch">("phone");
   const [studentNameInput, setStudentNameInput] = useState("Nguyễn Văn An");
   const [studentCodeInput, setStudentCodeInput] = useState("10024");
   const [uploadedImagePreview, setUploadedImagePreview] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisPhase, setAnalysisPhase] = useState<1 | 2 | 3>(1);
   const [scanResult, setScanResult] = useState<any>(null);
+
+  // Batch OMR states
+  const [batchFiles, setBatchFiles] = useState<File[]>([]);
+  const [isBatchProcessing, setIsBatchProcessing] = useState(false);
+  const [batchSummary, setBatchSummary] = useState<any>(null);
 
   // Remote Wireless Phone Camera States
   const [remoteSessionToken, setRemoteSessionToken] = useState<string | null>(null);
@@ -111,6 +119,38 @@ export default function GradingPage() {
 
   // Manual corrections tracking
   const [manualCorrections, setManualCorrections] = useState<Record<number, boolean>>({});
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+
+  // Tải file PDF phiếu thi chuẩn A4 từ OpenCV OMR ReportLab generator
+  const handleDownloadPdf = async () => {
+    if (!showPrintModal) return;
+    setIsDownloadingPdf(true);
+    try {
+      const res = await fetch("/api/grading/omr", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "download_pdf",
+          sheetType: showPrintModal.sheetType,
+          examTitle: showPrintModal.name,
+        }),
+      });
+      if (!res.ok) throw new Error("Lỗi tải PDF từ AI Service");
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `phieu_trac_nghiem_${showPrintModal.sheetType}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      alert("Lỗi tải file PDF: " + err.message);
+    } finally {
+      setIsDownloadingPdf(false);
+    }
+  };
 
   // Tải danh sách kỳ thi từ localStorage khi mount
   useEffect(() => {
@@ -487,7 +527,40 @@ export default function GradingPage() {
     }, 900);
 
     setTimeout(async () => {
-      const result = computeStudentResult(currentSession);
+      let finalScore = 0;
+      let finalCorrect = 0;
+      let finalIncorrect = 0;
+      let finalAnswers: Record<number, string> = {};
+      let annotatedImage: string | undefined = undefined;
+      let flaggedQuestions: any[] = [];
+      let omrEngine: string | undefined = undefined;
+
+      if (sub.omrResult) {
+        const omr = sub.omrResult;
+        finalScore = omr.total_score ?? 0;
+        finalCorrect = omr.correct_count ?? (omr.scores_by_section ? Math.round(omr.scores_by_section.part1_score / 0.25) : 0);
+        finalIncorrect = omr.total_questions ? (omr.total_questions - finalCorrect) : 0;
+        annotatedImage = omr.annotated_image_base64;
+        flaggedQuestions = omr.flagged_questions || [];
+        omrEngine = omr.engine_used;
+
+        if (omr.results) {
+          for (const [k, v] of Object.entries(omr.results as Record<string, any>)) {
+            finalAnswers[Number(k)] = v.selected || "";
+          }
+        } else if (omr.part1_results) {
+          for (const [k, v] of Object.entries(omr.part1_results as Record<string, any>)) {
+            finalAnswers[Number(k)] = v.selected || "";
+          }
+        }
+      } else {
+        const result = computeStudentResult(currentSession);
+        finalScore = result.score;
+        finalCorrect = result.correctCount;
+        finalIncorrect = result.incorrectCount;
+        finalAnswers = result.studentAnswers;
+      }
+
       const studentName = sub.studentName || `Học sinh ${currentSession.gradedStudents.length + 1}`;
       const studentCode = sub.studentCode || `${1000 + currentSession.gradedStudents.length + 1}`;
 
@@ -495,12 +568,15 @@ export default function GradingPage() {
         id: "std_" + Date.now(),
         studentName,
         studentCode,
-        score: result.score,
-        correctCount: result.correctCount,
-        incorrectCount: result.incorrectCount,
-        emptyCount: result.emptyCount,
+        score: finalScore,
+        correctCount: finalCorrect,
+        incorrectCount: finalIncorrect,
+        emptyCount: 0,
         gradedAt: new Date().toLocaleTimeString("vi-VN") + " " + new Date().toLocaleDateString("vi-VN"),
-        studentAnswers: result.studentAnswers,
+        studentAnswers: finalAnswers,
+        annotatedImage,
+        flaggedQuestions,
+        omrEngine,
       };
 
       const updated = sessions.map((s) => {
@@ -531,9 +607,9 @@ export default function GradingPage() {
               token: remoteSessionToken,
               studentName,
               studentCode,
-              score: result.score,
-              correctCount: result.correctCount,
-              incorrectCount: result.incorrectCount,
+              score: finalScore,
+              correctCount: finalCorrect,
+              incorrectCount: finalIncorrect,
             }),
           });
         } catch {
@@ -583,26 +659,126 @@ export default function GradingPage() {
   // Chụp từ Webcam PC
   const handleCaptureWebcam = () => {
     if (!videoWebcamRef.current || !showScanModal) return;
+    try {
+      const video = videoWebcamRef.current;
+      const canvas = document.createElement("canvas");
+      canvas.width = video.videoWidth || 1280;
+      canvas.height = video.videoHeight || 720;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const b64 = canvas.toDataURL("image/jpeg", 0.88);
+        setUploadedImagePreview(b64);
+        playTingSound();
+        handleGradeSubmission(b64);
+        return;
+      }
+    } catch (e) {
+      console.warn("Capture webcam error:", e);
+    }
     playTingSound();
     handleGradeSubmission();
   };
 
-  // Chấm bài thủ công hoặc qua upload ảnh / webcam
-  const handleGradeSubmission = async () => {
+  // Chấm bài qua OpenCV OMR engine (hoặc fallback)
+  const handleGradeSubmission = async (explicitImage?: string) => {
     if (!showScanModal) return;
     setIsAnalyzing(true);
     setScanResult(null);
     setAnalysisPhase(1);
 
+    const imageToGrade = explicitImage || uploadedImagePreview;
+
     // Giai đoạn 1: Định vị 4 mốc OMR của phiếu...
     setTimeout(() => {
       setAnalysisPhase(2); // Giai đoạn 2: Nhận diện SBD & Mã đề...
-    }, 550);
+    }, 450);
 
     setTimeout(() => {
       setAnalysisPhase(3); // Giai đoạn 3: Đo độ đậm quang học & đối chiếu...
-    }, 1100);
+    }, 900);
 
+    // 1. Gọi trực tiếp OpenCV OMR nếu có ảnh
+    if (imageToGrade) {
+      try {
+        const res = await fetch("/api/grading/omr", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "grade_single",
+            imageBase64: imageToGrade,
+            sheetType: showScanModal.sheetType,
+            answerKey: showScanModal.answerKey,
+            returnAnnotatedImage: true,
+          }),
+        });
+
+        if (res.ok) {
+          const json = await res.json();
+          const omr = json.data;
+
+          const studentAns: Record<number, string> = {};
+          if (omr.results) {
+            for (const [k, v] of Object.entries(omr.results as Record<string, any>)) {
+              studentAns[Number(k)] = v.selected || "";
+            }
+          } else if (omr.part1_results) {
+            for (const [k, v] of Object.entries(omr.part1_results as Record<string, any>)) {
+              studentAns[Number(k)] = v.selected || "";
+            }
+          }
+
+          const studentName = (omr.student_code && omr.student_code !== "??????")
+            ? `SBD: ${omr.student_code}`
+            : (studentNameInput || `Học sinh ${showScanModal.gradedStudents.length + 1}`);
+          const studentCode = (omr.student_code && omr.student_code !== "??????")
+            ? omr.student_code
+            : (studentCodeInput || `${1000 + showScanModal.gradedStudents.length + 1}`);
+
+          const finalCorrect = omr.correct_count ?? (omr.scores_by_section ? Math.round(omr.scores_by_section.part1_score / 0.25) : 0);
+          const finalIncorrect = omr.total_questions ? (omr.total_questions - finalCorrect) : 0;
+
+          const newStudent = {
+            id: "std_" + Date.now(),
+            studentName,
+            studentCode,
+            score: omr.total_score,
+            correctCount: finalCorrect,
+            incorrectCount: finalIncorrect,
+            emptyCount: 0,
+            gradedAt: new Date().toLocaleTimeString("vi-VN") + " " + new Date().toLocaleDateString("vi-VN"),
+            studentAnswers: studentAns,
+            annotatedImage: omr.annotated_image_base64,
+            flaggedQuestions: omr.flagged_questions || [],
+            omrEngine: omr.engine_used,
+          };
+
+          const updatedSessions = sessions.map((s) => {
+            if (s.id === showScanModal.id) {
+              return {
+                ...s,
+                gradedStudents: [newStudent, ...s.gradedStudents],
+              };
+            }
+            return s;
+          });
+
+          saveSessions(updatedSessions);
+          setShowScanModal({
+            ...showScanModal,
+            gradedStudents: [newStudent, ...showScanModal.gradedStudents],
+          });
+          setScanResult(newStudent);
+          setIsAnalyzing(false);
+          playTingSound();
+          return;
+        }
+      } catch (e) {
+        console.warn("Real OMR failed, using fallback simulation:", e);
+      }
+    }
+
+    // 2. Fallback simulation nếu không có ảnh hoặc lỗi kết nối
     setTimeout(() => {
       const result = computeStudentResult(showScanModal);
       const newStudent = {
@@ -635,7 +811,105 @@ export default function GradingPage() {
       setScanResult(newStudent);
       setIsAnalyzing(false);
       playTingSound();
-    }, 1650);
+    }, 1300);
+  };
+
+  // Chấm hàng loạt nhiều bài cùng lúc (Batch OMR)
+  const handleRunBatchGrade = async () => {
+    if (!showScanModal || batchFiles.length === 0) return;
+    setIsBatchProcessing(true);
+    setBatchSummary(null);
+
+    try {
+      const items = await Promise.all(
+        batchFiles.map((file, idx) => {
+          return new Promise<any>((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+              resolve({
+                id: `file_${idx + 1}`,
+                image_base64: reader.result as string,
+                student_name: file.name.replace(/\.[^/.]+$/, ""),
+              });
+            };
+            reader.readAsDataURL(file);
+          });
+        })
+      );
+
+      const res = await fetch("/api/grading/omr", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "grade_batch",
+          items,
+          sheetType: showScanModal.sheetType,
+          answerKey: showScanModal.answerKey,
+          returnAnnotatedImages: true,
+        }),
+      });
+
+      if (!res.ok) throw new Error("Chấm hàng loạt thất bại từ AI Service");
+      const json = await res.json();
+
+      const newGradedStudents: any[] = [];
+      for (const item of json.items || []) {
+        if (item.status === "success" && item.data) {
+          const omr = item.data;
+          const studentAns: Record<number, string> = {};
+          if (omr.results) {
+            for (const [k, v] of Object.entries(omr.results as Record<string, any>)) {
+              studentAns[Number(k)] = v.selected || "";
+            }
+          } else if (omr.part1_results) {
+            for (const [k, v] of Object.entries(omr.part1_results as Record<string, any>)) {
+              studentAns[Number(k)] = v.selected || "";
+            }
+          }
+          const finalCorrect = omr.correct_count ?? (omr.scores_by_section ? Math.round(omr.scores_by_section.part1_score / 0.25) : 0);
+          const finalIncorrect = omr.total_questions ? (omr.total_questions - finalCorrect) : 0;
+
+          newGradedStudents.push({
+            id: "std_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+            studentName: omr.student_code && omr.student_code !== "??????"
+              ? `SBD: ${omr.student_code}`
+              : (item.student_name || "Học sinh"),
+            studentCode: omr.student_code || "",
+            score: omr.total_score,
+            correctCount: finalCorrect,
+            incorrectCount: finalIncorrect,
+            emptyCount: 0,
+            gradedAt: new Date().toLocaleTimeString("vi-VN") + " " + new Date().toLocaleDateString("vi-VN"),
+            studentAnswers: studentAns,
+            annotatedImage: omr.annotated_image_base64,
+            flaggedQuestions: omr.flagged_questions || [],
+            omrEngine: omr.engine_used,
+          });
+        }
+      }
+
+      const updatedSessions = sessions.map((s) => {
+        if (s.id === showScanModal.id) {
+          return {
+            ...s,
+            gradedStudents: [...newGradedStudents, ...s.gradedStudents],
+          };
+        }
+        return s;
+      });
+
+      saveSessions(updatedSessions);
+      setShowScanModal({
+        ...showScanModal,
+        gradedStudents: [...newGradedStudents, ...showScanModal.gradedStudents],
+      });
+      setBatchSummary(json);
+      playTingSound();
+    } catch (e: any) {
+      alert("Lỗi chấm hàng loạt: " + e.message);
+    } finally {
+      setIsBatchProcessing(false);
+    }
   };
 
   // Click-to-Correct: Giáo viên bấm sửa điểm trực tiếp trên ma trận phiếu tô
@@ -943,29 +1217,17 @@ export default function GradingPage() {
                       {/* Nút Chấm bài */}
                       <button
                         onClick={() => {
-                          if (!isProUser) {
-                            setShowProUpgradeModal(true);
-                            return;
-                          }
                           setScanResult(null);
                           setUploadedImagePreview(null);
                           setShowScanModal(session);
                           setScanMode("phone");
                           initRemoteSession(session);
                         }}
-                        className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold transition shadow-sm ${
-                          isProUser
-                            ? "bg-neutral-900 hover:bg-neutral-800 text-white"
-                            : "bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white"
-                        }`}
-                        title={isProUser ? "Chụp ảnh phiếu hoặc tải ảnh lên để AI chấm" : "Nâng cấp PRO để mở khóa chấm trắc nghiệm AI"}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold transition shadow-sm bg-neutral-900 hover:bg-neutral-800 text-white cursor-pointer"
+                        title="Chụp ảnh phiếu hoặc tải ảnh lên để chấm OMR tự động (Miễn phí)"
                       >
-                        {isProUser ? (
-                          <Camera className="w-3.5 h-3.5" />
-                        ) : (
-                          <Sparkles className="w-3.5 h-3.5" />
-                        )}
-                        Chấm bài AI {!isProUser && <span className="bg-amber-400 text-neutral-900 text-[10px] px-1.5 py-0.2 rounded font-extrabold ml-1">PRO</span>}
+                        <Camera className="w-3.5 h-3.5" />
+                        Chấm bài OMR
                       </button>
 
                       {/* Nút Xem bảng điểm */}
@@ -1269,27 +1531,25 @@ export default function GradingPage() {
             </h3>
 
             <p className="text-xs text-neutral-600 mb-5 leading-relaxed">
-              Tính năng <strong>Chấm trắc nghiệm AI bằng Camera</strong> và{" "}
-              <strong>Học sinh tự nộp bài qua Link / Mã QR</strong> là đặc quyền của gói PRO.
-              Nâng cấp ngay để tự động hóa 100% khâu chấm thi và xuất bảng điểm Excel!
+              Gói <strong>Giáo Viên PRO (99.000đ/tháng)</strong> mở khóa trọn bộ <strong>54+ Phòng Thí Nghiệm 3D</strong> độc quyền và tặng ngay <strong>30.000 Credits</strong> soạn đề AI bám sát chuẩn Bộ GD&ĐT 2025!
             </p>
 
             <div className="bg-neutral-50 rounded-xl p-3.5 text-left space-y-2 mb-6 border border-neutral-100 text-xs text-neutral-700">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>Chấm bài tự động từ camera điện thoại & tải ảnh</span>
+                <span>Mở khóa 54+ bài học tương tác 3D (Lý, Hóa, Sinh, Địa)</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>Học sinh tự nộp bài qua QR, nhận điểm tức thì</span>
+                <span>Cộng thêm +30.000 Credits tạo đề thi AI vào ví</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>Xuất bảng điểm lớp file Excel UTF-8 BOM chuẩn</span>
+                <span>Xuất file Word & bảng điểm lớp Excel UTF-8 BOM chuẩn</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>In phiếu trả lời trắc nghiệm A4 chuẩn Bộ GD&ĐT</span>
+                <span>Không giới hạn số lượt chấm phiếu OMR và tạo đề</span>
               </div>
             </div>
 
@@ -1331,6 +1591,15 @@ export default function GradingPage() {
               </div>
 
               <div className="flex items-center gap-2">
+                <button
+                  onClick={handleDownloadPdf}
+                  disabled={isDownloadingPdf}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition disabled:opacity-50"
+                  title="Tải file PDF chuẩn in ấn A4 khớp tọa độ quang học OMR"
+                >
+                  <Download className="w-4 h-4" />
+                  {isDownloadingPdf ? "Đang tạo PDF..." : "Tải PDF In (Chuẩn OMR)"}
+                </button>
                 <button
                   onClick={handlePrintSheet}
                   className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-bold shadow-sm transition"
@@ -1714,6 +1983,21 @@ export default function GradingPage() {
                   <Upload className="w-3.5 h-3.5" />
                   Tải ảnh từ máy
                 </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setScanMode("batch");
+                    stopWebcam();
+                  }}
+                  className={`flex-1 py-2 px-3 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition ${
+                    scanMode === "batch"
+                      ? "bg-neutral-900 text-white shadow-sm"
+                      : "text-neutral-600 hover:text-neutral-900 hover:bg-neutral-200/60"
+                  }`}
+                >
+                  <Layers className="w-3.5 h-3.5 text-emerald-400" />
+                  Chấm hàng loạt
+                </button>
               </div>
 
               {/* =================================================== */}
@@ -1922,7 +2206,7 @@ export default function GradingPage() {
                   </div>
 
                   <button
-                    onClick={handleGradeSubmission}
+                    onClick={() => handleGradeSubmission()}
                     disabled={isAnalyzing}
                     className="w-full py-3 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-xs flex items-center justify-center gap-2 transition disabled:opacity-50 shadow-md"
                   >
@@ -1938,6 +2222,85 @@ export default function GradingPage() {
                       </>
                     )}
                   </button>
+                </div>
+              )}
+
+              {/* =================================================== */}
+              {/* TAB 4: CHẤM HÀNG LOẠT NHIỀU ẢNH BẰNG OPENCV OMR      */}
+              {/* =================================================== */}
+              {scanMode === "batch" && (
+                <div className="border border-neutral-200 rounded-2xl p-5 bg-gradient-to-b from-neutral-50/80 to-white space-y-4">
+                  <div className="border-2 border-dashed border-neutral-300 hover:border-emerald-500 rounded-2xl p-6 text-center cursor-pointer transition bg-white relative">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={(e) => {
+                        if (e.target.files) {
+                          setBatchFiles(Array.from(e.target.files));
+                        }
+                      }}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                    />
+                    {batchFiles.length > 0 ? (
+                      <div className="space-y-2">
+                        <div className="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
+                          <CheckCircle2 className="w-6 h-6" />
+                        </div>
+                        <div className="text-xs font-bold text-neutral-800">
+                          Đã chọn {batchFiles.length} file ảnh bài thi!
+                        </div>
+                        <div className="text-[11px] text-neutral-500">
+                          Nhấn nút bên dưới để OpenCV xử lý song song toàn bộ xấp bài.
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <Layers className="w-8 h-8 text-neutral-400 mx-auto" />
+                        <div className="text-xs font-bold text-neutral-700">
+                          Chọn nhiều ảnh (Ctrl/Shift + Click) hoặc kéo thả cả tệp vào đây
+                        </div>
+                        <div className="text-[11px] text-neutral-400">
+                          Hỗ trợ chấm cùng lúc 5 - 100 bài thi (Tốc độ ~50ms/bài)
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={handleRunBatchGrade}
+                    disabled={isBatchProcessing || batchFiles.length === 0}
+                    className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 transition disabled:opacity-50 shadow-md"
+                  >
+                    {isBatchProcessing ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin text-white" />
+                        Đang xử lý song song {batchFiles.length} bài thi...
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="w-4 h-4 text-amber-300" />
+                        Bắt đầu chấm song song {batchFiles.length > 0 ? `(${batchFiles.length} bài)` : ""}
+                      </>
+                    )}
+                  </button>
+
+                  {/* Batch Summary Results */}
+                  {batchSummary && (
+                    <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-neutral-800 space-y-2 animate-in fade-in duration-200">
+                      <div className="flex items-center justify-between font-bold text-emerald-800">
+                        <span>✓ Đã chấm xong {batchSummary.success_count}/{batchSummary.total_submitted} bài thi!</span>
+                        <span className="text-sm font-black text-emerald-700">
+                          Điểm TB: {batchSummary.statistics?.average_score ?? 0}
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-neutral-600 flex gap-4 flex-wrap">
+                        <span>Điểm cao nhất: <strong>{batchSummary.statistics?.highest_score ?? 0}</strong></span>
+                        <span>Điểm thấp nhất: <strong>{batchSummary.statistics?.lowest_score ?? 0}</strong></span>
+                        <span>Cần xem lại: <strong className="text-amber-700">{batchSummary.flagged_sheets?.length ?? 0} bài</strong></span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -2365,6 +2728,43 @@ export default function GradingPage() {
                       </div>
                     )}
                   </div>
+
+                  {/* Warning banner for OMR Flags */}
+                  {scanResult.flaggedQuestions && scanResult.flaggedQuestions.length > 0 && (
+                    <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-xs text-amber-800 flex items-start gap-2">
+                      <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-bold">OpenCV OMR Cảnh báo ({scanResult.flaggedQuestions.length} câu nghi ngờ):</span>
+                        <ul className="list-disc list-inside mt-1 space-y-0.5 text-[11px] text-amber-700">
+                          {scanResult.flaggedQuestions.map((f: any, idx: number) => (
+                            <li key={idx}>Câu {f.question}: {f.warning || f.flag}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* OpenCV Warped & Annotated Visual Overlay Preview */}
+                  {scanResult.annotatedImage && (
+                    <div className="border border-neutral-200 rounded-xl p-3 bg-neutral-900 text-white">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                          <Sparkles className="w-3.5 h-3.5" /> Ảnh nắn phối cảnh & khoanh đáp án OpenCV OMR
+                        </span>
+                        <span className="text-[10px] text-neutral-400">
+                          {scanResult.omrEngine === "anchor_marks" ? "✓ Khớp 4 điểm neo cữ góc" : "✓ Khớp mép giấy A4"}
+                        </span>
+                      </div>
+                      <div className="max-h-80 overflow-y-auto rounded-lg border border-neutral-700 bg-black flex justify-center p-1">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={`data:image/jpeg;base64,${scanResult.annotatedImage}`}
+                          alt="OpenCV Annotated Sheet"
+                          className="w-full max-w-lg object-contain rounded"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

@@ -107,7 +107,7 @@ export default function RegisterPage() {
         <div className="rounded-lg bg-blue-50/80 p-4 border border-blue-100">
           <ul className="space-y-2 text-sm text-slate-700">
             {[
-              "3 đề thi miễn phí khi đăng ký",
+              "5.000 credits khởi tạo miễn phí (tạo 10 đề Flash)",
               "Hỗ trợ tất cả môn học phổ thông",
               "Xuất Word/PDF chuyên nghiệp",
             ].map((benefit) => (

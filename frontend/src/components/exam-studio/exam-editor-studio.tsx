@@ -140,6 +140,8 @@ export interface DocItem {
     | "table"
     | "header_custom"
     | "section_title"
+    | "heading_2"
+    | "heading_3"
     | "passage"
     | "dotted_lines"
     | "callout"
@@ -174,6 +176,60 @@ export interface DocItem {
   geometryData?: GeometryConfigData;
 }
 
+export const FONT_FAMILIES = [
+  { id: "Times New Roman", name: "Times New Roman", desc: "Chuẩn Bộ GD&ĐT", fontStack: "'Times New Roman', Times, serif" },
+  { id: "Arial", name: "Arial", desc: "Không chân rõ ràng", fontStack: "Arial, Helvetica, sans-serif" },
+  { id: "Calibri", name: "Calibri", desc: "Hiện đại Microsoft Word", fontStack: "Calibri, Candara, Segoe, sans-serif" },
+  { id: "Roboto", name: "Roboto", desc: "Google Fonts thanh thoát", fontStack: "Roboto, 'Segoe UI', sans-serif" },
+  { id: "Be Vietnam Pro", name: "Be Vietnam Pro", desc: "Tối ưu hóa tiếng Việt", fontStack: "'Be Vietnam Pro', sans-serif" },
+  { id: "Courier New", name: "Courier New", desc: "Monospace / Tin học", fontStack: "'Courier New', Courier, monospace" },
+];
+
+export const TEXT_STYLES = [
+  {
+    id: "normal",
+    label: "Văn bản thường",
+    shortcut: "Ctrl+Alt+0",
+    desc: "Câu hỏi / đoạn văn thông thường",
+    previewClass: "font-normal text-slate-800",
+  },
+  {
+    id: "heading_1",
+    label: "Tiêu đề 1 (Phần thi)",
+    shortcut: "Ctrl+Alt+1",
+    desc: "PHẦN I, PHẦN II, Tiêu đề phần lớn",
+    previewClass: "font-bold text-slate-900 uppercase tracking-wide",
+  },
+  {
+    id: "heading_2",
+    label: "Tiêu đề 2 (Đề mục con)",
+    shortcut: "Ctrl+Alt+2",
+    desc: "Chủ đề bài đọc, nhóm câu hỏi",
+    previewClass: "font-bold text-slate-800",
+  },
+  {
+    id: "heading_3",
+    label: "Tiêu đề 3 (Tiểu mục)",
+    shortcut: "Ctrl+Alt+3",
+    desc: "Tiểu mục, ghi chú nhỏ",
+    previewClass: "font-semibold text-slate-700",
+  },
+  {
+    id: "passage",
+    label: "Trích dẫn / Bài đọc hiểu",
+    shortcut: "Ctrl+Alt+P",
+    desc: "Khung văn bản đọc hiểu trích đoạn",
+    previewClass: "italic text-slate-600 border-l-2 border-primary pl-1.5",
+  },
+  {
+    id: "callout",
+    label: "Hộp ghi chú & Barem",
+    shortcut: "Ctrl+Alt+N",
+    desc: "Khung lưu ý, hướng dẫn phòng thi",
+    previewClass: "font-medium text-amber-800 bg-amber-50 px-1 rounded",
+  },
+];
+
 interface ExamStudioProps {
   initialExamId?: string;
 }
@@ -195,6 +251,11 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
   const [zoom, setZoom] = useState(100);
   const [fontFamily, setFontFamily] = useState("Times New Roman");
   const [fontSize, setFontSize] = useState(15);
+  const [isStyleMenuOpen, setIsStyleMenuOpen] = useState(false);
+  const [isFontMenuOpen, setIsFontMenuOpen] = useState(false);
+  const styleMenuRef = useRef<HTMLDivElement>(null);
+  const fontMenuRef = useRef<HTMLDivElement>(null);
+  const [currentTextStyle, setCurrentTextStyle] = useState<string>("normal");
   const [isBold, setIsBold] = useState(false);
   const [isItalic, setIsItalic] = useState(false);
   const [isUnderline, setIsUnderline] = useState(false);
@@ -334,7 +395,20 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
 
   // AI Assistant states
   const [aiPrompt, setAiPrompt] = useState("");
-  const [aiDifficulty, setAiDifficulty] = useState("Trung bình");
+  const [aiThinkingEffort, setAiThinkingEffort] = useState<"low" | "medium" | "high">("medium");
+  const [aiModelTier, setAiModelTier] = useState<"medium" | "high">("medium");
+  const [attachedImage, setAttachedImage] = useState<{
+    name: string;
+    dataUrl: string;
+    size: string;
+  } | null>(null);
+  const [attachedDoc, setAttachedDoc] = useState<{
+    name: string;
+    content: string;
+    size: string;
+  } | null>(null);
+  const ocrImageInputRef = useRef<HTMLInputElement>(null);
+  const docAttachmentInputRef = useRef<HTMLInputElement>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [aiStatusMessage, setAiStatusMessage] = useState<string | null>(null);
   const [showActiveMenu, setShowActiveMenu] = useState<string | null>(null);
@@ -693,8 +767,8 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
 
   // Execute AI generation
   const executeAiGenerate = async (promptTextOverride?: string) => {
-    const promptToUse = promptTextOverride || aiPrompt;
-    if (!promptToUse.trim()) return;
+    const promptToUse = promptTextOverride !== undefined ? promptTextOverride : aiPrompt;
+    if (!promptToUse.trim() && !attachedImage && !attachedDoc) return;
 
     setIsGenerating(true);
     setAiStatusMessage("Trợ lý AI đang thiết lập cấu trúc và sinh câu hỏi...");
@@ -748,8 +822,14 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
     setGrade(detectedGrade);
 
     try {
+      const finalTopic = promptToUse.trim()
+        ? promptToUse
+        : attachedImage
+        ? `Quét OCR và chuyển đổi ảnh đề thi (${attachedImage.name}) thành câu hỏi trắc nghiệm`
+        : `Soạn đề thi theo tài liệu (${attachedDoc?.name})`;
+
       // Auto title
-      const newTitle = `Đề kiểm tra ${detectedSubject} Lớp ${detectedGrade} - ${promptToUse.length > 35 ? promptToUse.slice(0, 32) + "..." : promptToUse}`;
+      const newTitle = `Đề kiểm tra ${detectedSubject} Lớp ${detectedGrade} - ${finalTopic.length > 35 ? finalTopic.slice(0, 32) + "..." : finalTopic}`;
       setTitle(newTitle);
 
       const res = await fetch("/api/exams/generate", {
@@ -759,11 +839,15 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
           name: newTitle,
           subject: detectedSubject,
           grade: detectedGrade,
-          topic: promptToUse,
+          topic: finalTopic,
           question_type: "MCQ",
           num_questions: totalQuestions,
-          difficulty: aiDifficulty === "Dễ" ? 1 : aiDifficulty === "Khó" ? 3 : 2,
+          difficulty: 2,
+          thinking_effort: aiThinkingEffort,
           additional_context: promptToUse,
+          model_tier: aiModelTier,
+          image_base64: attachedImage?.dataUrl,
+          attachment_text: attachedDoc?.content,
         }),
       });
 
@@ -772,7 +856,7 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
       if (!res.ok) {
         if (data.error === "QUOTA_EXHAUSTED" || res.status === 403) {
           setShowQuotaModal(true);
-          setAiStatusMessage("Thầy cô đã dùng hết 3 lượt tạo đề miễn phí hôm nay.");
+          setAiStatusMessage(data.message || "Thầy cô không đủ credits để tạo đề thi này. Vui lòng nâng cấp Gói PRO (+30.000 credits) hoặc nạp thêm credits.");
           return;
         }
         throw new Error(data.message || data.error || "Lỗi máy chủ sinh đề AI");
@@ -820,6 +904,8 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
       setTimeout(() => setAiStatusMessage(null), 4000);
       setSavedStatus("saved");
       setAiPrompt("");
+      setAttachedImage(null);
+      setAttachedDoc(null);
     } catch (err: any) {
       console.error("AI generation failed:", err);
       setSavedStatus("unsaved");
@@ -1688,6 +1774,187 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
     setQuestions([...questions, dup]);
   };
 
+  // Close dropdowns on outside click using refs
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (styleMenuRef.current && !styleMenuRef.current.contains(target)) {
+        setIsStyleMenuOpen(false);
+      }
+      if (fontMenuRef.current && !fontMenuRef.current.contains(target)) {
+        setIsFontMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleApplyTextStyle = (styleId: string) => {
+    setCurrentTextStyle(styleId);
+    setIsStyleMenuOpen(false);
+
+    // 1. Nếu đang chọn 1 câu hỏi/khối, chuyển đổi kiểu cho khối đó
+    if (editingQuestionId) {
+      setQuestions((prev) =>
+        prev.map((q) => {
+          if (q.id === editingQuestionId) {
+            if (styleId === "heading_1") {
+              return {
+                ...q,
+                blockType: "section_title",
+                sectionTitle: q.content || q.sectionTitle || "PHẦN I. CÂU TRẮC NGHIỆM NHIỀU PHƯƠNG ÁN LỰA CHỌN",
+              };
+            }
+            if (styleId === "heading_2") {
+              return {
+                ...q,
+                blockType: "heading_2",
+                content: q.content || "Chủ đề / Nhóm câu hỏi",
+              };
+            }
+            if (styleId === "heading_3") {
+              return {
+                ...q,
+                blockType: "heading_3",
+                content: q.content || "Tiểu mục ghi chú",
+              };
+            }
+            if (styleId === "passage") {
+              return {
+                ...q,
+                blockType: "passage",
+                passageContent: q.passageContent || q.content || '"Đoạn văn trích dẫn đọc hiểu..."',
+              };
+            }
+            if (styleId === "callout") {
+              return {
+                ...q,
+                blockType: "callout",
+                content: q.content || "LƯU Ý: Thí sinh kiểm tra kỹ đề thi trước khi làm bài.",
+              };
+            }
+            // default: normal
+            return {
+              ...q,
+              blockType: q.trueFalseItems && q.trueFalseItems.length > 0 ? "true_false" : "question",
+            };
+          }
+          return q;
+        })
+      );
+      setSavedStatus("unsaved");
+      return;
+    }
+
+    // 2. Nếu không có khối nào đang chọn, chèn mới 1 khối tương ứng vào cuối đề
+    const now = Date.now();
+    let newBlock: DocItem;
+    if (styleId === "heading_1") {
+      newBlock = {
+        id: "sec-" + now,
+        exam_id: examId || "temp",
+        order_index: questions.length + 1,
+        type: "multiple_choice",
+        content: "",
+        options: {},
+        blockType: "section_title",
+        sectionTitle: "PHẦN MỚI. CÂU HỎI TRẮC NGHIỆM",
+        created_at: new Date().toISOString(),
+      };
+    } else if (styleId === "heading_2") {
+      newBlock = {
+        id: "h2-" + now,
+        exam_id: examId || "temp",
+        order_index: questions.length + 1,
+        type: "multiple_choice",
+        content: "Chủ đề / Đề mục nhóm câu hỏi số " + (questions.filter((q) => q.blockType === "heading_2").length + 1),
+        options: {},
+        blockType: "heading_2",
+        created_at: new Date().toISOString(),
+      };
+    } else if (styleId === "heading_3") {
+      newBlock = {
+        id: "h3-" + now,
+        exam_id: examId || "temp",
+        order_index: questions.length + 1,
+        type: "multiple_choice",
+        content: "Tiểu mục ghi chú",
+        options: {},
+        blockType: "heading_3",
+        created_at: new Date().toISOString(),
+      };
+    } else if (styleId === "passage") {
+      newBlock = {
+        id: "pas-" + now,
+        exam_id: examId || "temp",
+        order_index: questions.length + 1,
+        type: "multiple_choice",
+        content: "Đọc đoạn trích sau và trả lời câu hỏi bên dưới:",
+        passageContent: '"Nội dung đoạn trích hoặc ngữ cảnh bài đọc hiểu..."',
+        options: { A: "Phương án A", B: "Phương án B", C: "Phương án C", D: "Phương án D" },
+        correct_answer: "A",
+        blockType: "passage",
+        created_at: new Date().toISOString(),
+      };
+    } else if (styleId === "callout") {
+      newBlock = {
+        id: "call-" + now,
+        exam_id: examId || "temp",
+        order_index: questions.length + 1,
+        type: "multiple_choice",
+        content: "LƯU Ý: Thí sinh làm bài trực tiếp vào phiếu trả lời trắc nghiệm theo quy định.",
+        options: {},
+        blockType: "callout",
+        created_at: new Date().toISOString(),
+      };
+    } else {
+      newBlock = {
+        id: "mcq-" + now,
+        exam_id: examId || "temp",
+        order_index: questions.length + 1,
+        type: "multiple_choice",
+        content: "Nội dung câu hỏi mới...",
+        options: { A: "Phương án A", B: "Phương án B", C: "Phương án C", D: "Phương án D" },
+        correct_answer: "A",
+        blockType: "question",
+        created_at: new Date().toISOString(),
+      };
+    }
+
+    setQuestions((prev) => [...prev, newBlock]);
+    setSavedStatus("unsaved");
+    setEditingQuestionId(newBlock.id);
+  };
+
+  // Keyboard shortcuts: Ctrl+Alt+0, 1, 2, 3, P, N
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.altKey) {
+        if (e.key === "0") {
+          e.preventDefault();
+          handleApplyTextStyle("normal");
+        } else if (e.key === "1") {
+          e.preventDefault();
+          handleApplyTextStyle("heading_1");
+        } else if (e.key === "2") {
+          e.preventDefault();
+          handleApplyTextStyle("heading_2");
+        } else if (e.key === "3") {
+          e.preventDefault();
+          handleApplyTextStyle("heading_3");
+        } else if (e.key.toLowerCase() === "p") {
+          e.preventDefault();
+          handleApplyTextStyle("passage");
+        } else if (e.key.toLowerCase() === "n") {
+          e.preventDefault();
+          handleApplyTextStyle("callout");
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [editingQuestionId, questions]);
+
   const handleShuffleQuestions = () => {
     const shuffled = [...questions].sort(() => Math.random() - 0.5);
     setQuestions(shuffled);
@@ -1711,7 +1978,7 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
       questions: questions as any,
     };
     const isPro = (profile as any)?.tier === "pro" || (profile as any)?.tier === "school";
-    await exportExamToDocx(examData, teacherMode, isPro);
+    await exportExamToDocx(examData, teacherMode, isPro, fontFamily);
   };
 
   // Print
@@ -1721,9 +1988,12 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
 
   // Share
   const handleShare = () => {
-    navigator.clipboard.writeText(window.location.href);
+    const origin = typeof window !== "undefined" ? window.location.origin : "https://edutest.ai";
+    const shareExamUrl = `${origin}/exams/${examId || "create"}?ref=${userReferralCode}`;
+    navigator.clipboard.writeText(shareExamUrl);
     setShareToast(true);
-    setTimeout(() => setShareToast(false), 3000);
+    setTimeout(() => setShareToast(false), 3500);
+    setShowQuotaModal(true);
   };
 
   const scrollToQuestion = (idx: number) => {
@@ -3726,20 +3996,22 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
 
         {/* Right: Actions & User Info */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Mời đồng nghiệp nhận +3 đề */}
+          {/* Mời đồng nghiệp nhận +2.000 credits */}
           <button
             onClick={() => setShowQuotaModal(true)}
-            className="flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800 shadow-sm transition hover:bg-amber-100"
+            className="flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800 shadow-sm transition hover:bg-amber-100 cursor-pointer"
+            title="Mời đồng nghiệp để cả hai cùng nhận +2.000 credits miễn phí"
           >
             <Gift className="h-3.5 w-3.5 text-amber-600" />
-            <span className="hidden sm:inline">Mời đồng nghiệp (+3 đề)</span>
-            <span className="sm:hidden">+3 đề</span>
+            <span className="hidden sm:inline">🎁 Mời đồng nghiệp (+2.000 credits)</span>
+            <span className="sm:hidden">+2.000 cr</span>
           </button>
 
           {/* Chia sẻ */}
           <button
             onClick={handleShare}
-            className="hidden items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 sm:flex"
+            className="hidden items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 sm:flex cursor-pointer"
+            title="Chia sẻ đề thi và link giới thiệu nhận 2.000 credits"
           >
             <Share2 className="h-3.5 w-3.5 text-slate-500" />
             Chia sẻ
@@ -3777,7 +4049,7 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
                 {userDisplayName}
               </p>
               <p className="text-[11px] font-medium text-emerald-600">
-                🎯 {Math.max(0, dailyQuota - dailyUsed)}/{dailyQuota} đề free hôm nay
+                ⚡ {userCredits.toLocaleString()} credits
               </p>
             </div>
           </div>
@@ -3804,18 +4076,29 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
         />
       )}
 
+      {/* Backdrop for open toolbar style / font menus */}
+      {(isStyleMenuOpen || isFontMenuOpen) && (
+        <div
+          className="fixed inset-0 z-40 bg-transparent"
+          onClick={() => {
+            setIsStyleMenuOpen(false);
+            setIsFontMenuOpen(false);
+          }}
+        />
+      )}
+
       {/* Share Toast */}
       {shareToast && (
-        <div className="fixed top-16 right-6 z-50 rounded-lg bg-slate-900 px-4 py-2 text-xs font-medium text-white shadow-lg">
-          ✓ Đã sao chép liên kết đề thi vào clipboard!
+        <div className="fixed top-16 right-6 z-50 rounded-xl bg-slate-900 px-4 py-2.5 text-xs font-medium text-white shadow-xl">
+          ✓ Đã sao chép liên kết đề thi kèm mã giới thiệu ({userReferralCode})!
         </div>
       )}
 
       {/* ============================================================== */}
       {/* 2. RICH TEXT FORMATTING TOOLBAR                                */}
       {/* ============================================================== */}
-      <div className="flex h-11 w-full shrink-0 items-center justify-between border-b border-slate-200 bg-white/95 px-3 backdrop-blur-sm sm:px-4">
-        <div className="flex flex-wrap items-center gap-1 overflow-x-auto text-slate-700">
+      <div className="relative z-40 flex h-11 w-full shrink-0 items-center justify-between border-b border-slate-200 bg-white px-3 sm:px-4">
+        <div className="flex items-center gap-1 text-slate-700">
           {/* Undo / Redo */}
           <button
             onClick={handleUndo}
@@ -3912,16 +4195,99 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
 
           <div className="mx-1 h-5 w-[1px] bg-slate-200" />
 
-          {/* Style */}
-          <div className="hidden items-center gap-1 rounded px-2 py-1 text-xs hover:bg-slate-100 cursor-pointer sm:flex">
-            <span>Văn bản thường</span>
-            <ChevronDown className="h-3 w-3 text-slate-400" />
+          {/* Text Style Dropdown */}
+          <div className="relative z-50" ref={styleMenuRef}>
+            <button
+              type="button"
+              onClick={() => {
+                setIsStyleMenuOpen((prev) => !prev);
+                setIsFontMenuOpen(false);
+              }}
+              className="flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium hover:bg-slate-100 text-slate-700 transition cursor-pointer"
+              title="Định dạng kiểu văn bản (Ctrl+Alt+0...3)"
+            >
+              <span>{TEXT_STYLES.find((s) => s.id === currentTextStyle)?.label || "Văn bản thường"}</span>
+              <ChevronDown className="h-3 w-3 text-slate-400" />
+            </button>
+
+            {isStyleMenuOpen && (
+              <div
+                className="absolute left-0 top-full mt-1.5 z-50 w-72 rounded-xl border border-slate-200 bg-white p-1.5 shadow-2xl text-left"
+              >
+                <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  Kiểu văn bản & Đề mục
+                </div>
+                <div className="space-y-0.5">
+                  {TEXT_STYLES.map((st) => (
+                    <button
+                      key={st.id}
+                      type="button"
+                      onClick={() => handleApplyTextStyle(st.id)}
+                      className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left transition-colors cursor-pointer ${
+                        currentTextStyle === st.id ? "bg-primary/10 text-primary font-semibold" : "hover:bg-slate-50 text-slate-700"
+                      }`}
+                    >
+                      <div className="flex-1 min-w-0 pr-2">
+                        <div className={`text-xs ${st.previewClass} truncate`}>{st.label}</div>
+                        <div className="text-[10px] text-slate-400 truncate">{st.desc}</div>
+                      </div>
+                      <span className="shrink-0 text-[10px] font-mono text-slate-400 bg-slate-100 px-1 py-0.5 rounded">
+                        {st.shortcut}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Font Family */}
-          <div className="flex items-center gap-1 rounded px-2 py-1 text-xs font-medium hover:bg-slate-100 cursor-pointer">
-            <span>{fontFamily}</span>
-            <ChevronDown className="h-3 w-3 text-slate-400" />
+          {/* Font Family Dropdown */}
+          <div className="relative z-50" ref={fontMenuRef}>
+            <button
+              type="button"
+              onClick={() => {
+                setIsFontMenuOpen((prev) => !prev);
+                setIsStyleMenuOpen(false);
+              }}
+              className="flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold hover:bg-slate-100 text-slate-800 transition cursor-pointer"
+              title="Đổi phông chữ toàn bộ đề thi"
+            >
+              <span style={{ fontFamily }}>{fontFamily}</span>
+              <ChevronDown className="h-3 w-3 text-slate-400" />
+            </button>
+
+            {isFontMenuOpen && (
+              <div
+                className="absolute left-0 top-full mt-1.5 z-50 w-64 rounded-xl border border-slate-200 bg-white p-1.5 shadow-2xl text-left"
+              >
+                <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  Phông chữ đề thi (Toàn bộ)
+                </div>
+                <div className="space-y-0.5">
+                  {FONT_FAMILIES.map((fn) => (
+                    <button
+                      key={fn.id}
+                      type="button"
+                      onClick={() => {
+                        setFontFamily(fn.name);
+                        setIsFontMenuOpen(false);
+                      }}
+                      className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left transition-colors cursor-pointer ${
+                        fontFamily === fn.name ? "bg-primary/10 text-primary font-semibold" : "hover:bg-slate-50 text-slate-700"
+                      }`}
+                    >
+                      <div>
+                        <div className="text-xs font-medium" style={{ fontFamily: fn.fontStack }}>
+                          {fn.name}
+                        </div>
+                        <div className="text-[10px] text-slate-400">{fn.desc}</div>
+                      </div>
+                      {fontFamily === fn.name && <Check className="h-4 w-4 text-primary shrink-0 ml-2" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="mx-1 h-5 w-[1px] bg-slate-200" />
@@ -4257,7 +4623,7 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
         <main className="flex-1 overflow-y-auto p-4 sm:p-8 flex justify-center">
           <div
             style={{
-              fontFamily: fontFamily === "Times New Roman" ? "'Times New Roman', Times, serif" : fontFamily,
+              fontFamily: FONT_FAMILIES.find((f) => f.name === fontFamily)?.fontStack || fontFamily,
               fontSize: `${fontSize}px`,
               lineHeight: lineSpacing,
               textAlign: textAlign,
@@ -4472,6 +4838,38 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
                         <div className="rounded-md bg-slate-100/90 px-3.5 py-2 font-bold text-slate-900 text-xs sm:text-sm uppercase tracking-wide border-l-4 border-slate-800">
                           {q.sectionTitle || q.content}
                         </div>
+                      </div>
+                    );
+                  }
+
+                  // 2b. Heading 2 (Tiêu đề 2)
+                  if (q.blockType === "heading_2") {
+                    return (
+                      <div key={q.id} id={`question-anchor-${idx}`} className="group relative my-3">
+                        <div className="absolute top-1 right-1 hidden items-center gap-1 rounded-md border border-slate-200 bg-white p-1 shadow-sm group-hover:flex print:hidden">
+                          <button onClick={() => handleDeleteQuestion(q.id)} title="Xóa đề mục" className="rounded p-1 text-slate-500 hover:bg-red-50 hover:text-red-600">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                        <h2 className="font-bold text-slate-800 text-sm sm:text-base border-b border-slate-200 pb-1">
+                          {q.content}
+                        </h2>
+                      </div>
+                    );
+                  }
+
+                  // 2c. Heading 3 (Tiêu đề 3)
+                  if (q.blockType === "heading_3") {
+                    return (
+                      <div key={q.id} id={`question-anchor-${idx}`} className="group relative my-2">
+                        <div className="absolute top-1 right-1 hidden items-center gap-1 rounded-md border border-slate-200 bg-white p-1 shadow-sm group-hover:flex print:hidden">
+                          <button onClick={() => handleDeleteQuestion(q.id)} title="Xóa tiểu mục" className="rounded p-1 text-slate-500 hover:bg-red-50 hover:text-red-600">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                        <h3 className="font-semibold text-slate-700 text-xs sm:text-sm">
+                          {q.content}
+                        </h3>
                       </div>
                     );
                   }
@@ -5141,6 +5539,8 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
                   onClick={() => {
                     setAiStatusMessage(null);
                     setAiPrompt("");
+      setAttachedImage(null);
+      setAttachedDoc(null);
                   }}
                   title="Làm mới cuộc trò chuyện"
                   className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
@@ -5249,9 +5649,101 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
               </div>
             </div>
 
-            {/* Bottom Input Area (Exact match with screenshot) */}
+            {/* Bottom Input Area */}
             <div className="p-3 border-t border-slate-100 bg-white">
+              {/* Hidden file inputs for OCR and Document attachments */}
+              <input
+                ref={ocrImageInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  if (file.size > 10 * 1024 * 1024) {
+                    alert("Vui lòng chọn ảnh dung lượng dưới 10MB");
+                    return;
+                  }
+                  const reader = new FileReader();
+                  reader.onload = (event) => {
+                    setAttachedImage({
+                      name: file.name,
+                      dataUrl: event.target?.result as string,
+                      size: `${(file.size / 1024).toFixed(0)} KB`,
+                    });
+                  };
+                  reader.readAsDataURL(file);
+                  e.target.value = "";
+                }}
+              />
+              <input
+                ref={docAttachmentInputRef}
+                type="file"
+                accept=".txt,.md,.pdf,.docx,.doc"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  if (file.size > 10 * 1024 * 1024) {
+                    alert("Vui lòng chọn tệp dung lượng dưới 10MB");
+                    return;
+                  }
+                  const sizeStr = `${(file.size / 1024).toFixed(0)} KB`;
+                  if (file.name.endsWith(".txt") || file.name.endsWith(".md") || file.type.startsWith("text/")) {
+                    const text = await file.text();
+                    setAttachedDoc({
+                      name: file.name,
+                      content: text,
+                      size: sizeStr,
+                    });
+                  } else {
+                    setAttachedDoc({
+                      name: file.name,
+                      content: `[Tệp đính kèm: ${file.name} - Dung lượng: ${sizeStr}]`,
+                      size: sizeStr,
+                    });
+                  }
+                  e.target.value = "";
+                }}
+              />
+
               <div className="rounded-2xl border border-slate-300 bg-white p-2.5 shadow-sm focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500">
+                {/* Attachment previews (Chips) */}
+                {(attachedImage || attachedDoc) && (
+                  <div className="flex flex-wrap gap-1.5 mb-2 pb-1.5 border-b border-slate-100">
+                    {attachedImage && (
+                      <div className="flex items-center gap-1.5 rounded-lg bg-blue-50 px-2 py-1 text-[11px] text-blue-700 border border-blue-200 shadow-xs">
+                        <ImageIcon className="h-3.5 w-3.5 shrink-0 text-blue-600" />
+                        <span className="max-w-[120px] truncate font-medium">{attachedImage.name}</span>
+                        <span className="text-[10px] text-blue-500">({attachedImage.size})</span>
+                        <button
+                          type="button"
+                          onClick={() => setAttachedImage(null)}
+                          className="ml-0.5 rounded-full p-0.5 hover:bg-blue-200 text-blue-600 transition cursor-pointer"
+                          title="Gỡ ảnh"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    )}
+                    {attachedDoc && (
+                      <div className="flex items-center gap-1.5 rounded-lg bg-emerald-50 px-2 py-1 text-[11px] text-emerald-700 border border-emerald-200 shadow-xs">
+                        <Paperclip className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
+                        <span className="max-w-[120px] truncate font-medium">{attachedDoc.name}</span>
+                        <span className="text-[10px] text-emerald-500">({attachedDoc.size})</span>
+                        <button
+                          type="button"
+                          onClick={() => setAttachedDoc(null)}
+                          className="ml-0.5 rounded-full p-0.5 hover:bg-emerald-200 text-emerald-600 transition cursor-pointer"
+                          title="Gỡ tệp"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <textarea
                   value={aiPrompt}
                   onChange={(e) => setAiPrompt(e.target.value)}
@@ -5261,50 +5753,76 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
                       executeAiGenerate();
                     }
                   }}
-                  placeholder="Nhập yêu cầu tạo, sửa, giải đề thi..."
+                  placeholder={
+                    attachedImage
+                      ? "Nhập chỉ dẫn cho ảnh đã tải lên (hoặc nhấn Gửi để AI tự động trích xuất đề)..."
+                      : attachedDoc
+                      ? "Nhập yêu cầu tạo đề theo tài liệu đính kèm..."
+                      : "Nhập yêu cầu tạo, sửa, giải đề thi..."
+                  }
                   rows={2}
                   className="w-full resize-none border-none p-1 text-xs text-slate-800 placeholder-slate-400 focus:outline-none"
                 />
 
-                <div className="mt-2 flex items-center justify-between pt-1 border-t border-slate-100">
+                <div className="mt-2 flex flex-wrap items-center justify-between gap-1.5 pt-1.5 border-t border-slate-100">
                   {/* Left icons: Image, Attachment */}
                   <div className="flex items-center gap-1 text-slate-400">
                     <button
                       type="button"
-                      title="Tải ảnh đề thi lên (OCR)"
-                      className="rounded p-1 hover:bg-slate-100 hover:text-slate-600"
+                      onClick={() => ocrImageInputRef.current?.click()}
+                      title="Tải ảnh đề thi lên (AI quét OCR nhận diện chữ & công thức)"
+                      className={`flex items-center gap-1 rounded p-1 transition cursor-pointer ${
+                        attachedImage
+                          ? "bg-blue-100 text-blue-700"
+                          : "text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                      }`}
                     >
                       <ImageIcon className="h-4 w-4" />
+                      <span className="text-[10px] hidden sm:inline">OCR</span>
                     </button>
                     <button
                       type="button"
-                      title="Đính kèm file tài liệu"
-                      className="rounded p-1 hover:bg-slate-100 hover:text-slate-600"
+                      onClick={() => docAttachmentInputRef.current?.click()}
+                      title="Đính kèm file tài liệu (.txt, .docx, .pdf)"
+                      className={`flex items-center gap-1 rounded p-1 transition cursor-pointer ${
+                        attachedDoc
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                      }`}
                     >
                       <Paperclip className="h-4 w-4" />
+                      <span className="text-[10px] hidden sm:inline">Kẹp file</span>
                     </button>
                   </div>
 
-                  {/* Right: Difficulty & Send button */}
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1 text-[11px] text-slate-600">
-                      <span>Mức:</span>
-                      <select
-                        value={aiDifficulty}
-                        onChange={(e) => setAiDifficulty(e.target.value)}
-                        className="rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[11px] text-slate-700 focus:outline-none"
-                      >
-                        <option value="Dễ">Dễ</option>
-                        <option value="Trung bình">Trung bình</option>
-                        <option value="Khó">Khó</option>
-                        <option value="Vận dụng cao">Vận dụng cao</option>
-                      </select>
-                    </div>
+                  {/* Right: Model Tier, Thinking Effort & Send button */}
+                  <div className="flex flex-wrap items-center gap-1.5 ml-auto">
+                    <select
+                      value={aiModelTier}
+                      onChange={(e) => setAiModelTier(e.target.value as "medium" | "high")}
+                      className="rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[11px] font-semibold text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer shadow-xs"
+                      title="Flash: 500 cr (Gemini 3.5 Lite - 500 lượt/ngày siêu tốc) | Pro: 1.600 cr (Gemini 3.8 Flash - Flagship suy luận sâu & OCR chuẩn 2025)"
+                    >
+                      <option value="medium">⚡ Flash (500 cr)</option>
+                      <option value="high">✨ Pro (1.600 cr)</option>
+                    </select>
+
+                    <select
+                      value={aiThinkingEffort}
+                      onChange={(e) => setAiThinkingEffort(e.target.value as "low" | "medium" | "high")}
+                      className="rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[11px] text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer shadow-xs"
+                      title="Mức độ suy luận của AI: Thấp (Nhanh) | Trung bình (Chuẩn hóa ma trận) | Cao (Tự giải từng bước & kiểm chứng bẫy)"
+                    >
+                      <option value="medium">⚖️ Trung bình (Khuyên dùng)</option>
+                      <option value="low">⚡ Thấp</option>
+                      <option value="high">🧠 Cao</option>
+                    </select>
 
                     <button
                       onClick={() => executeAiGenerate()}
-                      disabled={isGenerating || !aiPrompt.trim()}
-                      className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-900 text-white shadow transition hover:bg-slate-800 disabled:opacity-40"
+                      disabled={isGenerating || (!aiPrompt.trim() && !attachedImage && !attachedDoc)}
+                      className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-900 text-white shadow transition hover:bg-slate-800 disabled:opacity-40 shrink-0 cursor-pointer"
+                      title="Gửi yêu cầu tới AI"
                     >
                       {isGenerating ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />

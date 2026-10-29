@@ -23,9 +23,12 @@ tiktoken==0.7.0
 tenacity==9.0.0
 structlog==24.4.0
 
-# Math & Graphics
+# Math & Graphics & Computer Vision
 sympy==1.13.0
 matplotlib==3.9.0
+opencv-python-headless>=4.10.0
+reportlab>=4.2.0
+pillow>=10.4.0
 
 # Security
 python-jose[cryptography]==3.3.0

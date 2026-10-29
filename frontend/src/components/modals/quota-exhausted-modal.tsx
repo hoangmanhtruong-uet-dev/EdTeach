@@ -53,7 +53,7 @@ export function QuotaExhaustedModal({
 
   const origin = typeof window !== "undefined" ? window.location.origin : "https://edutest.ai";
   const shareUrl = `${origin}?ref=${referralCode}`;
-  const prewrittenMsg = `Thầy/cô ơi, em vừa dùng thử EduTest AI soạn đề thi Toán/Văn chuẩn ma trận nhanh lắm. Đăng ký qua link này thì cả hai cùng được tặng thêm 3 đề miễn phí nhé: ${shareUrl}`;
+  const prewrittenMsg = `Thầy/cô ơi, em vừa dùng thử EduTest AI soạn đề thi chuẩn Bộ GD&ĐT nhanh và chuẩn ma trận lắm. Đăng ký qua link này thì cả hai thầy cô cùng được tặng thêm 2.000 credits miễn phí (tương đương 4 đề thi Flash) nhé: ${shareUrl}`;
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(shareUrl);
@@ -100,7 +100,7 @@ export function QuotaExhaustedModal({
   const accountNo = process.env.NEXT_PUBLIC_PAYMENT_ACCOUNT_NO || "0988888888";
   const accountName = process.env.NEXT_PUBLIC_PAYMENT_ACCOUNT_NAME || "EDUTEST AI";
 
-  const transferAmount = selectedPlan === "pack19" ? 19000 : 49000;
+  const transferAmount = selectedPlan === "pack19" ? 19000 : 99000;
   const transferContent = `EDUPAY ${userId.slice(0, 6).toUpperCase()}`;
   const qrUrl = `https://img.vietqr.io/image/${bankId}-${accountNo}-compact2.png?amount=${transferAmount}&addInfo=${encodeURIComponent(
     transferContent
@@ -121,10 +121,10 @@ export function QuotaExhaustedModal({
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20">
               <Sparkles className="h-4 w-4 text-amber-300" />
             </span>
-            <h3 className="text-lg font-bold">Hôm nay thầy cô đã dùng hết {dailyQuota} đề miễn phí</h3>
+            <h3 className="text-lg font-bold">Thầy cô đã dùng hết credits miễn phí</h3>
           </div>
           <p className="mt-1 text-xs text-blue-100">
-            Lượt miễn phí sẽ tự động hồi phục vào 00:00 ngày mai. Hoặc thầy cô có thể nhận thêm lượt ngay bên dưới:
+            Thầy cô có thể nhận thêm +2.000 credits hoàn toàn miễn phí khi lan tỏa tới đồng nghiệp, hoặc nâng cấp Gói PRO (+30.000 credits):
           </p>
         </div>
 
@@ -139,7 +139,7 @@ export function QuotaExhaustedModal({
             }`}
           >
             <Gift className="h-4 w-4 text-amber-500" />
-            🎁 Nhận Thêm Lượt Miễn Phí (Lan tỏa)
+            🎁 Nhận Thêm +2.000 Credits (Lan tỏa)
           </button>
 
           <button
@@ -167,10 +167,10 @@ export function QuotaExhaustedModal({
                   </div>
                   <div>
                     <h4 className="text-sm font-bold text-blue-900">
-                      Mời 1 đồng nghiệp = Cả hai cùng nhận +3 đề miễn phí!
+                      Mời 1 đồng nghiệp = Cả hai cùng nhận +2.000 credits miễn phí!
                     </h4>
                     <p className="mt-1 text-xs text-blue-700 leading-relaxed">
-                      Chia sẻ mã hoặc link giới thiệu cho giáo viên cùng trường hoặc bạn bè. Khi đồng nghiệp đăng ký, cả hai thầy cô đều được cộng ngay 3 lượt tạo đề mới.
+                      Chia sẻ mã hoặc link giới thiệu cho giáo viên cùng trường hoặc bạn bè. Khi đồng nghiệp đăng ký qua link, cả hai thầy cô đều được cộng ngay 2.000 credits vào ví (tương đương 4 đề thi Flash chuẩn ma trận).
                     </p>
                   </div>
                 </div>
@@ -257,24 +257,24 @@ export function QuotaExhaustedModal({
                   </span>
                   <h4 className="mt-1 text-sm font-bold text-slate-900">Gói Soạn Nhanh</h4>
                   <p className="text-lg font-extrabold text-blue-600">19.000đ</p>
-                  <p className="mt-1 text-[11px] text-slate-500">+15 lượt tạo đề thi (~1.200đ/đề)</p>
+                  <p className="mt-1 text-[11px] text-slate-500">+10.000 credits vào ví (~20 đề Flash)</p>
                 </div>
 
-                {/* Option 49k */}
+                {/* Option 99k */}
                 <div
                   onClick={() => setSelectedPlan("sub49")}
                   className={`cursor-pointer rounded-xl border p-3.5 transition ${
                     selectedPlan === "sub49"
-                      ? "border-blue-600 bg-blue-50/50 shadow-sm"
+                      ? "border-amber-500 bg-amber-50/50 shadow-sm"
                       : "border-slate-200 hover:border-slate-300"
                   }`}
                 >
                   <span className="inline-block rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700">
-                    KHÔNG GIỚI HẠN
+                    GÓI KHUYÊN DÙNG
                   </span>
-                  <h4 className="mt-1 text-sm font-bold text-slate-900">Giáo Viên Pro</h4>
-                  <p className="text-lg font-extrabold text-blue-600">49.000đ<span className="text-xs font-normal text-slate-500">/tháng</span></p>
-                  <p className="mt-1 text-[11px] text-slate-500">Soạn đề tẹt ga + Không Watermark</p>
+                  <h4 className="mt-1 text-sm font-bold text-slate-900">Giáo Viên PRO</h4>
+                  <p className="text-lg font-extrabold text-amber-600">99.000đ<span className="text-xs font-normal text-slate-500">/tháng</span></p>
+                  <p className="mt-1 text-[11px] text-slate-500">+30.000 credits & mở 54+ Labs 3D</p>
                 </div>
               </div>
 
@@ -316,7 +316,7 @@ export function QuotaExhaustedModal({
 
         {/* Footer */}
         <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50 px-6 py-3 text-xs text-slate-500">
-          <span>Tự động hồi phục 3 đề vào 00:00</span>
+          <span>Credits được bảo lưu vĩnh viễn trong ví tài khoản</span>
           <button
             onClick={onClose}
             className="rounded-lg px-3 py-1 font-medium text-slate-600 hover:bg-slate-200"

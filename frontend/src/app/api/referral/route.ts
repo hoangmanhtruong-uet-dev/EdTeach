@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       referral_code: profile?.referral_code || "EDU" + user.id.slice(0, 5).toUpperCase(),
       total_referrals: totalReferrals || 0,
-      reward_per_referral: 3, // 3 đề miễn phí (+60 credits)
+      reward_per_referral: 2000, // +2.000 credits (tương đương 4 đề Flash)
       has_been_referred: !!profile?.referred_by,
     });
   } catch (err: any) {
@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST: Nhập mã giới thiệu của đồng nghiệp để cả hai cùng nhận +3 đề
+// POST: Nhập mã giới thiệu của đồng nghiệp để cả hai cùng nhận +2.000 credits
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createClient();
@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
       .eq("id", user.id);
 
     // 4. Lưu vào bảng referrals
-    const rewardCredits = 60; // 60 credits = 3 lượt tạo đề
+    const rewardCredits = 2000; // 2.000 credits (tương đương 4 đề thi Flash)
     await (supabase.from("referrals") as any).insert({
       inviter_id: inviter.id,
       invitee_id: user.id,
@@ -110,7 +110,7 @@ export async function POST(req: NextRequest) {
         wallet_id: inviteeWallet.id,
         amount: rewardCredits,
         type: "signup_bonus",
-        description: `Thưởng nhập mã giới thiệu từ đồng nghiệp (${cleanCode}) (+3 đề)`,
+        description: `Thưởng nhập mã giới thiệu từ đồng nghiệp (${cleanCode}) (+2.000 credits)`,
       });
     }
 
@@ -129,13 +129,13 @@ export async function POST(req: NextRequest) {
         wallet_id: inviterWallet.id,
         amount: rewardCredits,
         type: "signup_bonus",
-        description: `Thưởng giới thiệu đồng nghiệp thành công (+3 đề)`,
+        description: `Thưởng giới thiệu đồng nghiệp thành công (+2.000 credits)`,
       });
     }
 
     return NextResponse.json({
       success: true,
-      message: "Áp dụng mã giới thiệu thành công! Bạn và đồng nghiệp đã được cộng thêm 3 đề miễn phí.",
+      message: "Áp dụng mã giới thiệu thành công! Thầy/cô và đồng nghiệp đều đã được cộng ngay +2.000 credits.",
       reward_credits: rewardCredits,
       inviter_name: inviter.name || "Đồng nghiệp",
     });
