@@ -39,7 +39,9 @@ import {
   GraduationCap,
   AlertTriangle,
   GripVertical,
+  PenTool,
 } from "lucide-react";
+import { TransparentWhiteboardOverlay } from "@/components/labs/transparent-whiteboard-overlay";
 import { getExamById, ExamWithQuestions, Question } from "@/lib/api/exams";
 import { getTeachWhiteboard, saveTeachWhiteboard } from "@/lib/api/whiteboard";
 import { useAuth } from "@/context/auth-context";
@@ -230,6 +232,7 @@ function TeachingStudioContent() {
 
   // 3D Lab Selection per question
   const [selectedLabSlug, setSelectedLabSlug] = useState<string>("");
+  const [isGlassOverlayActive, setIsGlassOverlayActive] = useState(false);
 
   // MAX Feature 1: Live Question Cloner
   const [clonedQuestionsMap, setClonedQuestionsMap] = useState<
@@ -1563,14 +1566,28 @@ function TeachingStudioContent() {
                     </span>
                     <span className="text-slate-400 hidden sm:inline">{activeLab.gdpt}</span>
                   </div>
-                  <Link
-                    href={`/labs/${selectedLabSlug}`}
-                    target="_blank"
-                    className="flex items-center gap-1 text-amber-400 hover:underline text-[11px] font-semibold"
-                  >
-                    <span>Bật lớp vẽ trong suốt</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </Link>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setIsGlassOverlayActive((prev) => !prev)}
+                      title="Bật/Tắt Lớp kính vẽ trong suốt đè trực tiếp lên mô hình thí nghiệm 3D (Gói PRO)"
+                      className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                        isGlassOverlayActive
+                          ? "bg-amber-500 text-slate-950 shadow-xs ring-2 ring-amber-400"
+                          : "bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 border border-amber-500/30"
+                      }`}
+                    >
+                      <PenTool className="w-3.5 h-3.5" />
+                      <span>{isGlassOverlayActive ? "Tắt kính vẽ" : "Kính vẽ đè lên 3D"}</span>
+                    </button>
+                    <Link
+                      href={`/labs/${selectedLabSlug}`}
+                      target="_blank"
+                      className="flex items-center gap-1 text-slate-400 hover:text-white text-[11px] px-1.5 py-1 rounded transition"
+                      title="Mở toàn màn hình trong tab mới"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                    </Link>
+                  </div>
                 </div>
 
                 <div className="flex-1 w-full h-full relative bg-slate-950">
@@ -1579,6 +1596,11 @@ function TeachingStudioContent() {
                     className="w-full h-full border-0"
                     title={activeLab.titleVi}
                     sandbox="allow-scripts allow-same-origin"
+                  />
+                  <TransparentWhiteboardOverlay
+                    isOpen={isGlassOverlayActive}
+                    onClose={() => setIsGlassOverlayActive(false)}
+                    labTitle={activeLab.titleVi}
                   />
                 </div>
               </div>
