@@ -56,7 +56,7 @@ const WhiteboardCanvas = dynamic(
       <div className="flex h-full w-full items-center justify-center bg-muted/10">
         <div className="flex flex-col items-center gap-3 text-muted-foreground">
           <Loader2 className="h-7 w-7 animate-spin text-primary" />
-          <p className="text-xs font-semibold">Đang chuẩn bị Bảng nháp Excalidraw...</p>
+          <p className="text-xs font-semibold">Đang chuẩn bị Bảng nháp Excalidraw…</p>
         </div>
       </div>
     ),
@@ -598,7 +598,7 @@ function TeachingStudioContent() {
       <div className="flex h-screen w-screen items-center justify-center bg-slate-900 text-white">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="h-9 w-9 animate-spin text-amber-400" />
-          <p className="text-sm font-semibold tracking-wide">Đang khởi tạo Bục Giảng Số 4.0...</p>
+          <p className="text-sm font-semibold tracking-wide">Đang khởi tạo Bục Giảng Số 4.0…</p>
         </div>
       </div>
     );
@@ -841,7 +841,7 @@ function TeachingStudioContent() {
                         ) : (
                           <Wand2 className="w-3.5 h-3.5 text-amber-400" />
                         )}
-                        <span>{isCloning ? "Đang sinh câu mới..." : "Đẻ câu tương tự (MAX)"}</span>
+                        <span>{isCloning ? "Đang sinh câu mới…" : "Đẻ câu tương tự (MAX)"}</span>
                       </button>
 
                       {/* AI Step-by-Step Scaffolding (MAX) */}
@@ -856,7 +856,7 @@ function TeachingStudioContent() {
                         ) : (
                           <Layers className="w-3.5 h-3.5 text-indigo-400" />
                         )}
-                        <span>{isScaffolding ? "Đang chia nhỏ..." : "Bẻ nhỏ 3 bước (MAX)"}</span>
+                        <span>{isScaffolding ? "Đang chia nhỏ…" : "Bẻ nhỏ 3 bước (MAX)"}</span>
                       </button>
                     </div>
                   </div>
@@ -878,7 +878,7 @@ function TeachingStudioContent() {
 
                       <div className="flex items-center gap-3">
                         <div
-                          className={`font-mono text-2xl font-black px-3 py-1 rounded-xl border ${
+                          className={`font-mono tabular-nums text-2xl font-black px-3 py-1 rounded-xl border ${
                             timerSeconds <= 20
                               ? "bg-red-500/30 border-red-500 text-red-400 animate-pulse"
                               : "bg-slate-900 border-amber-500/40 text-amber-300"
@@ -890,21 +890,25 @@ function TeachingStudioContent() {
 
                         <div className="flex items-center gap-1">
                           <button
+                            type="button"
                             onClick={() => setIsTimerRunning((v) => !v)}
-                            className="p-2 rounded-lg bg-amber-500 text-slate-950 font-bold hover:bg-amber-400 transition cursor-pointer"
+                            aria-label={isTimerRunning ? "Tạm dừng đếm ngược" : "Bắt đầu đếm ngược"}
+                            className="p-2 rounded-lg bg-amber-500 text-slate-950 font-bold hover:bg-amber-400 transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
                             title={isTimerRunning ? "Tạm dừng" : "Bắt đầu đếm ngược"}
                           >
-                            {isTimerRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                            {isTimerRunning ? <Pause className="w-4 h-4" aria-hidden="true" /> : <Play className="w-4 h-4" aria-hidden="true" />}
                           </button>
                           <button
+                            type="button"
                             onClick={() => {
                               setIsTimerRunning(false);
                               setTimerSeconds(120);
                             }}
-                            className="p-2 rounded-lg bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition cursor-pointer"
+                            aria-label="Đặt lại bộ đếm 2 phút"
+                            className="p-2 rounded-lg bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
                             title="Đặt lại 2 phút"
                           >
-                            <RotateCcw className="w-4 h-4" />
+                            <RotateCcw className="w-4 h-4" aria-hidden="true" />
                           </button>
                         </div>
                       </div>

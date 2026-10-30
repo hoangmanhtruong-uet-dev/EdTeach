@@ -1,5 +1,7 @@
 "use client";
 
+import { useToast } from "@/context/toast-context";
+
 import React, { useState } from "react";
 import Link from "next/link";
 import {
@@ -296,6 +298,7 @@ export default function UpdatesPage() {
     feedback: "",
   });
   const [submitted, setSubmitted] = useState(false);
+  const { showToast } = useToast();
 
   const filteredFeatures = FEATURE_IDEAS.filter((feat) => {
     if (selectedCategory === "all") return true;
@@ -305,7 +308,7 @@ export default function UpdatesPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.fullName || !formData.phone) {
-      alert("Vui lòng điền đầy đủ Họ tên và Số điện thoại / Zalo để nhận thư mời trải nghiệm!");
+      showToast("Vui lòng điền đầy đủ Họ tên và Số điện thoại / Zalo để nhận thư mời trải nghiệm!", "warning");
       return;
     }
 

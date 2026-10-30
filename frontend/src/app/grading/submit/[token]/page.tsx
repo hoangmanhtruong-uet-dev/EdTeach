@@ -1,5 +1,7 @@
 "use client";
 
+import { useToast } from "@/context/toast-context";
+
 import React, { useState, useEffect, useRef, use } from "react";
 import {
   Clock,
@@ -33,6 +35,7 @@ function StudentSubmissionContent({ params }: SubmissionPageProps) {
 
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   // Link metadata
   const [linkData, setLinkData] = useState<{
@@ -217,12 +220,12 @@ function StudentSubmissionContent({ params }: SubmissionPageProps) {
   // Submit action
   const handleSubmit = async () => {
     if (!studentName.trim()) {
-      alert("Vui lòng điền Họ và tên học sinh trước khi nộp bài.");
+      showToast("Vui lòng điền Họ và tên học sinh trước khi nộp bài.", "warning");
       return;
     }
 
     if (inputMode === "photo" && !selectedPhoto && Object.keys(answers).length === 0) {
-      alert("Vui lòng chụp ảnh phiếu trả lời hoặc tô đáp án trên lưới trắc nghiệm.");
+      showToast("Vui lòng chụp ảnh phiếu trả lời hoặc tô đáp án trên lưới trắc nghiệm.", "warning");
       return;
     }
 
@@ -242,14 +245,14 @@ function StudentSubmissionContent({ params }: SubmissionPageProps) {
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        alert(data.error || "Nộp bài thất bại. Vui lòng thử lại.");
+        showToast(data.error || "Nộp bài thất bại. Vui lòng thử lại.", "error");
         return;
       }
 
       setSubmissionResult(data.submission);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err: any) {
-      alert("Lỗi nộp bài: " + err.message);
+      showToast("Lỗi nộp bài: " + err.message, "error");
     } finally {
       setIsSubmitting(false);
     }

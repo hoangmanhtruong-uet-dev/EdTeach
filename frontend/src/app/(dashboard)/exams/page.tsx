@@ -26,6 +26,7 @@ import { isMaxUser, isProUser, PricingPlan } from "@/lib/payment/plans";
 import { exportDualTeachingDocx } from "@/lib/export/docx-exporter";
 import { UpgradeTierModal } from "@/components/modals/upgrade-tier-modal";
 import { PaymentCheckoutModal } from "@/components/modals/payment-checkout-modal";
+import { useToast } from "@/context/toast-context";
 
 export default function ExamsPage() {
   const [exams, setExams] = useState<Exam[]>([]);
@@ -35,7 +36,19 @@ export default function ExamsPage() {
   const [exportingId, setExportingId] = useState<string | null>(null);
 
   const { user, profile } = useAuth();
+  const { showToast } = useToast();
   const [magicLinkExam, setMagicLinkExam] = useState<Exam | null>(null);
+
+  // Escape key handler for Magic Link Modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && magicLinkExam) {
+        setMagicLinkExam(null);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [magicLinkExam]);
   const [copiedMagicLink, setCopiedMagicLink] = useState(false);
   const [upgradeTier, setUpgradeTier] = useState<"pro" | "max" | null>(null);
   const [checkoutPlan, setCheckoutPlan] = useState<PricingPlan | null>(null);
@@ -47,9 +60,10 @@ export default function ExamsPage() {
       if (fullExam) {
         await exportDualTeachingDocx(fullExam, isProUser(profile) || isProUser(user));
       }
+      showToast("Đã xuất thành công bộ đề kép giảng dạy (.docx)!", "success");
     } catch (e) {
       console.error("Export dual docx error:", e);
-      alert("Lỗi khi xuất bộ đề giảng dạy.");
+      showToast("Lỗi khi xuất bộ đề giảng dạy. Vui lòng thử lại sau.", "error");
     } finally {
       setExportingId(null);
     }
@@ -85,9 +99,10 @@ export default function ExamsPage() {
     try {
       await deleteExam(id);
       setExams((prev) => prev.filter((e) => e.id !== id));
+      showToast("Đã xóa đề thi thành công.", "success");
     } catch (err) {
       console.error("Failed to delete exam", err);
-      alert("Không thể xóa đề thi. Vui lòng thử lại.");
+      showToast("Không thể xóa đề thi. Vui lòng thử lại.", "error");
     } finally {
       setDeletingId(null);
     }
@@ -120,10 +135,11 @@ export default function ExamsPage() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Tìm kiếm đề thi..."
+            placeholder="Tìm kiếm đề thi…"
+            aria-label="Tìm kiếm đề thi"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-4 text-sm focus:border-primary focus:outline-none"
+            className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-4 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:border-primary transition"
           />
         </div>
         <div className="flex gap-2">
@@ -196,50 +212,58 @@ export default function ExamsPage() {
                 <div className="hidden text-sm text-muted-foreground sm:col-span-2 sm:block">
                   {exam.subject} - Lớp {exam.grade}
                 </div>
-                <div className="hidden text-sm sm:col-span-1 sm:block">{exam.question_count} câu</div>
-                <div className="hidden text-sm text-muted-foreground sm:col-span-2 sm:block">
+                <div className="hidden text-sm tabular-nums sm:col-span-1 sm:block">{exam.question_count} câu</div>
+                <div className="hidden text-sm tabular-nums text-muted-foreground sm:col-span-2 sm:block">
                   {new Date(exam.created_at).toLocaleDateString("vi-VN")}
                 </div>
                 <div className="flex items-center justify-end gap-1.5 sm:col-span-2">
                   <Link
                     href={`/teach/${exam.id}`}
-                    className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-bold text-amber-600 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50 transition cursor-pointer shadow-2xs"
+                    aria-label={`Trình chiếu Bục Giảng Số đề ${exam.name}`}
+                    className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-bold text-amber-600 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50 transition cursor-pointer shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
                     title="Bục Giảng Số: Trình chiếu chữa đề kết hợp Bảng nháp Excalidraw (Gói PRO)"
                   >
-                    <Presentation className="h-3.5 w-3.5 text-amber-600" />
+                    <Presentation className="h-3.5 w-3.5 text-amber-600" aria-hidden="true" />
                     <span className="hidden md:inline">Bục giảng</span>
                   </Link>
 
                   <Link
                     href={`/exams/${exam.id}`}
-                    className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground"
+                    aria-label={`Xem và chỉnh sửa đề ${exam.name}`}
+                    className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     title="Xem & Chỉnh sửa"
                   >
-                    <Eye className="h-4 w-4" />
+                    <Eye className="h-4 w-4" aria-hidden="true" />
                   </Link>
                   <button
+                    type="button"
                     onClick={() => handleExportDualTeaching(exam.id)}
                     disabled={exportingId === exam.id}
-                    className="rounded-lg p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 disabled:opacity-50 transition cursor-pointer"
+                    aria-label={`Tải bộ đề kép Word của đề ${exam.name}`}
+                    className="rounded-lg p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 disabled:opacity-50 transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                     title="Tải Bộ Đề Kép: 1 Bản Học Sinh (có dòng chấm chép bài) & 1 Bản Giáo Viên (kèm lời giải chi tiết)"
                   >
                     {exportingId === exam.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                      <Loader2 className="h-4 w-4 animate-spin text-blue-600" aria-hidden="true" />
                     ) : (
-                      <Download className="h-4 w-4 text-blue-600" />
+                      <Download className="h-4 w-4 text-blue-600" aria-hidden="true" />
                     )}
                   </button>
                   <button
+                    type="button"
                     onClick={() => handleMagicLinkClick(exam)}
-                    className="rounded-lg p-2 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40"
+                    aria-label={`Giao đề online qua Magic Link cho đề ${exam.name}`}
+                    className="rounded-lg p-2 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
                     title="Giao đề Online qua Magic Link (Đặc quyền MAX)"
                   >
-                    <Share2 className="h-4 w-4" />
+                    <Share2 className="h-4 w-4" aria-hidden="true" />
                   </button>
                   <button
+                    type="button"
                     onClick={() => handleDelete(exam.id)}
                     disabled={deletingId === exam.id}
-                    className="rounded-lg p-2 text-muted-foreground hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                    aria-label={`Xóa đề ${exam.name}`}
+                    className="rounded-lg p-2 text-muted-foreground hover:bg-red-50 hover:text-red-600 disabled:opacity-50 transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
                     title="Xóa"
                   >
                     {deletingId === exam.id ? (
@@ -257,13 +281,20 @@ export default function ExamsPage() {
 
       {/* Modal Magic Link Giao đề Online (Gói MAX) */}
       {magicLinkExam && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="magic-link-title"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overscroll-contain animate-in fade-in duration-200"
+        >
           <div className="bg-white dark:bg-card rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-neutral-200 dark:border-neutral-800 relative text-left">
             <button
+              type="button"
               onClick={() => setMagicLinkExam(null)}
-              className="absolute right-4 top-4 p-1.5 rounded-lg text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition cursor-pointer"
+              aria-label="Đóng cửa sổ giao đề trực tuyến"
+              className="absolute right-4 top-4 p-1.5 rounded-lg text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
-              <X className="w-5 h-5" />
+              <X className="w-5 h-5" aria-hidden="true" />
             </button>
 
             <div className="flex items-center gap-2.5 mb-3">
@@ -271,7 +302,7 @@ export default function ExamsPage() {
                 <Crown className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-bold text-base text-neutral-900 dark:text-neutral-100">
+                <h3 id="magic-link-title" className="font-bold text-base text-neutral-900 dark:text-neutral-100">
                   Giao đề Online qua Magic Link
                 </h3>
                 <p className="text-xs text-muted-foreground">
@@ -285,13 +316,15 @@ export default function ExamsPage() {
             </p>
 
             <div className="rounded-xl border border-border bg-neutral-50 dark:bg-muted/40 p-3.5 mb-4">
-              <label className="block text-[11px] font-semibold text-muted-foreground mb-1">
+              <label htmlFor="magic-link-input" className="block text-[11px] font-semibold text-muted-foreground mb-1">
                 Đường dẫn làm bài trực tuyến:
               </label>
               <div className="flex items-center gap-2">
                 <input
+                  id="magic-link-input"
                   type="text"
                   readOnly
+                  aria-label="Đường dẫn làm bài trực tuyến cho học sinh"
                   value={
                     typeof window !== "undefined"
                       ? `${window.location.origin}/grading/submit/${magicLinkExam.id}?name=${encodeURIComponent(
@@ -299,7 +332,7 @@ export default function ExamsPage() {
                         )}`
                       : `https://eduteast.vn/grading/submit/${magicLinkExam.id}`
                   }
-                  className="block w-full rounded-lg border border-border bg-background px-3 py-2 text-xs font-mono text-foreground focus:outline-none"
+                  className="block w-full rounded-lg border border-border bg-background px-3 py-2 text-xs font-mono text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 />
                 <button
                   type="button"
@@ -312,9 +345,11 @@ export default function ExamsPage() {
                         : `https://eduteast.vn/grading/submit/${magicLinkExam.id}`;
                     navigator.clipboard.writeText(link);
                     setCopiedMagicLink(true);
+                    showToast("Đã sao chép liên kết làm bài vào khay nhớ tạm!", "success");
                     setTimeout(() => setCopiedMagicLink(false), 2000);
                   }}
-                  className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-primary text-white text-xs font-bold hover:bg-primary/90 transition shadow-xs cursor-pointer shrink-0"
+                  aria-label="Sao chép đường dẫn làm bài"
+                  className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-primary text-white text-xs font-bold hover:bg-primary/90 transition shadow-xs cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
                   {copiedMagicLink ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                   <span>{copiedMagicLink ? "Đã sao chép" : "Sao chép"}</span>

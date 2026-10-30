@@ -34,6 +34,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
+import { useToast } from "@/context/toast-context";
 import { MarketplaceItem } from "@/types/marketplace";
 import { exportMarketplaceExamToDocx } from "@/lib/marketplace/export-docx";
 import { getUserExams, Exam } from "@/lib/api/exams";
@@ -42,6 +43,7 @@ import { isProUser, isMaxUser } from "@/lib/payment/plans";
 export default function MarketplacePage() {
   const router = useRouter();
   const { user, profile, wallet, refreshWallet } = useAuth();
+  const { showToast } = useToast();
 
   // State danh sách đề
   const [items, setItems] = useState<MarketplaceItem[]>([]);
@@ -228,10 +230,11 @@ export default function MarketplacePage() {
       setSellTitle("");
       setSellDescription("");
       loadItems();
-      alert(
+      showToast(
         finalPrice === 0
           ? "🎉 Chúc mừng Thầy/Cô đã chia sẻ thành công bộ đề MIỄN PHÍ lên Chợ!"
-          : "🎉 Chúc mừng Thầy/Cô đã đăng bán bộ đề có phí thành công lên Chợ!"
+          : "🎉 Chúc mừng Thầy/Cô đã đăng bán bộ đề có phí thành công lên Chợ!",
+        "success"
       );
     } catch (err: any) {
       setSellError("Lỗi kết nối: " + err.message);
@@ -282,11 +285,12 @@ export default function MarketplacePage() {
       if (data.success && data.item) {
         setBuySuccessItem(data.item);
         loadItems();
+        showToast("Đã nhận bộ đề miễn phí thành công!", "success");
       } else {
-        alert(data.error || "Không thể nhận đề miễn phí.");
+        showToast(data.error || "Không thể nhận đề miễn phí.", "error");
       }
     } catch (err: any) {
-      alert("Lỗi kết nối: " + err.message);
+      showToast("Lỗi kết nối: " + err.message, "error");
     }
   };
 
@@ -302,13 +306,14 @@ export default function MarketplacePage() {
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        alert("Lỗi sao chép: " + (data.error || "Vui lòng thử lại"));
+        showToast("Lỗi sao chép: " + (data.error || "Vui lòng thử lại"), "error");
         return;
       }
 
+      showToast("Đã sao chép đề thi về Studio cá nhân!", "success");
       router.push(`/exams/${data.exam_id}`);
     } catch (err: any) {
-      alert("Lỗi kết nối: " + err.message);
+      showToast("Lỗi kết nối: " + err.message, "error");
     } finally {
       setCloningId(null);
     }
@@ -327,8 +332,9 @@ export default function MarketplacePage() {
         }
       }
       await exportMarketplaceExamToDocx(targetItem);
+      showToast("Đã tải xuống file Word (.docx) thành công!", "success");
     } catch (err: any) {
-      alert("Lỗi tải file Word: " + err.message);
+      showToast("Lỗi tải file Word: " + err.message, "error");
     } finally {
       setDownloadingId(null);
     }

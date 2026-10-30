@@ -36,6 +36,7 @@ import {
 import { getUserExams, Exam } from "@/lib/api/exams";
 import { SessionDetailView } from "@/components/grading/session-detail-view";
 import { useAuth } from "@/context/auth-context";
+import { useToast } from "@/context/toast-context";
 import { getUserPreferences } from "@/lib/preferences";
 
 interface ExamSession {
@@ -66,6 +67,7 @@ interface ExamSession {
 
 export default function GradingPage() {
   const { profile } = useAuth();
+  const { showToast } = useToast();
 
   // Danh sách các kỳ thi đã tạo (lưu trong localStorage để bền vững)
   const [sessions, setSessions] = useState<ExamSession[]>([]);
@@ -157,8 +159,9 @@ export default function GradingPage() {
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
+      showToast("Đã xuất phiếu trả lời trắc nghiệm PDF thành công!", "success");
     } catch (err: any) {
-      alert("Lỗi tải file PDF: " + err.message);
+      showToast("Lỗi tải file PDF: " + err.message, "error");
     } finally {
       setIsDownloadingPdf(false);
     }
@@ -395,7 +398,7 @@ export default function GradingPage() {
   // Tạo kỳ thi
   const handleConfirmCreateSession = () => {
     if (!createSessionName.trim()) {
-      alert("Vui lòng nhập tên kỳ thi!");
+      showToast("Vui lòng nhập tên kỳ thi!", "warning");
       return;
     }
 
@@ -918,8 +921,9 @@ export default function GradingPage() {
       });
       setBatchSummary(json);
       playTingSound();
+      showToast("Đã hoàn tất chấm hàng loạt phiếu OMR!", "success");
     } catch (e: any) {
-      alert("Lỗi chấm hàng loạt: " + e.message);
+      showToast("Lỗi chấm hàng loạt: " + e.message, "error");
     } finally {
       setIsBatchProcessing(false);
     }
@@ -978,7 +982,7 @@ export default function GradingPage() {
   // Xuất file Excel / CSV thật có hỗ trợ font tiếng Việt UTF-8 BOM
   const handleExportExcel = (session: ExamSession) => {
     if (session.gradedStudents.length === 0) {
-      alert("Chưa có học sinh nào được chấm trong kỳ thi này.");
+      showToast("Chưa có học sinh nào được chấm trong kỳ thi này.", "warning");
       return;
     }
 
@@ -2181,6 +2185,7 @@ export default function GradingPage() {
                       type="file"
                       accept="image/*"
                       multiple
+                      aria-label="Tải lên ảnh phiếu trả lời trắc nghiệm OMR hàng loạt"
                       onChange={(e) => {
                         if (e.target.files) {
                           setBatchFiles(Array.from(e.target.files));

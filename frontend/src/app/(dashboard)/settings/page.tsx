@@ -585,6 +585,7 @@ export default function SettingsPage() {
                       accept="image/*"
                       onChange={handleAvatarChange}
                       className="hidden"
+                      aria-label="Tải lên ảnh đại diện mới"
                     />
                     <button
                       type="button"
@@ -593,7 +594,7 @@ export default function SettingsPage() {
                       className="inline-flex items-center gap-1.5 rounded-xl border border-border px-4 py-2 text-sm font-medium hover:bg-muted transition cursor-pointer disabled:opacity-50"
                     >
                       <Camera className="w-4 h-4 text-primary" />
-                      {uploadingAvatar ? "Đang nén & tải lên..." : "Thay ảnh đại diện"}
+                      {uploadingAvatar ? "Đang nén & tải lên…" : "Thay ảnh đại diện"}
                     </button>
                     <p className="mt-1.5 text-xs text-muted-foreground">
                       Chuẩn ảnh tự động nén tối ưu (256x256, &lt;35KB) lưu trữ trên CDN tốc độ cao.
@@ -676,7 +677,7 @@ export default function SettingsPage() {
                       disabled={savingProfile}
                       className="rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition cursor-pointer shadow-xs"
                     >
-                      {savingProfile ? "Đang lưu..." : "Lưu hồ sơ"}
+                      {savingProfile ? "Đang lưu…" : "Lưu hồ sơ"}
                     </button>
                   </div>
                 </form>
@@ -1062,7 +1063,7 @@ export default function SettingsPage() {
                   disabled={savingTeaching}
                   className="rounded-xl bg-primary px-8 py-3 text-sm font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition cursor-pointer shadow-sm"
                 >
-                  {savingTeaching ? "Đang lưu cài đặt..." : "Lưu cài đặt nghiệp vụ"}
+                  {savingTeaching ? "Đang lưu cài đặt…" : "Lưu cài đặt nghiệp vụ"}
                 </button>
               </div>
             </form>
@@ -1153,7 +1154,7 @@ export default function SettingsPage() {
                     disabled={savingNotif}
                     className="rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition cursor-pointer shadow-xs"
                   >
-                    {savingNotif ? "Đang lưu..." : "Lưu tùy chọn thông báo"}
+                    {savingNotif ? "Đang lưu…" : "Lưu tùy chọn thông báo"}
                   </button>
                 </div>
               </form>
@@ -1231,7 +1232,7 @@ export default function SettingsPage() {
                       disabled={passwordUpdating}
                       className="rounded-xl bg-primary px-4 py-2 text-xs font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition cursor-pointer"
                     >
-                      {passwordUpdating ? "Đang xử lý..." : "Cập nhật mật khẩu"}
+                      {passwordUpdating ? "Đang xử lý…" : "Cập nhật mật khẩu"}
                     </button>
                   </form>
                 )}
@@ -1272,7 +1273,7 @@ export default function SettingsPage() {
                   disabled={loggingOutOthers}
                   className="rounded-xl border border-border px-4 py-2 text-xs font-semibold text-foreground hover:bg-muted transition cursor-pointer disabled:opacity-50"
                 >
-                  {loggingOutOthers ? "Đang xử lý..." : "Đăng xuất khỏi tất cả các thiết bị khác"}
+                  {loggingOutOthers ? "Đang xử lý…" : "Đăng xuất khỏi tất cả các thiết bị khác"}
                 </button>
               </div>
 

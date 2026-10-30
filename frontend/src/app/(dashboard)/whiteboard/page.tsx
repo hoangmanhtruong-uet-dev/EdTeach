@@ -19,6 +19,7 @@ import {
   PenTool
 } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
+import { useToast } from "@/context/toast-context";
 import {
   getUserWhiteboards,
   createWhiteboard,
@@ -32,6 +33,7 @@ import { Whiteboard } from "@/types/whiteboard";
 export default function WhiteboardDashboardPage() {
   const router = useRouter();
   const { user, profile } = useAuth();
+  const { showToast } = useToast();
   const [whiteboards, setWhiteboards] = useState<Whiteboard[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -91,8 +93,9 @@ export default function WhiteboardDashboardPage() {
     const duplicated = await duplicateWhiteboard(id, isPro);
     if (duplicated) {
       setWhiteboards((prev) => [duplicated, ...prev]);
+      showToast("Đã nhân bản bảng vẽ thành công!", "success");
     } else {
-      alert("Không thể nhân bản (có thể đã đạt giới hạn bảng vẽ của gói Free).");
+      showToast("Không thể nhân bản (đã đạt giới hạn số lượng bảng vẽ).", "warning");
     }
   };
 
@@ -211,10 +214,11 @@ export default function WhiteboardDashboardPage() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Tìm kiếm bảng vẽ theo tên..."
+            placeholder="Tìm kiếm bảng vẽ theo tên…"
+            aria-label="Tìm kiếm bảng vẽ theo tên"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-4 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+            className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-4 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:border-primary transition"
           />
         </div>
 
@@ -238,7 +242,7 @@ export default function WhiteboardDashboardPage() {
         <div className="flex h-64 items-center justify-center">
           <div className="flex flex-col items-center gap-2 text-muted-foreground">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-            <p className="text-sm">Đang tải danh sách bảng vẽ...</p>
+            <p className="text-sm">Đang tải danh sách bảng vẽ…</p>
           </div>
         </div>
       ) : filteredBoards.length === 0 ? (
