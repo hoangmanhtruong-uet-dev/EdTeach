@@ -25,7 +25,8 @@ export function Footer() {
             <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
               <li><Link href="#features" className="hover:text-foreground">Tính năng</Link></li>
               <li><Link href="#pricing" className="hover:text-foreground">Bảng giá</Link></li>
-              <li><Link href="/docs" className="hover:text-foreground">Hướng dẫn</Link></li>
+              <li><Link href="/updates" className="text-primary font-medium hover:underline">Lộ trình & Bản mới v2.0</Link></li>
+              <li><Link href="/guide" className="hover:text-foreground">Hướng dẫn</Link></li>
             </ul>
           </div>
 

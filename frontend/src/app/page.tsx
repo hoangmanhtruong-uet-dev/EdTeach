@@ -44,11 +44,23 @@ export default function LandingPage() {
           
           <div className="mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
             <div className="mx-auto max-w-4xl space-y-6">
-              {/* Beta v1.0.0 Notice Pill */}
-              <div className="inline-flex items-center gap-2 rounded-full bg-linear-to-r from-amber-500/15 via-orange-500/15 to-amber-500/15 border border-amber-500/40 px-4 py-1.5 text-xs font-bold text-amber-800 dark:text-amber-300 shadow-xs">
-                <span className="flex h-2 w-2 rounded-full bg-amber-500 animate-ping" />
-                <span>EdTeach v1.0.0 Beta • Bản thử nghiệm 14 ngày mở khóa toàn bộ PRO & MAX</span>
-              </div>
+              {/* Beta v1.0.0 Notice Pill with link to v2.0.0 updates */}
+              <Link
+                href="/updates"
+                className="group inline-flex items-center gap-2.5 rounded-full bg-slate-900 px-4 py-1.5 text-xs text-white shadow-md shadow-slate-900/15 border border-slate-700/80 transition-all hover:bg-slate-950 hover:border-blue-400 hover:scale-[1.02]"
+              >
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-slate-950">
+                  <span className="h-1.5 w-1.5 rounded-full bg-amber-900 animate-pulse" />
+                  BETA V1.0.0
+                </span>
+                <span className="font-semibold text-slate-100">
+                  EdTeach v1.0.0 Beta • Bản thử nghiệm 14 ngày mở khóa toàn bộ PRO & MAX
+                </span>
+                <span className="hidden sm:inline-flex items-center gap-1 font-bold text-amber-300 group-hover:text-amber-200 transition-colors">
+                  <span>Xem Lộ Trình v2.0</span>
+                  <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
+                </span>
+              </Link>
 
               {/* Main Heading */}
               <h1 className="text-4xl font-extrabold tracking-tight text-neutral-900 sm:text-5xl lg:text-6xl leading-[1.15]">
