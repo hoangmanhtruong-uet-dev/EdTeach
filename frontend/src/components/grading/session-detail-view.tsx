@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Camera,
@@ -64,6 +65,7 @@ export interface ExamSession {
   questionCount: number;
   answerKey: Record<number, string>;
   createdAt: string;
+  examId?: string;
   gradedStudents: GradedStudent[];
 }
 
@@ -84,6 +86,7 @@ export function SessionDetailView({
   onOpenPrintModal,
   onDeleteSession,
 }: SessionDetailViewProps) {
+  const router = useRouter();
   const { profile } = useAuth();
   const isProUser = profile?.tier === "pro" || profile?.tier === "school";
 
@@ -305,6 +308,7 @@ export function SessionDetailView({
   const activeLinksCount = sessionLinks.filter((l) => !l.isClosed && Date.now() < l.expiresAt).length;
 
   const [upgradeTier, setUpgradeTier] = useState<"pro" | "max" | null>(null);
+  const [upgradeFeatureInfo, setUpgradeFeatureInfo] = useState<{ title: string; desc: string } | null>(null);
   const [checkoutPlan, setCheckoutPlan] = useState<PricingPlan | null>(null);
   const [zaloNoteModal, setZaloNoteModal] = useState<{
     isOpen: boolean;
@@ -366,8 +370,40 @@ export function SessionDetailView({
       .slice(0, 5);
   }, [session.gradedStudents, session.answerKey]);
 
+  const handlePushToTeachingWhiteboard = () => {
+    if (!isMaxUser(profile)) {
+      setUpgradeFeatureInfo({
+        title: "Đẩy câu sai lên Bục Giảng chữa nóng ngay (OMR-to-Whiteboard)",
+        desc: "Đặc quyền gói MAX: Tự động trích xuất các câu có tỷ lệ học sinh làm sai cao (>40%) và phương án bẫy để đưa thẳng sang Bục Giảng Số chữa nóng tại chỗ kèm đồng hồ bấm giờ và đẻ câu luyện tập.",
+      });
+      setUpgradeTier("max");
+      return;
+    }
+
+    const targetExamId = session.examId || `omr-${session.id}`;
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem(
+        "teach_hotfix_data",
+        JSON.stringify({
+          sessionId: session.id,
+          sessionName: session.name,
+          examId: session.examId,
+          subject: session.subject,
+          grade: session.grade,
+          topMissedQuestions,
+          answerKey: session.answerKey,
+        })
+      );
+    }
+    router.push(`/teach/${targetExamId}?focus=missed&session=${session.id}`);
+  };
+
   const handleGenerateZaloNote = (student: GradedStudent) => {
     if (!isMaxUser(profile)) {
+      setUpgradeFeatureInfo({
+        title: "Tạo phiếu nhận xét AI gửi Zalo Phụ huynh",
+        desc: "Đặc quyền gói MAX: AI tự động phân tích ưu/nhược điểm từng học sinh dựa trên các câu đúng/sai để xuất mẫu tin nhắn trang trọng, chuyên nghiệp gửi trực tiếp cho phụ huynh qua Zalo.",
+      });
       setUpgradeTier("max");
       return;
     }
@@ -609,16 +645,30 @@ export function SessionDetailView({
       {/* Top câu hỏi cả lớp sai nhiều nhất (Gói PRO & MAX) */}
       {topMissedQuestions.length > 0 && (
         <div className="bg-white rounded-2xl border border-red-200/80 p-5 shadow-xs mb-8">
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
               <h3 className="font-bold text-sm text-neutral-900">
                 Top {topMissedQuestions.length} câu hỏi cả lớp sai nhiều nhất (Cần chữa bài trên lớp)
               </h3>
             </div>
-            <span className="text-[10px] font-black uppercase text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-md">
-              Phân tích lỗi sai
-            </span>
+            
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handlePushToTeachingWhiteboard}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-linear-to-r from-red-600 to-rose-600 px-3.5 py-1.5 text-xs font-bold text-white hover:from-red-500 hover:to-rose-500 shadow-sm hover:shadow transition cursor-pointer shrink-0"
+                title="Đẩy trực tiếp các câu cả lớp hay sai lên Bục Giảng Số để thầy/cô chữa nóng tại lớp"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                <span>Chữa nóng trên Bục Giảng</span>
+                <span className="rounded bg-black/25 px-1 py-0.2 text-[9px] font-black uppercase text-amber-300">
+                  MAX
+                </span>
+              </button>
+              <span className="text-[10px] font-black uppercase text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-md hidden md:inline">
+                Phân tích lỗi sai
+              </span>
+            </div>
           </div>
 
           <p className="text-xs text-neutral-500 mb-4">
@@ -1299,10 +1349,13 @@ export function SessionDetailView({
       {/* Upgrade Tier Modal */}
       <UpgradeTierModal
         isOpen={!!upgradeTier}
-        onClose={() => setUpgradeTier(null)}
+        onClose={() => {
+          setUpgradeTier(null);
+          setUpgradeFeatureInfo(null);
+        }}
         requiredTier={upgradeTier || "max"}
-        featureTitle="Tạo phiếu nhận xét AI gửi Zalo Phụ huynh"
-        featureDesc="Đặc quyền gói MAX: AI tự động phân tích ưu/nhược điểm từng học sinh dựa trên các câu đúng/sai để xuất mẫu tin nhắn trang trọng, chuyên nghiệp gửi trực tiếp cho phụ huynh qua Zalo."
+        featureTitle={upgradeFeatureInfo?.title || "Nâng cấp gói MAX"}
+        featureDesc={upgradeFeatureInfo?.desc || "Mở khóa toàn bộ tính năng Luyện thi & Chữa bài Chuyên sâu."}
         onSelectPlan={(plan) => setCheckoutPlan(plan)}
       />
 

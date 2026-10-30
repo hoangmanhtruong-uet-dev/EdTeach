@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback, Suspense } from "react";
-import { useParams, useRouter } from "next/navigation";
+import React, { useState, useEffect, useRef, useCallback, useMemo, Suspense } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import {
@@ -22,16 +22,30 @@ import {
   EyeOff,
   Layers,
   BookOpen,
-  PanelLeftClose,
-  PanelRightClose,
   Columns2,
   HelpCircle,
   Loader2,
+  Play,
+  Pause,
+  RotateCcw,
+  Timer,
+  Wand2,
+  Flame,
+  ShieldAlert,
+  Cpu,
+  Calculator,
+  ExternalLink,
+  FlaskConical,
+  GraduationCap,
+  AlertTriangle,
 } from "lucide-react";
 import { getExamById, ExamWithQuestions, Question } from "@/lib/api/exams";
 import { useAuth } from "@/context/auth-context";
-import { isProUser, isMaxUser } from "@/lib/payment/plans";
+import { isProUser, isMaxUser, PricingPlan } from "@/lib/payment/plans";
 import { LatexRenderer } from "@/components/ui/latex-renderer";
+import { LABS, LabLesson, SUBJECT_LABEL } from "@/data/labs";
+import { UpgradeTierModal } from "@/components/modals/upgrade-tier-modal";
+import { PaymentCheckoutModal } from "@/components/modals/payment-checkout-modal";
 
 // Dynamic import Excalidraw Canvas (Client-only)
 const WhiteboardCanvas = dynamic(
@@ -54,8 +68,57 @@ type ExcalidrawAPI = {
   updateScene: (sceneData: { elements?: unknown[]; appState?: Record<string, unknown> }) => void;
 };
 
+// Keyword mapping helper for 3D Labs
+function findAutoMatchingLab(content: string, subject?: string): LabLesson | null {
+  if (!content) return null;
+  const lower = content.toLowerCase();
+
+  // 1. Direct keyword match
+  const keywordMatches: Array<{ keywords: string[]; slug: string }> = [
+    { keywords: ["quang điện", "lượng tử", "hạt photon", "công thoát"], slug: "photoelectric-step" },
+    { keywords: ["tụ điện", "điện dung", "nạp điện", "phóng điện", "điện trường"], slug: "capacitor-step" },
+    { keywords: ["lực lorenxơ", "lorentz", "từ trường", "hạt mang điện"], slug: "lorentz-force-step" },
+    { keywords: ["sóng cơ", "sóng dừng", "giao thoa sóng", "bước sóng"], slug: "wave-superposition-step" },
+    { keywords: ["khúc xạ", "phản xạ toàn phần", "chiết suất", "lăng kính"], slug: "refraction-step" },
+    { keywords: ["este", "xà phòng hóa", "thủy phân", "chất béo"], slug: "saponification-step" },
+    { keywords: ["điện phân", "anot", "catot", "dung dịch cus04"], slug: "electrolysis-step" },
+    { keywords: ["axit", "bazo", "ph", "chuẩn độ", "quỳ tím"], slug: "titration-step" },
+    { keywords: ["quang hợp", "diệp lục", "lục lạp", "co2"], slug: "photosynthesis-step" },
+    { keywords: ["hô hấp", "tế bào", "ty thể", "atp"], slug: "respiration-step" },
+    { keywords: ["núi lửa", "mác ma", "phun trào"], slug: "volcano-step" },
+    { keywords: ["thổ nhưỡng", "đất", "xói mòn"], slug: "soil-formation-step" },
+  ];
+
+  for (const item of keywordMatches) {
+    if (item.keywords.some((kw) => lower.includes(kw))) {
+      const found = LABS.find((l) => l.slug === item.slug);
+      if (found) return found;
+    }
+  }
+
+  // 2. Fallback by subject
+  if (subject) {
+    const subLower = subject.toLowerCase();
+    if (subLower.includes("lý") || subLower.includes("vật")) {
+      return LABS.find((l) => l.subject === "phys") || null;
+    }
+    if (subLower.includes("hóa")) {
+      return LABS.find((l) => l.subject === "chem") || null;
+    }
+    if (subLower.includes("sinh")) {
+      return LABS.find((l) => l.subject === "bio") || null;
+    }
+    if (subLower.includes("địa")) {
+      return LABS.find((l) => l.subject === "geo") || null;
+    }
+  }
+
+  return LABS[0] || null;
+}
+
 function TeachingStudioContent() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const examId = params.examId as string;
   const { user, profile } = useAuth();
@@ -63,9 +126,35 @@ function TeachingStudioContent() {
   const isPro = isProUser(profile) || isProUser(user);
   const isMax = isMaxUser(profile) || isMaxUser(user);
 
+  // Upgrade Modal State
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+  const [upgradeFeature, setUpgradeFeature] = useState<{ title: string; desc: string } | null>(null);
+  const [checkoutPlan, setCheckoutPlan] = useState<PricingPlan | null>(null);
+
+  const requireMax = (featureTitle: string, featureDesc: string): boolean => {
+    if (!isMax) {
+      setUpgradeFeature({ title: featureTitle, desc: featureDesc });
+      setUpgradeModalOpen(true);
+      return false;
+    }
+    return true;
+  };
+
   const [exam, setExam] = useState<ExamWithQuestions | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Focus & Hotfix Mode from OMR Grading
+  const focusParam = searchParams?.get("focus");
+  const isHotfixMode = focusParam === "missed";
+  const [hotfixData, setHotfixData] = useState<{
+    sessionId: string;
+    sessionName: string;
+    topMissedQuestions: any[];
+    answerKey: Record<number, string>;
+    subject?: string;
+    grade?: string;
+  } | null>(null);
 
   // Question State
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -75,10 +164,12 @@ function TeachingStudioContent() {
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
 
   // Layout & Font Size for Projector
-  // ratio: 50 = 50:50, 70 = 70:30 (more Question), 30 = 30:70 (more Board), 100 = 100% Question, 0 = 100% Board
   const [splitRatio, setSplitRatio] = useState<number>(50);
   const [fontSize, setFontSize] = useState<"md" | "lg" | "xl">("lg");
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Right Column 3 Tabs: "whiteboard" | "lab3d" | "multi_method"
+  const [activeRightTab, setActiveRightTab] = useState<"whiteboard" | "lab3d" | "multi_method">("whiteboard");
 
   // Per-Question Drawing Storage
   const [drawingsMap, setDrawingsMap] = useState<Record<string, unknown[]>>({});
@@ -86,19 +177,119 @@ function TeachingStudioContent() {
   const currentIdxRef = useRef(currentIdx);
   currentIdxRef.current = currentIdx;
 
-  // Load Exam
+  // 3D Lab Selection per question
+  const [selectedLabSlug, setSelectedLabSlug] = useState<string>("");
+
+  // MAX Feature 1: Live Question Cloner
+  const [clonedQuestionsMap, setClonedQuestionsMap] = useState<
+    Record<string, { content: string; options: string[]; correct_answer: string; explanation: string }>
+  >({});
+  const [isCloning, setIsCloning] = useState(false);
+  const [showClonedTab, setShowClonedTab] = useState<Record<string, boolean>>({});
+
+  // Floating 2-Minute Timer
+  const [timerSeconds, setTimerSeconds] = useState(120);
+  const [isTimerRunning, setIsTimerRunning] = useState(false);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    if (isTimerRunning && timerSeconds > 0) {
+      interval = setInterval(() => {
+        setTimerSeconds((prev) => prev - 1);
+      }, 1000);
+    } else if (timerSeconds === 0) {
+      setIsTimerRunning(false);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isTimerRunning, timerSeconds]);
+
+  // MAX Feature 2: Step-by-Step Scaffolding
+  const [scaffoldMap, setScaffoldMap] = useState<
+    Record<string, Array<{ step_number: number; title: string; question: string; hint: string }>>
+  >({});
+  const [isScaffolding, setIsScaffolding] = useState(false);
+  const [revealedStepCount, setRevealedStepCount] = useState<Record<string, number>>({});
+
+  // MAX Feature 3: Multi-Method AI Solver
+  const [multiMethodMap, setMultiMethodMap] = useState<
+    Record<string, Array<{ id: string; name: string; badge: string; summary: string; content: string }>>
+  >({});
+  const [isSolvingMultiMethod, setIsSolvingMultiMethod] = useState(false);
+  const [selectedMethodId, setSelectedMethodId] = useState<string>("tu-luan");
+
+  // Load Exam or Hotfix OMR Session
   useEffect(() => {
     async function loadData() {
       if (!examId) return;
       try {
         setLoading(true);
+
+        // Check if this is an OMR virtual exam session
+        let hotfixPayload: any = null;
+        if (typeof window !== "undefined") {
+          const rawHotfix = sessionStorage.getItem("teach_hotfix_data");
+          if (rawHotfix) {
+            try {
+              hotfixPayload = JSON.parse(rawHotfix);
+              setHotfixData(hotfixPayload);
+            } catch {
+              // ignore
+            }
+          }
+        }
+
+        if (examId.startsWith("omr-") && hotfixPayload) {
+          // Construct virtual exam from OMR missed questions
+          const missedList = hotfixPayload.topMissedQuestions || [];
+          const virtualQuestions: Question[] = missedList.map((m: any, idx: number) => ({
+            id: `q_omr_${m.questionNum}`,
+            exam_id: examId,
+            content: `**Câu ${m.questionNum} (Trích từ bài kiểm tra ${hotfixPayload.sessionName}):**\n\nĐây là câu hỏi có tỷ lệ học sinh làm sai cao nhất lớp (**${m.wrongPct}% sai**, ${m.wrongCount}/${m.total} học sinh bị bẫy ở phương án **${m.mostChosenWrong || "khác"}**). Giáo viên hãy phân tích bẫy và cùng học sinh giải quyết dứt điểm câu hỏi này.`,
+            question_type: "multiple_choice",
+            order_index: idx + 1,
+            options: [
+              `A. Phương án A ${m.correctAns === "A" ? "(Đáp án đúng)" : m.mostChosenWrong === "A" ? "(Bẫy sai phổ biến)" : ""}`,
+              `B. Phương án B ${m.correctAns === "B" ? "(Đáp án đúng)" : m.mostChosenWrong === "B" ? "(Bẫy sai phổ biến)" : ""}`,
+              `C. Phương án C ${m.correctAns === "C" ? "(Đáp án đúng)" : m.mostChosenWrong === "C" ? "(Bẫy sai phổ biến)" : ""}`,
+              `D. Phương án D ${m.correctAns === "D" ? "(Đáp án đúng)" : m.mostChosenWrong === "D" ? "(Bẫy sai phổ biến)" : ""}`,
+            ],
+            correct_answer: m.correctAns || "A",
+            explanation: `Thống kê chấm OMR: Tỷ lệ làm sai ${m.wrongPct}%. Học sinh nhầm lẫn nhiều nhất vào phương án ${m.mostChosenWrong}. Đáp án chính xác theo ma trận là ${m.correctAns}.`,
+            difficulty: m.wrongPct >= 50 ? "very_hard" : "hard",
+            created_at: new Date().toISOString(),
+          }));
+
+          setExam({
+            id: examId,
+            name: `Chữa nóng OMR: ${hotfixPayload.sessionName}`,
+            subject: hotfixPayload.subject || "Toán",
+            grade: hotfixPayload.grade || "12",
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            user_id: user?.id || "",
+            questions: virtualQuestions,
+          } as ExamWithQuestions);
+          return;
+        }
+
+        // Standard Exam from DB
         const data: any = await getExamById(examId);
         if (!data) {
           setError("Không tìm thấy đề thi hoặc đề thi đã bị xóa.");
         } else {
-          // Sắp xếp câu hỏi theo order_index
           if (data.questions && Array.isArray(data.questions)) {
             data.questions.sort((a: any, b: any) => (a.order_index || 0) - (b.order_index || 0));
+
+            // If focus=missed and we have hotfix questions, filter or sort to prioritize missed
+            if (isHotfixMode && hotfixPayload?.topMissedQuestions?.length) {
+              const missedNums = new Set(hotfixPayload.topMissedQuestions.map((q: any) => Number(q.questionNum)));
+              // Reorder questions so that missed ones appear first
+              const missedQuestions = data.questions.filter((_: any, i: number) => missedNums.has(i + 1));
+              const otherQuestions = data.questions.filter((_: any, i: number) => !missedNums.has(i + 1));
+              data.questions = missedQuestions.length > 0 ? [...missedQuestions, ...otherQuestions] : data.questions;
+            }
           }
           setExam(data);
         }
@@ -109,7 +300,7 @@ function TeachingStudioContent() {
       }
     }
     loadData();
-  }, [examId]);
+  }, [examId, isHotfixMode, user?.id]);
 
   // Helper save current drawing
   const saveCurrentQuestionDrawing = useCallback(() => {
@@ -133,19 +324,17 @@ function TeachingStudioContent() {
     (newIdx: number) => {
       if (!exam?.questions || newIdx < 0 || newIdx >= exam.questions.length) return;
 
-      // 1. Save current drawing first
       saveCurrentQuestionDrawing();
 
-      // 2. Reset layer toggles for the next question
       setShowHint(false);
       setShowFormula(false);
       setShowSolution(false);
       setSelectedOption(null);
+      setTimerSeconds(120);
+      setIsTimerRunning(false);
 
-      // 3. Update index
       setCurrentIdx(newIdx);
 
-      // 4. Restore drawings for the new question
       const nextQ = exam.questions[newIdx];
       if (nextQ && excalidrawApiRef.current) {
         const savedElements = drawingsMap[nextQ.id] || [];
@@ -155,16 +344,33 @@ function TeachingStudioContent() {
           // ignore
         }
       }
+
+      // Auto update matching lab
+      if (nextQ) {
+        const autoLab = findAutoMatchingLab(nextQ.content, exam?.subject);
+        if (autoLab) {
+          setSelectedLabSlug(autoLab.slug);
+        }
+      }
     },
     [exam, drawingsMap, saveCurrentQuestionDrawing]
   );
 
-  // Keyboard navigation: ArrowLeft/ArrowRight
+  // Set initial lab when exam loads
+  useEffect(() => {
+    if (exam?.questions?.[0]) {
+      const initialLab = findAutoMatchingLab(exam.questions[0].content, exam.subject);
+      if (initialLab) {
+        setSelectedLabSlug(initialLab.slug);
+      }
+    }
+  }, [exam]);
+
+  // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Avoid intercepting if typing inside an input/textarea
       const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
-      if (tag === "input" || tag === "textarea") return;
+      if (tag === "input" || tag === "textarea" || tag === "select") return;
 
       if (e.key === "ArrowLeft") {
         e.preventDefault();
@@ -209,12 +415,175 @@ function TeachingStudioContent() {
     }
   };
 
+  const currentQ: Question | undefined = exam?.questions?.[currentIdx];
+  const totalQuestions = exam?.questions?.length || 0;
+
+  // Options parsing helper
+  let parsedOptions: string[] = [];
+  if (currentQ?.options) {
+    if (Array.isArray(currentQ.options)) {
+      parsedOptions = currentQ.options as string[];
+    } else if (typeof currentQ.options === "object") {
+      parsedOptions = Object.values(currentQ.options as Record<string, string>);
+    }
+  }
+
+  // Active question to display: Original or Cloned
+  const isViewingCloned = currentQ ? !!showClonedTab[currentQ.id] : false;
+  const currentCloned = currentQ ? clonedQuestionsMap[currentQ.id] : undefined;
+
+  // Handler: Live Question Clone
+  const handleLiveCloneQuestion = async () => {
+    if (!currentQ) return;
+    if (
+      !requireMax(
+        "Đẻ câu tương tự tại chỗ (Live Question Cloner)",
+        "Đặc quyền gói MAX: AI tự động sinh câu hỏi đẳng cấu giữ nguyên dạng bài nhưng thay đổi số liệu/chất hóa học, kèm bộ đếm ngược 2 phút cho học sinh làm thử ngay tại lớp."
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setIsCloning(true);
+      const res = await fetch("/api/ai/live-clone", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          question: currentQ.content,
+          options: parsedOptions,
+          subject: exam?.subject,
+          grade: exam?.grade,
+          currentAnswer: currentQ.correct_answer,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success && data.question) {
+        setClonedQuestionsMap((prev) => ({
+          ...prev,
+          [currentQ.id]: data.question,
+        }));
+        setShowClonedTab((prev) => ({
+          ...prev,
+          [currentQ.id]: true,
+        }));
+        // Reset and start 2-minute timer
+        setTimerSeconds(120);
+        setIsTimerRunning(true);
+      } else {
+        alert(data.error || "Không thể sinh câu hỏi tương tự.");
+      }
+    } catch (err: any) {
+      alert("Lỗi kết nối AI: " + err.message);
+    } finally {
+      setIsCloning(false);
+    }
+  };
+
+  // Handler: Scaffolding
+  const handleScaffoldQuestion = async () => {
+    if (!currentQ) return;
+    if (
+      !requireMax(
+        "Bẻ nhỏ bài toán thành 3 bước gợi mở (AI Scaffolding)",
+        "Đặc quyền gói MAX: Tự động tách các câu vận dụng cao thành 3 câu hỏi phụ dẫn dắt sư phạm giúp học sinh tự tư duy từ nhận diện giả thiết đến phương trình then chốt."
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setIsScaffolding(true);
+      const res = await fetch("/api/ai/scaffold", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          question: currentQ.content,
+          options: parsedOptions,
+          subject: exam?.subject,
+          grade: exam?.grade,
+          currentAnswer: currentQ.correct_answer,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success && data.scaffolding?.steps) {
+        setScaffoldMap((prev) => ({
+          ...prev,
+          [currentQ.id]: data.scaffolding.steps,
+        }));
+        setRevealedStepCount((prev) => ({
+          ...prev,
+          [currentQ.id]: 1, // reveal step 1 initially
+        }));
+      } else {
+        alert(data.error || "Không thể phân tách các bước gợi mở.");
+      }
+    } catch (err: any) {
+      alert("Lỗi kết nối AI: " + err.message);
+    } finally {
+      setIsScaffolding(false);
+    }
+  };
+
+  // Handler: Multi-Method Solver
+  const handleFetchMultiMethod = async () => {
+    if (!currentQ) return;
+    if (
+      !requireMax(
+        "Giải đa cách 15s & Tuyệt kỹ Casio",
+        "Đặc quyền gói MAX: AI cung cấp đồng thời 3 góc nhìn giải toán: Tự luận bản chất GDPT 2018, Tuyệt kỹ trắc nghiệm 15 giây và Hướng dẫn bấm máy tính Casio fx-580VN X."
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setIsSolvingMultiMethod(true);
+      const res = await fetch("/api/ai/multi-method", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          question: currentQ.content,
+          options: parsedOptions,
+          subject: exam?.subject,
+          grade: exam?.grade,
+          currentAnswer: currentQ.correct_answer,
+          explanation: currentQ.explanation,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success && data.data?.methods) {
+        setMultiMethodMap((prev) => ({
+          ...prev,
+          [currentQ.id]: data.data.methods,
+        }));
+      } else {
+        alert(data.error || "Không thể phân tích đa phương pháp.");
+      }
+    } catch (err: any) {
+      alert("Lỗi kết nối AI: " + err.message);
+    } finally {
+      setIsSolvingMultiMethod(false);
+    }
+  };
+
+  // Check if current question has an OMR error statistic
+  const currentMissedStat = useMemo(() => {
+    if (!hotfixData?.topMissedQuestions) return null;
+    return hotfixData.topMissedQuestions.find(
+      (m: any) => m.questionNum === currentIdx + 1 || `q_omr_${m.questionNum}` === currentQ?.id
+    );
+  }, [hotfixData, currentIdx, currentQ]);
+
   if (loading) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-slate-900 text-white">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="h-9 w-9 animate-spin text-amber-400" />
-          <p className="text-sm font-semibold tracking-wide">Đang khởi tạo Bục Giảng Số...</p>
+          <p className="text-sm font-semibold tracking-wide">Đang khởi tạo Bục Giảng Số 4.0...</p>
         </div>
       </div>
     );
@@ -235,29 +604,28 @@ function TeachingStudioContent() {
     );
   }
 
-  const currentQ: Question | undefined = exam.questions?.[currentIdx];
-  const totalQuestions = exam.questions?.length || 0;
+  // Active question text and options to render
+  const displayContent = isViewingCloned && currentCloned ? currentCloned.content : currentQ?.content || "";
+  const displayOptions = isViewingCloned && currentCloned ? currentCloned.options : parsedOptions;
+  const displayAnswer = isViewingCloned && currentCloned ? currentCloned.correct_answer : currentQ?.correct_answer;
+  const displayExplanation = isViewingCloned && currentCloned ? currentCloned.explanation : currentQ?.explanation;
 
-  // Options parsing helper
-  let parsedOptions: string[] = [];
-  if (currentQ?.options) {
-    if (Array.isArray(currentQ.options)) {
-      parsedOptions = currentQ.options as string[];
-    } else if (typeof currentQ.options === "object") {
-      parsedOptions = Object.values(currentQ.options as Record<string, string>);
-    }
-  }
-
-  // Text size classes
   const contentFontSizeClass =
     fontSize === "xl" ? "text-2xl leading-relaxed" : fontSize === "lg" ? "text-xl leading-relaxed" : "text-base leading-normal";
   const optionFontSizeClass =
     fontSize === "xl" ? "text-xl" : fontSize === "lg" ? "text-lg" : "text-sm";
 
+  const currentScaffolding = currentQ ? scaffoldMap[currentQ.id] : undefined;
+  const currentRevealedStep = currentQ ? revealedStepCount[currentQ.id] || 0 : 0;
+  const currentMultiMethods = currentQ ? multiMethodMap[currentQ.id] : undefined;
+
+  // Active lab selected
+  const activeLab = LABS.find((l) => l.slug === selectedLabSlug) || LABS[0];
+
   return (
     <div className="flex h-screen w-screen flex-col overflow-hidden bg-slate-950 text-slate-100 select-none">
       {/* 1. TOP BAR: Header Bục Giảng Số */}
-      <header className="flex h-14 flex-none items-center justify-between border-b border-slate-800 bg-slate-900/90 px-4 backdrop-blur-md z-30">
+      <header className="flex h-14 flex-none items-center justify-between border-b border-slate-800 bg-slate-900/95 px-4 backdrop-blur-md z-30">
         <div className="flex items-center gap-3 min-w-0">
           <Link
             href="/exams"
@@ -271,9 +639,15 @@ function TeachingStudioContent() {
           <span className="h-4 w-px bg-slate-700 hidden sm:inline" />
 
           <div className="flex items-center gap-2 min-w-0">
-            <span className="flex items-center gap-1 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 text-[11px] font-black uppercase tracking-wider shrink-0">
-              <Crown className="w-3 h-3 text-amber-400" /> Bục Giảng Số PRO
-            </span>
+            {isMax ? (
+              <span className="flex items-center gap-1 rounded-md bg-linear-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-500/40 px-2.5 py-0.5 text-[11px] font-black uppercase tracking-wider shrink-0 shadow-xs">
+                <Crown className="w-3.5 h-3.5 text-amber-400" /> Bục Giảng MAX VIP
+              </span>
+            ) : (
+              <span className="flex items-center gap-1 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 text-[11px] font-black uppercase tracking-wider shrink-0">
+                <Crown className="w-3 h-3 text-amber-400" /> Bục Giảng Số PRO
+              </span>
+            )}
             <h1 className="truncate text-sm font-bold text-white max-w-xs md:max-w-md" title={exam.name}>
               {exam.name}
             </h1>
@@ -293,7 +667,7 @@ function TeachingStudioContent() {
           </button>
           <button
             onClick={() => setSplitRatio(50)}
-            title="Chia đôi màn hình (50% Đề - 50% Bảng nháp)"
+            title="Chia đôi màn hình (50% Đề - 50% Bảng nháp / 3D / Đa cách)"
             className={`flex items-center gap-1 rounded-lg px-2.5 py-1 font-semibold transition cursor-pointer ${
               splitRatio === 50 ? "bg-primary text-white shadow-xs" : "text-slate-400 hover:text-white"
             }`}
@@ -302,7 +676,7 @@ function TeachingStudioContent() {
           </button>
           <button
             onClick={() => setSplitRatio(70)}
-            title="Ưu tiên Đề thi (70% Đề - 30% Bảng nháp)"
+            title="Ưu tiên Đề thi (70% Đề - 30% Cột phải)"
             className={`rounded-lg px-2.5 py-1 font-semibold transition cursor-pointer ${
               splitRatio === 70 ? "bg-primary text-white shadow-xs" : "text-slate-400 hover:text-white"
             }`}
@@ -311,12 +685,12 @@ function TeachingStudioContent() {
           </button>
           <button
             onClick={() => setSplitRatio(0)}
-            title="Bung toàn màn hình Bảng trắng Excalidraw"
+            title="Bung toàn màn hình Cột phải"
             className={`rounded-lg px-2.5 py-1 font-semibold transition cursor-pointer ${
               splitRatio === 0 ? "bg-primary text-white shadow-xs" : "text-slate-400 hover:text-white"
             }`}
           >
-            Chỉ vẽ Bảng
+            Chỉ xem Cột phải
           </button>
         </div>
 
@@ -362,7 +736,7 @@ function TeachingStudioContent() {
         </div>
       </header>
 
-      {/* 2. BODY: SPLIT VIEW (LEFT QUESTION, RIGHT EXCALIDRAW) */}
+      {/* 2. BODY: SPLIT VIEW (LEFT QUESTION, RIGHT 3-TAB PANE) */}
       <div className="flex flex-1 overflow-hidden relative">
         {/* ================= LEFT PANE: CÂU HỎI & MỞ TỪNG LỚP ĐÁP ÁN ================= */}
         {splitRatio > 0 && (
@@ -373,8 +747,29 @@ function TeachingStudioContent() {
             {currentQ ? (
               <div className="flex-1 p-6 sm:p-8 flex flex-col justify-between max-w-4xl mx-auto w-full">
                 <div className="space-y-6">
-                  {/* Question Meta Badge */}
-                  <div className="flex items-center justify-between border-b border-slate-800/80 pb-4">
+                  {/* HOTFIX OMR WARNING BANNER */}
+                  {currentMissedStat && (
+                    <div className="rounded-2xl border border-red-500/60 bg-red-950/40 p-4 shadow-sm animate-pulse-subtle">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-red-400 font-bold text-xs uppercase tracking-wide">
+                          <Flame className="w-4 h-4 text-red-500 animate-bounce" />
+                          <span>Chữa nóng OMR: Câu hỏi cả lớp sai nhiều</span>
+                        </div>
+                        <span className="rounded-full bg-red-500/20 px-2.5 py-0.5 text-xs font-black text-red-300 border border-red-500/30">
+                          {currentMissedStat.wrongPct}% học sinh sai ({currentMissedStat.wrongCount}/{currentMissedStat.total} em)
+                        </span>
+                      </div>
+                      {currentMissedStat.mostChosenWrong && (
+                        <p className="mt-2 text-xs text-red-200">
+                          ⚠️ <strong>Bẫy điển hình:</strong> Đa số học sinh bị nhầm lẫn chọn phương án{" "}
+                          <strong className="text-amber-300 font-black">{currentMissedStat.mostChosenWrong}</strong>. Hãy nhấn mạnh sự khác biệt giữa phương án {currentMissedStat.mostChosenWrong} và đáp án đúng {currentMissedStat.correctAns}!
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Question Meta & Cloned Switcher */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800/80 pb-4">
                     <div className="flex items-center gap-2.5">
                       <span className="rounded-xl bg-linear-to-r from-blue-600 to-indigo-600 px-3.5 py-1 text-sm font-black text-white shadow-xs">
                         CÂU {currentIdx + 1}
@@ -382,40 +777,139 @@ function TeachingStudioContent() {
                       <span className="text-xs text-slate-400 font-semibold">
                         / {totalQuestions} câu
                       </span>
+
+                      {/* Tab Switcher between Original & Cloned (If Cloned Exists) */}
+                      {currentCloned && (
+                        <div className="flex items-center rounded-lg bg-slate-800 p-0.5 border border-slate-700 ml-2">
+                          <button
+                            onClick={() =>
+                              setShowClonedTab((prev) => ({
+                                ...prev,
+                                [currentQ.id]: false,
+                              }))
+                            }
+                            className={`rounded px-2.5 py-1 text-xs font-bold transition cursor-pointer ${
+                              !isViewingCloned ? "bg-blue-600 text-white" : "text-slate-400 hover:text-white"
+                            }`}
+                          >
+                            Câu gốc
+                          </button>
+                          <button
+                            onClick={() =>
+                              setShowClonedTab((prev) => ({
+                                ...prev,
+                                [currentQ.id]: true,
+                              }))
+                            }
+                            className={`flex items-center gap-1 rounded px-2.5 py-1 text-xs font-bold transition cursor-pointer ${
+                              isViewingCloned ? "bg-amber-500 text-slate-950 font-black" : "text-amber-400 hover:text-amber-300"
+                            }`}
+                          >
+                            <Sparkles className="w-3 h-3" />
+                            <span>Câu {currentIdx + 1}+ (Luyện tập)</span>
+                          </button>
+                        </div>
+                      )}
                     </div>
 
+                    {/* Action Buttons: Live Cloner & Scaffolding */}
                     <div className="flex items-center gap-2">
-                      <span className="rounded-full bg-slate-800 border border-slate-700 px-2.5 py-0.5 text-xs text-slate-300 capitalize font-medium">
-                        {currentQ.difficulty === "easy"
-                          ? "Mức độ: Nhận biết"
-                          : currentQ.difficulty === "medium"
-                          ? "Mức độ: Thông hiểu"
-                          : currentQ.difficulty === "hard"
-                          ? "Mức độ: Vận dụng"
-                          : "Mức độ: Vận dụng cao"}
-                      </span>
-                      {drawingsMap[currentQ.id]?.length ? (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] font-bold text-amber-400 border border-amber-500/30">
-                          ✏️ Đã có nháp
-                        </span>
-                      ) : null}
+                      {/* Live 1-Click Question Cloner (MAX) */}
+                      <button
+                        onClick={handleLiveCloneQuestion}
+                        disabled={isCloning}
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-300 hover:bg-amber-500/20 transition cursor-pointer disabled:opacity-50"
+                        title="Đẻ 1 câu hỏi tương tự giữ nguyên dạng bài nhưng đổi số liệu để học sinh luyện thử 2 phút"
+                      >
+                        {isCloning ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
+                        ) : (
+                          <Wand2 className="w-3.5 h-3.5 text-amber-400" />
+                        )}
+                        <span>{isCloning ? "Đang sinh câu mới..." : "Đẻ câu tương tự (MAX)"}</span>
+                      </button>
+
+                      {/* AI Step-by-Step Scaffolding (MAX) */}
+                      <button
+                        onClick={handleScaffoldQuestion}
+                        disabled={isScaffolding}
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-indigo-500/40 bg-indigo-500/10 px-3 py-1.5 text-xs font-bold text-indigo-300 hover:bg-indigo-500/20 transition cursor-pointer disabled:opacity-50"
+                        title="Bẻ nhỏ bài toán thành 3 bước gợi mở sư phạm dẫn dắt học sinh"
+                      >
+                        {isScaffolding ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-400" />
+                        ) : (
+                          <Layers className="w-3.5 h-3.5 text-indigo-400" />
+                        )}
+                        <span>{isScaffolding ? "Đang chia nhỏ..." : "Bẻ nhỏ 3 bước (MAX)"}</span>
+                      </button>
                     </div>
                   </div>
+
+                  {/* 2-MINUTE FLOATING TIMER (When viewing cloned practice question) */}
+                  {isViewingCloned && (
+                    <div className="flex items-center justify-between rounded-2xl border border-amber-500/50 bg-linear-to-r from-amber-950/40 to-orange-950/40 p-3.5 shadow-sm">
+                      <div className="flex items-center gap-2.5">
+                        <Timer className={`w-5 h-5 ${isTimerRunning ? "text-amber-400 animate-spin" : "text-amber-500"}`} />
+                        <div>
+                          <p className="text-xs font-bold text-amber-200">
+                            Thử thách 2 phút áp dụng tại lớp:
+                          </p>
+                          <p className="text-[11px] text-amber-300/80">
+                            Cả lớp vận dụng phương pháp vừa chữa để chọn đáp án cho câu mới
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`font-mono text-2xl font-black px-3 py-1 rounded-xl border ${
+                            timerSeconds <= 20
+                              ? "bg-red-500/30 border-red-500 text-red-400 animate-pulse"
+                              : "bg-slate-900 border-amber-500/40 text-amber-300"
+                          }`}
+                        >
+                          {String(Math.floor(timerSeconds / 60)).padStart(2, "0")}:
+                          {String(timerSeconds % 60).padStart(2, "0")}
+                        </div>
+
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => setIsTimerRunning((v) => !v)}
+                            className="p-2 rounded-lg bg-amber-500 text-slate-950 font-bold hover:bg-amber-400 transition cursor-pointer"
+                            title={isTimerRunning ? "Tạm dừng" : "Bắt đầu đếm ngược"}
+                          >
+                            {isTimerRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setIsTimerRunning(false);
+                              setTimerSeconds(120);
+                            }}
+                            className="p-2 rounded-lg bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition cursor-pointer"
+                            title="Đặt lại 2 phút"
+                          >
+                            <RotateCcw className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Question Content (Large Projector Typography + LaTeX) */}
                   <div className={`font-semibold text-slate-100 ${contentFontSizeClass}`}>
-                    <LatexRenderer content={currentQ.content} />
+                    <LatexRenderer content={displayContent} />
                   </div>
 
                   {/* Options (If multiple choice) */}
-                  {parsedOptions.length > 0 && (
+                  {displayOptions.length > 0 && (
                     <div className="grid gap-3 pt-2 sm:grid-cols-2">
-                      {parsedOptions.map((opt, oIdx) => {
+                      {displayOptions.map((opt, oIdx) => {
                         const optKey = ["A", "B", "C", "D", "E"][oIdx] || `P${oIdx + 1}`;
                         const isCorrectOption =
                           showSolution &&
-                          currentQ.correct_answer &&
-                          currentQ.correct_answer.trim().toUpperCase().startsWith(optKey);
+                          displayAnswer &&
+                          displayAnswer.trim().toUpperCase().startsWith(optKey);
                         const isUserClicked = selectedOption === optKey;
 
                         return (
@@ -451,6 +945,73 @@ function TeachingStudioContent() {
                     </div>
                   )}
 
+                  {/* AI STEP-BY-STEP SCAFFOLDING ACCORDION (If generated) */}
+                  {currentScaffolding && currentScaffolding.length > 0 && (
+                    <div className="rounded-2xl border border-indigo-500/40 bg-indigo-950/30 p-5 space-y-4">
+                      <div className="flex items-center justify-between border-b border-indigo-500/20 pb-3">
+                        <div className="flex items-center gap-2">
+                          <Layers className="w-4 h-4 text-indigo-400" />
+                          <h4 className="text-xs font-bold text-indigo-200 uppercase tracking-wide">
+                            Dẫn dắt 3 bước gợi mở tư duy (AI Scaffolding)
+                          </h4>
+                        </div>
+                        <span className="text-[11px] text-indigo-300">
+                          Đã mở {currentRevealedStep}/3 bước
+                        </span>
+                      </div>
+
+                      <div className="space-y-3">
+                        {currentScaffolding.map((step) => {
+                          const isRevealed = currentRevealedStep >= step.step_number;
+                          return (
+                            <div
+                              key={step.step_number}
+                              className={`rounded-xl border p-3.5 transition ${
+                                isRevealed
+                                  ? "border-indigo-500/40 bg-slate-900/90 text-slate-100"
+                                  : "border-slate-800 bg-slate-900/30 text-slate-500"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="font-bold text-xs text-indigo-300">
+                                  {step.title}
+                                </span>
+                                {!isRevealed ? (
+                                  <button
+                                    onClick={() =>
+                                      setRevealedStepCount((prev) => ({
+                                        ...prev,
+                                        [currentQ.id]: step.step_number,
+                                      }))
+                                    }
+                                    className="rounded-lg bg-indigo-600 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-indigo-500 transition cursor-pointer shadow-xs"
+                                  >
+                                    Mở Bước {step.step_number}
+                                  </button>
+                                ) : (
+                                  <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+                                    <CheckCircle2 className="w-3.5 h-3.5" /> Đã mở
+                                  </span>
+                                )}
+                              </div>
+
+                              {isRevealed && (
+                                <div className="mt-2.5 space-y-2 text-xs leading-relaxed border-t border-indigo-500/20 pt-2 text-slate-200">
+                                  <p className="font-semibold text-indigo-100">
+                                    ❓ <strong>Câu hỏi gợi ý:</strong> {step.question}
+                                  </p>
+                                  <div className="text-slate-300 bg-indigo-950/40 p-2.5 rounded-lg border border-indigo-500/20">
+                                    💡 <strong>Hướng dẫn:</strong> <LatexRenderer content={step.hint} />
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
                   {/* ================= 3 PROGRESSIVE DISCLOSURE LAYERS ================= */}
                   <div className="space-y-3 pt-4">
                     {/* Layer 1: Gợi ý tư duy */}
@@ -470,10 +1031,10 @@ function TeachingStudioContent() {
 
                       {showHint && (
                         <div className="mt-3 text-sm text-amber-200/90 leading-relaxed pt-2 border-t border-amber-500/20">
-                          {currentQ.explanation ? (
+                          {displayExplanation ? (
                             <LatexRenderer
                               content={
-                                currentQ.explanation.split("\n")[0] ||
+                                displayExplanation.split("\n")[0] ||
                                 "Xác định các đại lượng đã biết, phân tích mối liên hệ và áp dụng công thức tương ứng."
                               }
                             />
@@ -501,8 +1062,8 @@ function TeachingStudioContent() {
 
                       {showFormula && (
                         <div className="mt-3 text-sm text-blue-200/90 leading-relaxed pt-2 border-t border-blue-500/20">
-                          {currentQ.explanation && currentQ.explanation.includes("$") ? (
-                            <LatexRenderer content={currentQ.explanation} />
+                          {displayExplanation && displayExplanation.includes("$") ? (
+                            <LatexRenderer content={displayExplanation} />
                           ) : (
                             <p>Áp dụng hệ quả và công thức biến đổi tương đương theo chương trình GDPT 2025.</p>
                           )}
@@ -527,17 +1088,17 @@ function TeachingStudioContent() {
 
                       {showSolution && (
                         <div className="mt-3 space-y-2.5 text-sm text-emerald-200 leading-relaxed pt-2 border-t border-emerald-500/20">
-                          {currentQ.correct_answer && (
+                          {displayAnswer && (
                             <div className="flex items-center gap-2">
                               <span className="font-bold text-emerald-400">Đáp án chuẩn:</span>
                               <span className="inline-block rounded-lg bg-emerald-500 px-3 py-1 font-black text-white shadow-xs">
-                                {currentQ.correct_answer}
+                                {displayAnswer}
                               </span>
                             </div>
                           )}
                           <div className="pt-2 text-slate-200">
-                            {currentQ.explanation ? (
-                              <LatexRenderer content={currentQ.explanation} />
+                            {displayExplanation ? (
+                              <LatexRenderer content={displayExplanation} />
                             ) : (
                               <p className="italic text-slate-400">Chưa có bản ghi lời giải chi tiết cho câu hỏi này.</p>
                             )}
@@ -579,12 +1140,13 @@ function TeachingStudioContent() {
                     {exam.questions?.map((q, idx) => {
                       const isCurrent = idx === currentIdx;
                       const hasDrawing = drawingsMap[q.id]?.length > 0;
+                      const hasCloned = !!clonedQuestionsMap[q.id];
 
                       return (
                         <button
                           key={q.id || idx}
                           onClick={() => goToQuestion(idx)}
-                          title={`Nhảy tới Câu ${idx + 1}${hasDrawing ? " (Có nháp)" : ""}`}
+                          title={`Nhảy tới Câu ${idx + 1}${hasDrawing ? " (Có nháp)" : ""}${hasCloned ? " (Đã có câu luyện tập)" : ""}`}
                           className={`relative h-8 w-8 rounded-lg text-xs font-bold transition cursor-pointer ${
                             isCurrent
                               ? "bg-amber-500 text-slate-950 font-black shadow-md ring-2 ring-amber-400"
@@ -594,6 +1156,9 @@ function TeachingStudioContent() {
                           {idx + 1}
                           {hasDrawing && !isCurrent && (
                             <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-amber-400" />
+                          )}
+                          {hasCloned && (
+                            <span className="absolute -bottom-1 -right-1 h-2 w-2 rounded-full bg-blue-400" />
                           )}
                         </button>
                       );
@@ -609,57 +1174,267 @@ function TeachingStudioContent() {
           </div>
         )}
 
-        {/* ================= RIGHT PANE: BẢNG TRẮNG EXCALIDRAW ================= */}
+        {/* ================= RIGHT PANE: CỘT PHẢI ĐA NĂNG 3 TAB ================= */}
         {splitRatio < 100 && (
           <div
-            className="flex flex-col bg-white overflow-hidden relative"
+            className="flex flex-col bg-slate-950 overflow-hidden relative"
             style={{ width: splitRatio === 0 ? "100%" : `${100 - splitRatio}%` }}
           >
-            {/* Whiteboard Toolbar Header */}
-            <div className="flex h-11 items-center justify-between border-b border-slate-200 bg-slate-50 px-3 z-20">
-              <div className="flex items-center gap-2">
-                <span className="flex items-center gap-1 rounded bg-slate-200 px-2 py-0.5 text-[11px] font-bold text-slate-700">
-                  ✏️ Bảng nháp Câu {currentIdx + 1}
-                </span>
-                <span className="text-[11px] text-slate-500 hidden sm:inline">
-                  (Nét vẽ tự lưu riêng cho từng câu)
-                </span>
+            {/* 3-TAB SELECTOR HEADER */}
+            <div className="flex h-12 items-center justify-between border-b border-slate-800 bg-slate-900 px-3 z-20">
+              <div className="flex items-center gap-1 rounded-xl bg-slate-950 p-1 border border-slate-800">
+                <button
+                  onClick={() => setActiveRightTab("whiteboard")}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-bold transition cursor-pointer ${
+                    activeRightTab === "whiteboard"
+                      ? "bg-slate-800 text-amber-400 shadow-xs"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  <span>✏️ Bảng nháp</span>
+                </button>
+                <button
+                  onClick={() => setActiveRightTab("lab3d")}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-bold transition cursor-pointer ${
+                    activeRightTab === "lab3d"
+                      ? "bg-indigo-600 text-white shadow-xs"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  <FlaskConical className="w-3.5 h-3.5" />
+                  <span>🔬 TN 3D</span>
+                </button>
+                <button
+                  onClick={() => setActiveRightTab("multi_method")}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-bold transition cursor-pointer ${
+                    activeRightTab === "multi_method"
+                      ? "bg-amber-500 text-slate-950 font-black shadow-xs"
+                      : "text-amber-400/80 hover:text-amber-300"
+                  }`}
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>⚡ Giải đa cách (MAX)</span>
+                </button>
               </div>
 
-              <div className="flex items-center gap-1.5">
+              {/* Action for active tab */}
+              {activeRightTab === "whiteboard" && (
                 <button
                   onClick={handleClearCurrentDrawing}
                   title="Xóa trắng bảng nháp của câu này"
-                  className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-red-600 hover:bg-red-50 transition cursor-pointer shadow-2xs"
+                  className="flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1 text-xs font-semibold text-red-400 hover:bg-red-950/40 transition cursor-pointer shadow-2xs"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Xóa nháp</span>
                 </button>
-              </div>
+              )}
+
+              {activeRightTab === "lab3d" && (
+                <div className="flex items-center gap-2">
+                  <select
+                    value={selectedLabSlug}
+                    onChange={(e) => setSelectedLabSlug(e.target.value)}
+                    className="rounded-lg bg-slate-800 border border-slate-700 px-2 py-1 text-xs text-slate-200 font-medium cursor-pointer"
+                  >
+                    {LABS.map((lab) => (
+                      <option key={lab.slug} value={lab.slug}>
+                        [{SUBJECT_LABEL[lab.subject]}] {lab.titleVi}
+                      </option>
+                    ))}
+                  </select>
+                  <a
+                    href={`/labs/${selectedLabSlug}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white border border-slate-700"
+                    title="Mở toàn màn hình thí nghiệm tab mới"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+              )}
+
+              {activeRightTab === "multi_method" && (
+                <button
+                  onClick={handleFetchMultiMethod}
+                  disabled={isSolvingMultiMethod}
+                  className="flex items-center gap-1.5 rounded-lg bg-linear-to-r from-amber-500 to-orange-500 px-3 py-1 text-xs font-bold text-slate-950 hover:brightness-110 transition cursor-pointer shadow-xs disabled:opacity-50"
+                >
+                  {isSolvingMultiMethod ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Calculator className="w-3.5 h-3.5" />
+                  )}
+                  <span>Phân tích 3 cách giải</span>
+                </button>
+              )}
             </div>
 
-            {/* Excalidraw Component Container */}
-            <div className="flex-1 w-full h-[calc(100%-44px)] relative">
-              <WhiteboardCanvas
-                height="100%"
-                isPro={isPro}
-                initialElements={currentQ ? (drawingsMap[currentQ.id] as any) || [] : []}
-                onApiReady={(api) => {
-                  excalidrawApiRef.current = api as unknown as ExcalidrawAPI;
-                }}
-                onChange={(elements) => {
-                  if (currentQ) {
-                    setDrawingsMap((prev) => ({
-                      ...prev,
-                      [currentQ.id]: elements as unknown[],
-                    }));
-                  }
-                }}
-              />
-            </div>
+            {/* TAB 1: BẢNG TRẮNG EXCALIDRAW */}
+            {activeRightTab === "whiteboard" && (
+              <div className="flex-1 w-full h-[calc(100%-48px)] relative bg-white">
+                <WhiteboardCanvas
+                  height="100%"
+                  isPro={isPro}
+                  initialElements={currentQ ? (drawingsMap[currentQ.id] as any) || [] : []}
+                  onApiReady={(api) => {
+                    excalidrawApiRef.current = api as unknown as ExcalidrawAPI;
+                  }}
+                  onChange={(elements) => {
+                    if (currentQ) {
+                      setDrawingsMap((prev) => ({
+                        ...prev,
+                        [currentQ.id]: elements as unknown[],
+                      }));
+                    }
+                  }}
+                />
+              </div>
+            )}
+
+            {/* TAB 2: PHÒNG THÍ NGHIỆM 3D LIÊN KẾT */}
+            {activeRightTab === "lab3d" && (
+              <div className="flex-1 w-full h-[calc(100%-48px)] flex flex-col bg-slate-900">
+                <div className="flex items-center justify-between bg-slate-950/80 px-4 py-2 border-b border-slate-800 text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="rounded bg-indigo-500/20 text-indigo-300 px-2 py-0.5 font-bold">
+                      {activeLab.titleVi}
+                    </span>
+                    <span className="text-slate-400 hidden sm:inline">{activeLab.gdpt}</span>
+                  </div>
+                  <Link
+                    href={`/labs/${selectedLabSlug}`}
+                    target="_blank"
+                    className="flex items-center gap-1 text-amber-400 hover:underline text-[11px] font-semibold"
+                  >
+                    <span>Bật lớp vẽ trong suốt</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </Link>
+                </div>
+
+                <div className="flex-1 w-full h-full relative bg-slate-950">
+                  <iframe
+                    src={`/labs/courses/${selectedLabSlug}.html`}
+                    className="w-full h-full border-0"
+                    title={activeLab.titleVi}
+                    sandbox="allow-scripts allow-same-origin"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* TAB 3: GIẢI ĐA CÁCH 15S & CASIO (MAX) */}
+            {activeRightTab === "multi_method" && (
+              <div className="flex-1 w-full h-[calc(100%-48px)] overflow-y-auto bg-slate-900 p-6 space-y-6">
+                {!currentMultiMethods ? (
+                  <div className="flex h-full flex-col items-center justify-center text-center p-8 space-y-4">
+                    <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                      <Sparkles className="w-7 h-7" />
+                    </div>
+                    <div className="max-w-md space-y-2">
+                      <h3 className="font-bold text-base text-slate-100">
+                        Chưa phân tích đa phương pháp cho câu này
+                      </h3>
+                      <p className="text-xs text-slate-400 leading-relaxed">
+                        Hệ thống sẽ dùng AI phân tích 3 góc nhìn giải: Tự luận bản chất GDPT 2018, Tuyệt kỹ trắc nghiệm 15 giây và Hướng dẫn bấm máy tính Casio fx-580.
+                      </p>
+                    </div>
+                    <button
+                      onClick={handleFetchMultiMethod}
+                      disabled={isSolvingMultiMethod}
+                      className="inline-flex items-center gap-2 rounded-xl bg-linear-to-r from-amber-500 to-orange-500 px-5 py-2.5 text-xs font-bold text-slate-950 hover:brightness-110 shadow-md transition cursor-pointer"
+                    >
+                      {isSolvingMultiMethod ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Wand2 className="w-4 h-4" />
+                      )}
+                      <span>Phân tích 3 cách giải ngay (MAX)</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-5">
+                    {/* Sub-tab Pills */}
+                    <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
+                      {currentMultiMethods.map((method) => {
+                        const isSelected = selectedMethodId === method.id;
+                        return (
+                          <button
+                            key={method.id}
+                            onClick={() => setSelectedMethodId(method.id)}
+                            className={`rounded-xl px-3.5 py-2 text-xs font-bold transition cursor-pointer border ${
+                              isSelected
+                                ? "bg-amber-500 text-slate-950 border-amber-400 shadow-xs"
+                                : "bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-750"
+                            }`}
+                          >
+                            <span>{method.name}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Active Method Details */}
+                    {(() => {
+                      const activeMethod =
+                        currentMultiMethods.find((m) => m.id === selectedMethodId) ||
+                        currentMultiMethods[0];
+                      if (!activeMethod) return null;
+
+                      return (
+                        <div className="rounded-2xl border border-slate-800 bg-slate-950 p-6 space-y-4 shadow-sm">
+                          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                            <div>
+                              <span className="rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider">
+                                {activeMethod.badge}
+                              </span>
+                              <h3 className="text-base font-bold text-white mt-1.5">
+                                {activeMethod.name}
+                              </h3>
+                            </div>
+                          </div>
+
+                          <div className="rounded-xl bg-slate-900/90 border border-slate-800 p-3.5 text-xs text-amber-200/90 italic">
+                            📌 <strong>Ý tưởng:</strong> {activeMethod.summary}
+                          </div>
+
+                          <div className="text-sm leading-relaxed text-slate-200 space-y-3 pt-2">
+                            <LatexRenderer content={activeMethod.content} />
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
+
+      {/* Upgrade Tier Modal */}
+      <UpgradeTierModal
+        isOpen={upgradeModalOpen}
+        onClose={() => setUpgradeModalOpen(false)}
+        requiredTier="max"
+        featureTitle={upgradeFeature?.title || "Nâng cấp gói MAX"}
+        featureDesc={upgradeFeature?.desc || "Mở khóa toàn bộ bộ công cụ Luyện thi & Chữa bài Chuyên sâu."}
+        onSelectPlan={(plan) => setCheckoutPlan(plan)}
+      />
+
+      {/* PayOS Checkout Modal */}
+      {checkoutPlan && (
+        <PaymentCheckoutModal
+          isOpen={!!checkoutPlan}
+          onClose={() => setCheckoutPlan(null)}
+          selectedPlan={checkoutPlan}
+          onSuccess={() => {
+            setCheckoutPlan(null);
+            setUpgradeModalOpen(false);
+            window.location.reload();
+          }}
+        />
+      )}
     </div>
   );
 }

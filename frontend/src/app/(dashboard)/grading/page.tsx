@@ -47,6 +47,7 @@ interface ExamSession {
   questionCount: number;
   answerKey: Record<number, string>;
   createdAt: string;
+  examId?: string;
   gradedStudents: Array<{
     id: string;
     studentName: string;
@@ -408,6 +409,7 @@ export default function GradingPage() {
       questionCount: count,
       answerKey: manualAnswers,
       createdAt: new Date().toLocaleDateString("vi-VN"),
+      examId: createSourceType === "existing_exam" && selectedExamId ? selectedExamId : undefined,
       gradedStudents: [],
     };
 
