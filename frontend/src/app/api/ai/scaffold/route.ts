@@ -60,9 +60,9 @@ TRẢ VỀ DUY NHẤT ĐỊNH DẠNG JSON với cấu trúc:
     return NextResponse.json({ success: true, scaffolding: result });
   } catch (error: any) {
     console.error("Scaffolding generation error:", error);
-    return NextResponse.json(
-      { error: error.message || "Không thể phân tách các bước gợi mở." },
-      { status: 500 }
-    );
+    const msg = error.name === "AbortError"
+      ? "Quá thời gian phản hồi từ máy chủ AI. Vui lòng bấm thử lại."
+      : error.message || "Không thể phân tách các bước gợi mở.";
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

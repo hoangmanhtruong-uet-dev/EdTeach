@@ -117,9 +117,14 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            Xin chào, {profile?.name || user?.email?.split("@")[0] || "Thầy Cô"}! 👋
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight">
+              Xin chào, {profile?.name || user?.email?.split("@")[0] || "Thầy Cô"}! 👋
+            </h1>
+            <span className="hidden sm:inline-flex items-center gap-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 text-[11px] font-black uppercase text-emerald-600 dark:text-emerald-400">
+              <Sparkles className="w-3 h-3 text-emerald-500" /> v1.0.0 Beta (14 ngày)
+            </span>
+          </div>
           <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">
             Chào mừng Thầy/Cô đến với EduTest AI. Hãy xem tổng quan hoạt động và bắt đầu soạn đề.
           </p>

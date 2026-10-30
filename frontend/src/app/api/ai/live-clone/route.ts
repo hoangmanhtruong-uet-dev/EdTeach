@@ -43,9 +43,9 @@ TRẢ VỀ DUY NHẤT ĐỊNH DẠNG JSON với cấu trúc:
     return NextResponse.json({ success: true, question: result });
   } catch (error: any) {
     console.error("Live question clone error:", error);
-    return NextResponse.json(
-      { error: error.message || "Không thể sinh câu hỏi tương tự." },
-      { status: 500 }
-    );
+    const msg = error.name === "AbortError"
+      ? "Quá thời gian phản hồi từ máy chủ AI. Vui lòng bấm thử lại."
+      : error.message || "Không thể sinh câu hỏi tương tự.";
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

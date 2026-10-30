@@ -140,6 +140,15 @@ function TeachingStudioContent() {
     return true;
   };
 
+  // In-app Toast notification (replacing disruptive browser alerts)
+  const [toast, setToast] = useState<{ message: string; type: "error" | "success" | "info" } | null>(null);
+  const showToast = useCallback((message: string, type: "error" | "success" | "info" = "info") => {
+    setToast({ message, type });
+    setTimeout(() => {
+      setToast((prev) => (prev?.message === message ? null : prev));
+    }, 4500);
+  }, []);
+
   const [exam, setExam] = useState<ExamWithQuestions | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -474,11 +483,12 @@ function TeachingStudioContent() {
         // Reset and start 2-minute timer
         setTimerSeconds(120);
         setIsTimerRunning(true);
+        showToast("✨ Đã tạo câu hỏi luyện tập 2 phút thành công!", "success");
       } else {
-        alert(data.error || "Không thể sinh câu hỏi tương tự.");
+        showToast(data.error || "Không thể sinh câu hỏi tương tự.", "error");
       }
     } catch (err: any) {
-      alert("Lỗi kết nối AI: " + err.message);
+      showToast("Lỗi kết nối AI: " + err.message, "error");
     } finally {
       setIsCloning(false);
     }
@@ -520,11 +530,12 @@ function TeachingStudioContent() {
           ...prev,
           [currentQ.id]: 1, // reveal step 1 initially
         }));
+        showToast("🧩 Đã phân tách 3 bước gợi mở tư duy!", "success");
       } else {
-        alert(data.error || "Không thể phân tách các bước gợi mở.");
+        showToast(data.error || "Không thể phân tách các bước gợi mở.", "error");
       }
     } catch (err: any) {
-      alert("Lỗi kết nối AI: " + err.message);
+      showToast("Lỗi kết nối AI: " + err.message, "error");
     } finally {
       setIsScaffolding(false);
     }
@@ -563,11 +574,12 @@ function TeachingStudioContent() {
           ...prev,
           [currentQ.id]: data.data.methods,
         }));
+        showToast("⚡ Đã phân tích 3 phương pháp giải toán!", "success");
       } else {
-        alert(data.error || "Không thể phân tích đa phương pháp.");
+        showToast(data.error || "Không thể phân tích đa phương pháp.", "error");
       }
     } catch (err: any) {
-      alert("Lỗi kết nối AI: " + err.message);
+      showToast("Lỗi kết nối AI: " + err.message, "error");
     } finally {
       setIsSolvingMultiMethod(false);
     }
@@ -1441,6 +1453,27 @@ function TeachingStudioContent() {
             window.location.reload();
           }}
         />
+      )}
+      {/* In-app Toast Notification */}
+      {toast && (
+        <div
+          className={`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 rounded-2xl border px-4 py-3 shadow-2xl backdrop-blur-md animate-in slide-in-from-bottom-3 duration-200 text-xs font-bold max-w-md ${
+            toast.type === "error"
+              ? "border-red-500/50 bg-red-950/95 text-red-200 shadow-red-950/50"
+              : toast.type === "success"
+              ? "border-emerald-500/50 bg-emerald-950/95 text-emerald-200 shadow-emerald-950/50"
+              : "border-blue-500/50 bg-slate-900/95 text-slate-100 shadow-slate-950/50"
+          }`}
+        >
+          {toast.type === "error" ? (
+            <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
+          ) : toast.type === "success" ? (
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          ) : (
+            <Sparkles className="w-4 h-4 text-blue-400 shrink-0" />
+          )}
+          <span>{toast.message}</span>
+        </div>
       )}
     </div>
   );

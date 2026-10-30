@@ -151,9 +151,14 @@ function DashboardLayoutInner({
         <div className="flex h-16 items-center justify-between border-b border-border px-4">
           <Link href="/dashboard" className="flex items-center gap-2">
             <BookOpen className="h-7 w-7 text-primary" />
-            <span className="text-lg font-bold">
-              Edu<span className="text-primary">Test</span> AI
-            </span>
+            <div className="flex flex-col">
+              <span className="text-lg font-bold leading-tight">
+                Edu<span className="text-primary">Test</span> AI
+              </span>
+              <span className="text-[10px] font-semibold text-muted-foreground">
+                v1.0.0 Beta (Thử nghiệm 14 ngày)
+              </span>
+            </div>
           </Link>
           <button
             onClick={() => setSidebarOpen(false)}
@@ -240,7 +245,7 @@ function DashboardLayoutInner({
           {isMax ? (
             <span className="flex items-center gap-1.5 rounded-full bg-linear-to-r from-amber-500 to-amber-600 px-3 py-1.5 text-xs font-black text-white shadow-xs">
               <Crown className="h-3.5 w-3.5" />
-              <span>GÓI MAX</span>
+              <span>GÓI MAX • BETA 14 NGÀY</span>
             </span>
           ) : isPro ? (
             <span className="flex items-center gap-1.5 rounded-full bg-linear-to-r from-blue-600 to-indigo-600 px-3 py-1.5 text-xs font-bold text-white shadow-xs">

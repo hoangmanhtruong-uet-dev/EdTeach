@@ -70,9 +70,9 @@ TRẢ VỀ DUY NHẤT ĐỊNH DẠNG JSON với cấu trúc:
     return NextResponse.json({ success: true, data: result });
   } catch (error: any) {
     console.error("Multi-method generation error:", error);
-    return NextResponse.json(
-      { error: error.message || "Không thể phân tích đa phương pháp giải." },
-      { status: 500 }
-    );
+    const msg = error.name === "AbortError"
+      ? "Quá thời gian phản hồi từ máy chủ AI. Vui lòng bấm thử lại."
+      : error.message || "Không thể phân tích đa phương pháp giải.";
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
