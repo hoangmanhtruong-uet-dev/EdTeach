@@ -16,6 +16,20 @@ const nextConfig: NextConfig = {
   experimental: {
     agentUpgrade: "security" as any,
   },
+  async redirects() {
+    return [
+      {
+        source: "/labs/courses/index.html",
+        destination: "/labs",
+        permanent: true,
+      },
+      {
+        source: "/labs/courses",
+        destination: "/labs",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;
