@@ -148,33 +148,60 @@ function StudentSubmissionContent({ params }: SubmissionPageProps) {
     return `${mins} phút ${secs < 10 ? "0" : ""}${secs} giây`;
   };
 
-  // Handle photo file selection
+  // Handle photo file selection - Gọi OMR Scanner thực tế
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       const base64 = event.target?.result as string;
       setSelectedPhoto(base64);
-
-      // Simulate AI OMR recognition on the photo
       setIsPhotoScanning(true);
-      setTimeout(() => {
-        setIsPhotoScanning(false);
-        const count = linkData?.questionCount || 20;
-        const choices = ["A", "B", "C", "D"];
-        const autoDetected: Record<number, string> = { ...answers };
-        for (let q = 1; q <= count; q++) {
-          if (!autoDetected[q]) {
-            // High probability of detected answer
-            if (Math.random() > 0.08) {
-              autoDetected[q] = choices[Math.floor(Math.random() * choices.length)];
+
+      try {
+        const res = await fetch("/api/grading/omr", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "grade_single",
+            imageBase64: base64,
+            sheetType: linkData?.sheetType || "2025",
+            answerKey: {},
+          }),
+        });
+
+        if (res.ok) {
+          const json = await res.json();
+          const omr = json.data;
+
+          if (omr) {
+            const detectedAnswers: Record<number, string> = { ...answers };
+            const resultsMap = omr.results || omr.part1_results || {};
+
+            for (const [k, v] of Object.entries(resultsMap)) {
+              const qNum = Number(k);
+              const val = typeof v === "object" && v !== null ? (v as any).selected : v;
+              if (val && typeof val === "string") {
+                detectedAnswers[qNum] = val.toUpperCase();
+              }
+            }
+            setAnswers(detectedAnswers);
+
+            // Tự động điền Số Báo Danh và Mã Đề nếu AI đọc được từ phiếu
+            if (omr.student_code && omr.student_code !== "??????" && !studentCode) {
+              setStudentCode(omr.student_code);
+            }
+            if (omr.exam_code && omr.exam_code !== "???" && !examCode) {
+              setExamCode(omr.exam_code);
             }
           }
         }
-        setAnswers(autoDetected);
-      }, 900);
+      } catch (scanErr) {
+        console.error("Lỗi quét ảnh OMR:", scanErr);
+      } finally {
+        setIsPhotoScanning(false);
+      }
     };
     reader.readAsDataURL(file);
   };
@@ -665,7 +692,7 @@ function StudentSubmissionContent({ params }: SubmissionPageProps) {
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-semibold text-slate-700">
                           Đáp án đã nhận diện ({Object.values(answers).filter(Boolean).length}/
-                          {questionCount} câu):
+                          {Math.max(questionCount, ...Object.keys(answers).map(Number).filter(n => !isNaN(n)), 0)} câu):
                         </span>
                         <button
                           onClick={() => setInputMode("bubble")}
@@ -674,8 +701,14 @@ function StudentSubmissionContent({ params }: SubmissionPageProps) {
                           Chỉnh sửa đáp án thủ công
                         </button>
                       </div>
-                      <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
-                        {Array.from({ length: questionCount }).map((_, idx) => {
+                      <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto">
+                        {Array.from({
+                          length: Math.max(
+                            questionCount,
+                            ...Object.keys(answers).map(Number).filter((n) => !isNaN(n)),
+                            0
+                          ),
+                        }).map((_, idx) => {
                           const q = idx + 1;
                           const val = answers[q];
                           return (
