@@ -20,7 +20,7 @@ import {
   Presentation,
   Store,
 } from "lucide-react";
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useCallback } from "react";
 import { useAuth } from "@/context/auth-context";
 import { getUserWallet } from "@/lib/api/wallet";
 import { isMaxUser, isProUser } from "@/lib/payment/plans";
@@ -41,7 +41,7 @@ const sidebarLinks = [
 function NavLinks({ onClose }: { onClose: () => void }) {
   const pathname = usePathname();
   return (
-    <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+    <nav className="flex-1 space-y-1 overflow-y-auto p-3" aria-label="Điều hướng chính">
       {sidebarLinks.map((link) => {
         const isActive =
           pathname === link.href ||
@@ -52,9 +52,9 @@ function NavLinks({ onClose }: { onClose: () => void }) {
             href={link.href}
             onClick={onClose}
             aria-current={isActive ? "page" : undefined}
-            className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+            className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary ${
               isActive
-                ? "bg-primary text-primary-foreground"
+                ? "bg-primary text-primary-foreground shadow-xs"
                 : "text-muted-foreground hover:bg-muted hover:text-foreground"
             }`}
           >
@@ -78,6 +78,21 @@ function DashboardLayoutInner({
 
   const isMax = isMaxUser(profile) || isMaxUser(user);
   const isPro = isProUser(profile) || isProUser(user);
+
+  // Close sidebar on Escape key
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === "Escape" && sidebarOpen) {
+        setSidebarOpen(false);
+      }
+    },
+    [sidebarOpen]
+  );
+
+  useEffect(() => {
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleKeyDown]);
 
   useEffect(() => {
     async function loadWallet() {
@@ -133,38 +148,56 @@ function DashboardLayoutInner({
 
   return (
     <div className="flex h-screen bg-background text-foreground">
-      {/* Mobile overlay */}
+      {/* Mobile overlay with keyboard accessible button */}
       {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+        <button
+          type="button"
+          aria-label="Đóng thanh điều hướng"
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden border-0 cursor-default transition-opacity"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       {/* Sidebar */}
       <aside
+        aria-label="Thanh điều hướng bên"
         className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-border bg-card transition-transform lg:static lg:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        {/* Logo */}
+        {/* Logo & Version */}
         <div className="flex h-16 items-center justify-between border-b border-border px-4">
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <BookOpen className="h-7 w-7 text-primary" />
-            <div className="flex flex-col">
-              <span className="text-lg font-bold leading-tight">
-                Edu<span className="text-primary">Test</span> AI
-              </span>
-              <span className="text-[10px] font-semibold text-muted-foreground">
-                v1.0.0 Beta (Thử nghiệm 14 ngày)
-              </span>
-            </div>
-          </Link>
+          <div className="flex items-center gap-2 min-w-0">
+            <Link
+              href="/dashboard"
+              className="flex items-center gap-2 rounded-lg focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              <BookOpen className="h-7 w-7 text-primary shrink-0" aria-hidden="true" />
+              <div className="flex flex-col min-w-0">
+                <span className="text-lg font-bold leading-tight truncate">
+                  Edu<span className="text-primary">Test</span> AI
+                </span>
+                <span className="text-[10px] font-semibold text-muted-foreground truncate">
+                  v1.0.0 Beta (GDPT 2025)
+                </span>
+              </div>
+            </Link>
+            <Link
+              href="/updates"
+              title="Khám phá lộ trình bản chính thức v2.0.0"
+              className="hidden sm:inline-flex items-center gap-1 rounded bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 text-[9px] font-black uppercase text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 transition-colors shrink-0"
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" aria-hidden="true" />
+              v2.0
+            </Link>
+          </div>
           <button
+            type="button"
             onClick={() => setSidebarOpen(false)}
-            className="rounded-lg p-1 hover:bg-muted lg:hidden"
+            aria-label="Đóng thanh điều hướng"
+            className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary lg:hidden"
           >
-            <X className="h-5 w-5" />
+            <X className="h-5 w-5" aria-hidden="true" />
           </button>
         </div>
 
@@ -173,17 +206,22 @@ function DashboardLayoutInner({
           <NavLinks onClose={() => setSidebarOpen(false)} />
         </Suspense>
 
-        {/* User section (at bottom of sidebar, clear from Next dev badge) */}
+        {/* User section */}
         <div className="mt-auto border-t border-border p-3 pb-6 bg-card/50">
           <div className="flex items-center gap-3 rounded-lg px-2.5 py-2 min-w-0">
             {profile?.avatar_url ? (
               <img
                 src={profile.avatar_url}
-                alt="Avatar"
+                alt="Avatar tài khoản"
+                width={32}
+                height={32}
                 className="h-8 w-8 rounded-full object-cover border border-primary/30 shrink-0"
               />
             ) : (
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary shrink-0">
+              <div
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary shrink-0"
+                aria-hidden="true"
+              >
                 {initials}
               </div>
             )}
@@ -197,7 +235,7 @@ function DashboardLayoutInner({
                 </p>
                 {isMax ? (
                   <span className="shrink-0 rounded bg-amber-500 text-white px-1.5 py-0.5 text-[10px] font-black shadow-xs flex items-center gap-0.5">
-                    <Crown className="w-2.5 h-2.5" /> MAX
+                    <Crown className="w-2.5 h-2.5" aria-hidden="true" /> MAX
                   </span>
                 ) : isPro ? (
                   <span className="shrink-0 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary border border-primary/20">
@@ -218,9 +256,10 @@ function DashboardLayoutInner({
             </div>
           </div>
           <button
+            type="button"
             onClick={() => signOut()}
             aria-label="Đăng xuất khỏi tài khoản"
-            className="mt-1 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive cursor-pointer"
+            className="mt-1 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-destructive"
           >
             <LogOut className="h-4 w-4 shrink-0" aria-hidden="true" />
             <span>Đăng xuất</span>
@@ -233,31 +272,34 @@ function DashboardLayoutInner({
         {/* Top bar */}
         <header className="flex h-16 items-center gap-3 border-b border-border bg-card px-4 lg:px-6">
           <button
+            type="button"
             onClick={() => setSidebarOpen(true)}
-            className="rounded-lg p-2 hover:bg-muted lg:hidden"
+            aria-label="Mở thanh điều hướng"
+            className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary lg:hidden"
           >
-            <Menu className="h-5 w-5" />
+            <Menu className="h-5 w-5" aria-hidden="true" />
           </button>
 
           <div className="flex-1" />
 
           {/* PRO/MAX status badge or upgrade pill */}
           {isMax ? (
-            <span className="flex items-center gap-1.5 rounded-full bg-linear-to-r from-amber-500 to-amber-600 px-3 py-1.5 text-xs font-black text-white shadow-xs">
-              <Crown className="h-3.5 w-3.5" />
+            <span className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 px-3 py-1.5 text-xs font-black text-white shadow-xs">
+              <Crown className="h-3.5 w-3.5" aria-hidden="true" />
               <span>GÓI MAX • BETA 14 NGÀY</span>
             </span>
           ) : isPro ? (
-            <span className="flex items-center gap-1.5 rounded-full bg-linear-to-r from-blue-600 to-indigo-600 px-3 py-1.5 text-xs font-bold text-white shadow-xs">
-              <Sparkles className="h-3.5 w-3.5" />
+            <span className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 px-3 py-1.5 text-xs font-bold text-white shadow-xs">
+              <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
               <span>GÓI PRO</span>
             </span>
           ) : (
             <Link
               href="/wallet?plan=pro"
-              className="flex items-center gap-1.5 rounded-full bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 px-3 py-1.5 text-xs font-bold transition shadow-2xs"
+              aria-label="Nâng cấp gói Giáo Viên PRO"
+              className="flex items-center gap-1.5 rounded-full bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 px-3 py-1.5 text-xs font-bold transition-colors shadow-2xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-amber-500"
             >
-              <Sparkles className="h-3.5 w-3.5 text-amber-600" />
+              <Sparkles className="h-3.5 w-3.5 text-amber-600" aria-hidden="true" />
               <span>Nâng cấp PRO</span>
             </Link>
           )}
@@ -265,10 +307,15 @@ function DashboardLayoutInner({
           {/* Credits badge */}
           <Link
             href="/wallet"
-            className="flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary transition hover:bg-primary/20"
+            aria-label="Quản lý ví và số dư credits"
+            className="flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary transition-colors hover:bg-primary/20 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary"
           >
-            <Wallet className="h-4 w-4" />
-            <span>{credits !== null ? `${credits.toLocaleString()} credits` : "Đang tải..."}</span>
+            <Wallet className="h-4 w-4" aria-hidden="true" />
+            <span className="tabular-nums">
+              {credits !== null
+                ? `${new Intl.NumberFormat("vi-VN").format(credits)} credits`
+                : "Đang tải…"}
+            </span>
           </Link>
         </header>
 

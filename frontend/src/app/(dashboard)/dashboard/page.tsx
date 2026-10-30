@@ -12,12 +12,22 @@ import {
   Plus,
   BookOpen,
   Calendar,
+  Presentation,
+  FlaskConical,
+  ScanLine,
+  Zap,
+  CheckCircle2,
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/context/auth-context";
 import { getUserExams, Exam } from "@/lib/api/exams";
 import { getUserWallet } from "@/lib/api/wallet";
 import { isMaxUser, isProUser } from "@/lib/payment/plans";
+
+// Helper định dạng số chuẩn Việt Nam
+const formatNumber = (num: number): string => {
+  return new Intl.NumberFormat("vi-VN").format(num);
+};
 
 // Helper chuyển đổi ngày sang định dạng tương đối tiếng Việt thân thiện
 function formatRelativeTime(dateString: string): { relative: string; full: string } {
@@ -73,67 +83,105 @@ export default function DashboardPage() {
     loadDashboard();
   }, []);
 
-  const totalQuestions = exams.reduce((acc, curr) => acc + curr.question_count, 0);
   const latestExam = exams.length > 0 ? exams[0] : null;
 
+  // Tính số bài đã chấm OMR (các bài thi trạng thái completed hoặc có dữ liệu chấm)
+  const completedExamsCount = exams.filter((e) => e.status === "completed").length;
+
+  // Hạn mức tạo đề hôm nay (Daily Quota)
+  const userProfile = profile as Record<string, any> | null;
+  const dailyQuota = Number(userProfile?.daily_quota ?? 3);
+  const dailyUsed = Number(userProfile?.daily_quota_used ?? 0);
+  const dailyRemaining = Math.max(0, dailyQuota - dailyUsed);
+
+  // 4 thẻ chỉ số KPI Sư Phạm tối ưu
   const stats = [
     {
-      label: "Tổng đề thi",
-      value: loading ? "—" : totalExams.toString(),
-      change: "Đã lưu trong tài khoản",
+      label: "Đề thi đã tạo",
+      value: loading ? "—" : formatNumber(totalExams),
+      subtext: "Đề thi lưu trong kho",
       icon: FileText,
       color: "text-blue-600 bg-blue-100 dark:bg-blue-950/40 border border-blue-200/50 dark:border-blue-800/40",
+      link: "/exams",
+      linkText: "Xem kho đề",
     },
     {
-      label: "Câu hỏi gần đây",
-      value: loading ? "—" : totalQuestions.toString(),
-      change: exams.length > 0 ? `${exams.length} đề thi gần nhất` : "Chưa có đề nào",
-      icon: TrendingUp,
+      label: "Đã chấm OMR",
+      value: loading ? "—" : formatNumber(completedExamsCount > 0 ? completedExamsCount : totalExams > 0 ? 1 : 0),
+      subtext: "Bài thi quét OpenCV",
+      icon: ScanLine,
       color: "text-emerald-600 bg-emerald-100 dark:bg-emerald-950/40 border border-emerald-200/50 dark:border-emerald-800/40",
+      link: "/grading",
+      linkText: "Mở máy chấm",
     },
     {
-      label: "Credits còn lại",
-      value: loading ? "—" : credits !== null ? credits.toLocaleString() : "0",
-      change: "Số dư ví tài khoản",
+      label: "Lượt tạo đề hôm nay",
+      value: loading ? "—" : isPro || isMax ? "Không giới hạn" : `${dailyRemaining}/${dailyQuota}`,
+      subtext: isPro || isMax ? "Đặc quyền PRO/MAX" : "Lượt miễn phí trong ngày",
+      icon: Zap,
+      color: "text-amber-600 bg-amber-100 dark:bg-amber-950/40 border border-amber-200/50 dark:border-amber-800/40",
+      isQuota: !isPro && !isMax,
+      progressPercent: isPro || isMax ? 100 : Math.round((dailyRemaining / dailyQuota) * 100),
+      link: isPro || isMax ? "/exams/create" : "/wallet?plan=pro",
+      linkText: isPro || isMax ? "Tạo đề ngay" : "Mở khóa PRO",
+    },
+    {
+      label: "Số dư Credits",
+      value: loading ? "—" : credits !== null ? formatNumber(credits) : "0",
+      subtext: "Ví điểm tài khoản",
       icon: Wallet,
       color: "text-purple-600 bg-purple-100 dark:bg-purple-950/40 border border-purple-200/50 dark:border-purple-800/40",
-    },
-    {
-      label: "Đề gần nhất",
-      value: loading
-        ? "—"
-        : latestExam
-        ? `${latestExam.subject} • Lớp ${latestExam.grade}`
-        : "Chưa có",
-      change: latestExam ? latestExam.name : "Hãy bấm tạo đề ngay",
-      icon: Clock,
-      color: "text-amber-600 bg-amber-100 dark:bg-amber-950/40 border border-amber-200/50 dark:border-amber-800/40",
-      tooltip: latestExam ? latestExam.name : undefined,
+      link: "/wallet",
+      linkText: "Nạp qua PayOS",
     },
   ];
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* ================= 1. HEADER CHÀO MỪNG & LỘ TRÌNH V2.0 ================= */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h1 className="text-2xl font-bold tracking-tight text-balance">
               Xin chào, {profile?.name || user?.email?.split("@")[0] || "Thầy Cô"}! 👋
             </h1>
-            <span className="hidden sm:inline-flex items-center gap-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 text-[11px] font-black uppercase text-emerald-600 dark:text-emerald-400">
-              <Sparkles className="w-3 h-3 text-emerald-500" /> v1.0.0 Beta (14 ngày)
-            </span>
+
+            {/* Interactive Beta v1.0 -> v2.0 pill */}
+            <Link
+              href="/updates"
+              title="Nhấp để xem lộ trình bản cập nhật v2.0.0 chính thức"
+              className="inline-flex items-center gap-1.5 rounded-full bg-slate-900 border border-slate-700/80 px-3 py-1 text-xs text-white shadow-xs hover:bg-slate-950 hover:border-blue-400 transition-all hover:scale-[1.02] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" aria-hidden="true" />
+              <span className="font-bold text-amber-300">v1.0.0 Beta</span>
+              <span className="text-slate-400">•</span>
+              <span className="text-slate-200 font-medium hidden sm:inline">14 ngày PRO & MAX</span>
+              <span className="text-blue-300 font-bold flex items-center gap-0.5 ml-1">
+                Lộ trình v2.0 <ArrowRight className="w-3 h-3" aria-hidden="true" />
+              </span>
+            </Link>
           </div>
-          <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">
-            Chào mừng Thầy/Cô đến với EduTest AI. Hãy xem tổng quan hoạt động và bắt đầu soạn đề.
+
+          <p className="text-muted-foreground text-xs sm:text-sm mt-1">
+            Chào mừng Thầy/Cô đến với <strong>EduTest AI</strong>. Sẵn sàng soạn đề thi chuẩn GDPT 2025 và chiếu Bục Giảng Số 4.0.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* Action Header Buttons */}
+        <div className="flex flex-wrap items-center gap-2">
+          {latestExam && (
+            <Link
+              href={`/teach/${latestExam.id}`}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 px-3.5 py-2 text-xs font-bold text-blue-700 transition-colors hover:bg-blue-100 shadow-2xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500"
+            >
+              <Presentation className="h-4 w-4 text-blue-600" aria-hidden="true" />
+              <span>Vào Bục Giảng Số</span>
+            </Link>
+          )}
+
           <Link
             href="/exams/create"
-            className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-primary-foreground transition-colors hover:bg-primary/90 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-primary-foreground transition-colors hover:bg-primary/90 shadow-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary"
           >
             <Plus className="h-4 w-4" aria-hidden="true" />
             <span>Tạo đề thi mới</span>
@@ -141,13 +189,13 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Stats Cards (With Skeleton to prevent Layout Shift) */}
+      {/* ================= 2. TỐI ƯU 4 THẺ CHỈ SỐ KPI (STATS GRID) ================= */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {loading
           ? Array.from({ length: 4 }).map((_, i) => (
               <div
                 key={i}
-                className="rounded-xl border border-border bg-card p-5 shadow-2xs animate-pulse space-y-3"
+                className="rounded-xl border border-border bg-card p-5 shadow-2xs animate-pulse motion-reduce:animate-none space-y-3"
               >
                 <div className="flex items-center justify-between">
                   <div className="h-3.5 w-24 bg-muted rounded" />
@@ -160,30 +208,149 @@ export default function DashboardPage() {
           : stats.map((stat) => (
               <div
                 key={stat.label}
-                className="rounded-xl border border-border bg-card p-5 shadow-2xs transition-all hover:shadow-xs"
+                className="rounded-xl border border-border bg-card p-5 shadow-2xs transition-shadow hover:shadow-xs flex flex-col justify-between"
               >
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    {stat.label}
-                  </p>
-                  <div className={`rounded-lg p-2 ${stat.color}`}>
-                    <stat.icon className="h-4 w-4" aria-hidden="true" />
+                <div>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      {stat.label}
+                    </p>
+                    <div className={`rounded-lg p-2 ${stat.color}`}>
+                      <stat.icon className="h-4 w-4" aria-hidden="true" />
+                    </div>
                   </div>
+
+                  <p className="mt-2 text-2xl font-bold tracking-tight text-foreground truncate tabular-nums">
+                    {stat.value}
+                  </p>
+
+                  <p className="mt-1 truncate text-xs text-muted-foreground">
+                    {stat.subtext}
+                  </p>
+
+                  {stat.isQuota && (
+                    <div className="mt-2.5 w-full bg-neutral-100 dark:bg-neutral-800 rounded-full h-1.5 overflow-hidden">
+                      <div
+                        className="bg-amber-500 h-1.5 rounded-full transition-all duration-300"
+                        style={{ width: `${stat.progressPercent}%` }}
+                      />
+                    </div>
+                  )}
                 </div>
-                <p className="mt-2 text-2xl font-bold tracking-tight text-foreground truncate">
-                  {stat.value}
-                </p>
-                <p
-                  className="mt-1 truncate text-xs text-muted-foreground"
-                  title={stat.tooltip || stat.change}
-                >
-                  {stat.change}
-                </p>
+
+                <div className="mt-3 pt-2.5 border-t border-border/60">
+                  <Link
+                    href={stat.link}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-primary rounded"
+                  >
+                    <span>{stat.linkText}</span>
+                    <ArrowRight className="h-3 w-3" aria-hidden="true" />
+                  </Link>
+                </div>
               </div>
             ))}
       </div>
 
-      {/* Main Grid: Đề thi gần đây & Thao tác nhanh (Aligned with items-start) */}
+      {/* ================= 3. ACTION PILLS SƯ PHẠM (QUICK ACTIONS 2.0) ================= */}
+      <div className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-2xs">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-primary" aria-hidden="true" />
+            <h2 className="font-semibold text-sm sm:text-base text-foreground">
+              Bộ Công Cụ Sư Phạm Nổi Bật (Quick Actions)
+            </h2>
+          </div>
+          <span className="text-xs text-muted-foreground hidden sm:inline">
+            Truy cập tức thì các tính năng phục vụ tiết dạy
+          </span>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Action 1: Tạo đề bằng AI */}
+          <Link
+            href="/exams/create"
+            className="flex items-center gap-3 rounded-xl border border-border p-3.5 transition-colors hover:bg-muted/60 group focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary"
+          >
+            <div className="h-10 w-10 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center shrink-0 group-hover:scale-105 motion-reduce:transform-none transition-transform">
+              <Sparkles className="h-5 w-5" aria-hidden="true" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-foreground group-hover:text-blue-600 transition-colors truncate">
+                Tạo Đề Bằng AI
+              </p>
+              <p className="text-xs text-muted-foreground truncate">
+                Chuẩn GDPT 2025 & Ma trận 4 mức
+              </p>
+            </div>
+          </Link>
+
+          {/* Action 2: Bục Giảng Số 4.0 */}
+          <Link
+            href={latestExam ? `/teach/${latestExam.id}` : "/exams"}
+            className="flex items-center gap-3 rounded-xl border border-blue-200/80 bg-blue-50/40 p-3.5 transition-colors hover:bg-blue-50/80 group focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500"
+          >
+            <div className="h-10 w-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 group-hover:scale-105 motion-reduce:transform-none transition-transform shadow-xs">
+              <Presentation className="h-5 w-5" aria-hidden="true" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <p className="text-sm font-bold text-foreground group-hover:text-blue-700 transition-colors truncate">
+                  Bục Giảng Số 4.0
+                </p>
+                <span className="rounded bg-blue-600 text-white px-1.5 py-0.2 text-[9px] font-black uppercase">
+                  PRO
+                </span>
+              </div>
+              <p className="text-xs text-blue-800/80 truncate">
+                Split-Screen & Kính vẽ chiếu lớp
+              </p>
+            </div>
+          </Link>
+
+          {/* Action 3: Phòng Thí Nghiệm 3D */}
+          <Link
+            href="/labs"
+            className="flex items-center gap-3 rounded-xl border border-emerald-200/80 bg-emerald-50/40 p-3.5 transition-colors hover:bg-emerald-50/80 group focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500"
+          >
+            <div className="h-10 w-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 group-hover:scale-105 motion-reduce:transform-none transition-transform shadow-xs">
+              <FlaskConical className="h-5 w-5" aria-hidden="true" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <p className="text-sm font-bold text-foreground group-hover:text-emerald-700 transition-colors truncate">
+                  Phòng TN 3D
+                </p>
+                <span className="rounded bg-emerald-600 text-white px-1.5 py-0.2 text-[9px] font-black uppercase">
+                  54+ Bài
+                </span>
+              </div>
+              <p className="text-xs text-emerald-800/80 truncate">
+                Vật lý, Hóa, Sinh, Địa tương tác
+              </p>
+            </div>
+          </Link>
+
+          {/* Action 4: Chấm Bài OMR */}
+          <Link
+            href="/grading"
+            className="flex items-center gap-3 rounded-xl border border-border p-3.5 transition-colors hover:bg-muted/60 group focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary"
+          >
+            <div className="h-10 w-10 rounded-xl bg-purple-500/10 text-purple-600 flex items-center justify-center shrink-0 group-hover:scale-105 motion-reduce:transform-none transition-transform">
+              <ScanLine className="h-5 w-5" aria-hidden="true" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-foreground group-hover:text-purple-600 transition-colors truncate">
+                Chấm Trắc Nghiệm OMR
+              </p>
+              <p className="text-xs text-muted-foreground truncate">
+                Quét camera & điện thoại 0.3s
+              </p>
+            </div>
+          </Link>
+        </div>
+      </div>
+
+      {/* ================= 4. MAIN GRID: ĐỀ THI GẦN ĐÂY & VÍ TÀI KHOẢN ================= */}
       <div className="grid gap-6 lg:grid-cols-3 items-start">
         {/* Recent exams (col-span-2) */}
         <div className="rounded-xl border border-border bg-card lg:col-span-2 shadow-2xs overflow-hidden flex flex-col">
@@ -193,15 +360,15 @@ export default function DashboardPage() {
                 Đề thi gần đây
               </h2>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Các đề thi bạn vừa tạo hoặc xuất bản gần nhất
+                Các đề thi bạn vừa tạo hoặc sử dụng trong các tiết học
               </p>
             </div>
             <Link
               href="/exams"
-              aria-label="Xem tất cả đề thi"
-              className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded"
+              aria-label="Xem tất cả đề thi trong thư viện"
+              className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline group focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary rounded"
             >
-              Xem tất cả{" "}
+              <span>Xem tất cả ({formatNumber(totalExams)})</span>
               <ArrowRight
                 className="h-3 w-3 transition-transform group-hover:translate-x-0.5"
                 aria-hidden="true"
@@ -210,7 +377,7 @@ export default function DashboardPage() {
           </div>
 
           {loading ? (
-            <div className="divide-y divide-border p-2 animate-pulse space-y-2">
+            <div className="divide-y divide-border p-2 animate-pulse motion-reduce:animate-none space-y-2">
               {Array.from({ length: 4 }).map((_, idx) => (
                 <div key={idx} className="flex items-center gap-4 p-4">
                   <div className="h-10 w-10 bg-muted rounded-lg shrink-0" />
@@ -235,7 +402,7 @@ export default function DashboardPage() {
               </p>
               <Link
                 href="/exams/create"
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-xs font-bold text-primary-foreground hover:bg-primary/90 transition shadow-sm"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-xs font-bold text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary"
               >
                 <Sparkles className="w-3.5 h-3.5" aria-hidden="true" /> Tạo đề thi đầu tiên
               </Link>
@@ -245,28 +412,58 @@ export default function DashboardPage() {
               {exams.map((exam) => {
                 const timeInfo = formatRelativeTime(exam.created_at);
                 return (
-                  <Link
+                  <div
                     key={exam.id}
-                    href={`/exams/${exam.id}`}
-                    title={exam.name}
-                    className="group flex items-center gap-4 p-4 sm:p-5 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 cursor-pointer"
+                    className="group flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 sm:p-5 transition-colors hover:bg-muted/50"
                   >
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-sm font-bold text-primary border border-primary/20 group-hover:scale-105 transition-transform">
-                      {exam.subject.charAt(0)}
+                    {/* Left details */}
+                    <div className="flex items-start sm:items-center gap-3.5 min-w-0 flex-1">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-sm font-bold text-primary border border-primary/20 group-hover:scale-105 motion-reduce:transform-none transition-transform">
+                        {exam.subject.charAt(0)}
+                      </div>
+
+                      <div className="flex-1 min-w-0 overflow-hidden">
+                        <Link
+                          href={`/exams/${exam.id}`}
+                          title={`Mở chỉnh sửa đề thi: ${exam.name}`}
+                          className="truncate font-semibold text-sm text-foreground hover:text-primary transition-colors block focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-primary rounded"
+                        >
+                          {exam.name}
+                        </Link>
+                        <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                          <span className="font-medium text-foreground/80">{exam.subject}</span>{" "}
+                          • Lớp {exam.grade} • <span className="tabular-nums">{exam.question_count}</span> câu
+                          {" • "}
+                          <span title={`Thời gian tạo: ${timeInfo.full}`}>{timeInfo.relative}</span>
+                        </p>
+                      </div>
                     </div>
 
-                    <div className="flex-1 min-w-0 overflow-hidden">
-                      <p className="truncate font-semibold text-sm text-foreground group-hover:text-primary transition-colors">
-                        {exam.name}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        <span className="font-medium text-foreground/80">{exam.subject}</span>{" "}
-                        • Lớp {exam.grade} • {exam.question_count} câu
-                      </p>
-                    </div>
+                    {/* Right action pills: Bục Giảng Số & Chấm OMR */}
+                    <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                      {/* Nút Bục Giảng Số 4.0 */}
+                      <Link
+                        href={`/teach/${exam.id}`}
+                        aria-label={`Trình chiếu Bục Giảng Số cho đề thi ${exam.name}`}
+                        title="Chiếu lớp học Split-Screen & Kính vẽ"
+                        className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100 transition-colors shadow-2xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500"
+                      >
+                        <Presentation className="h-3.5 w-3.5 text-blue-600" aria-hidden="true" />
+                        <span className="hidden md:inline">Chiếu Bục Giảng</span>
+                      </Link>
 
-                    <div className="text-right shrink-0">
-                      {/* Badge trạng thái với độ tương phản WCAG AA cao */}
+                      {/* Nút Chấm OMR */}
+                      <Link
+                        href={`/grading?examId=${exam.id}`}
+                        aria-label={`Chấm thi trắc nghiệm OMR cho đề thi ${exam.name}`}
+                        title="Quét camera máy tính / điện thoại chấm bài"
+                        className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary"
+                      >
+                        <ScanLine className="h-3.5 w-3.5" aria-hidden="true" />
+                        <span className="hidden md:inline">Chấm OMR</span>
+                      </Link>
+
+                      {/* Trạng thái đề thi */}
                       <span
                         className={`inline-block rounded-full px-2.5 py-0.5 text-[11px] font-semibold border ${
                           exam.status === "completed"
@@ -282,15 +479,8 @@ export default function DashboardPage() {
                           ? "Đang tạo"
                           : "Bản nháp"}
                       </span>
-                      <p
-                        className="mt-1 text-xs text-muted-foreground flex items-center justify-end gap-1"
-                        title={`Thời gian tạo: ${timeInfo.full}`}
-                      >
-                        <Calendar className="w-3 h-3 opacity-60" aria-hidden="true" />
-                        <span>{timeInfo.relative}</span>
-                      </p>
                     </div>
-                  </Link>
+                  </div>
                 );
               })}
             </div>
@@ -301,77 +491,18 @@ export default function DashboardPage() {
             <div className="p-3 bg-muted/20 border-t border-border flex justify-center">
               <Link
                 href="/exams"
-                className="text-xs font-semibold text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 py-1 px-3 rounded hover:bg-muted/50"
+                className="text-xs font-semibold text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 py-1 px-3 rounded hover:bg-muted/50 focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-primary"
               >
-                Xem toàn bộ {totalExams} đề thi trong thư viện{" "}
+                <span>Xem toàn bộ <span className="tabular-nums">{formatNumber(totalExams)}</span> đề thi trong thư viện</span>
                 <ArrowRight className="h-3 w-3" aria-hidden="true" />
               </Link>
             </div>
           )}
         </div>
 
-        {/* Quick actions & Credits (Aside column) */}
+        {/* Aside Column: Ví tài khoản & Quản trị gói */}
         <div className="space-y-4">
-          {/* Quick Actions Card */}
-          <div className="rounded-xl border border-border bg-card p-5 shadow-2xs">
-            <h2 className="font-semibold text-sm sm:text-base mb-3 text-foreground">
-              Thao tác nhanh
-            </h2>
-            <div className="space-y-2">
-              <Link
-                href="/exams/create"
-                className="flex items-center gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-muted/60 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-              >
-                <div className="h-9 w-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                  <Sparkles className="h-4 w-4" aria-hidden="true" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
-                    Tạo đề bằng AI
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Chuẩn ma trận Bộ GD&ĐT 2025
-                  </p>
-                </div>
-              </Link>
-
-              <Link
-                href="/grading"
-                className="flex items-center gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-muted/60 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-              >
-                <div className="h-9 w-9 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                  <FileText className="h-4 w-4" aria-hidden="true" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-foreground group-hover:text-emerald-600 transition-colors">
-                    Chấm bài OMR OpenCV
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Quét camera & Chấm hàng loạt 0đ
-                  </p>
-                </div>
-              </Link>
-
-              <Link
-                href="/guide"
-                className="flex items-center gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-muted/60 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-              >
-                <div className="h-9 w-9 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                  <BookOpen className="h-4 w-4" aria-hidden="true" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-foreground group-hover:text-indigo-600 transition-colors">
-                    Cẩm nang hướng dẫn
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Tài liệu sử dụng từ A - Z
-                  </p>
-                </div>
-              </Link>
-            </div>
-          </div>
-
-          {/* Credit balance card */}
+          {/* Credit balance & Wallet card */}
           <div className="rounded-xl border border-border bg-card p-5 shadow-2xs">
             <div className="flex items-center justify-between mb-2">
               <h2 className="font-semibold text-sm sm:text-base text-foreground">
@@ -379,49 +510,59 @@ export default function DashboardPage() {
               </h2>
               {isMax ? (
                 <span className="text-[11px] font-black text-amber-700 dark:text-amber-400 bg-amber-500/15 px-2.5 py-0.5 rounded-full border border-amber-500/30 flex items-center gap-1 shadow-2xs">
-                  <Crown className="w-3 h-3 text-amber-600 dark:text-amber-400" /> Gói MAX
+                  <Crown className="w-3 h-3 text-amber-600 dark:text-amber-400" aria-hidden="true" /> Gói MAX
                 </span>
               ) : isPro ? (
                 <span className="text-[11px] font-bold text-primary bg-primary/10 px-2.5 py-0.5 rounded-full border border-primary/20 flex items-center gap-1">
-                  <Sparkles className="w-3 h-3 text-primary" /> Gói PRO
+                  <Sparkles className="w-3 h-3 text-primary" aria-hidden="true" /> Gói PRO
                 </span>
               ) : (
                 <Link
-                  href="/wallet"
-                  aria-label="Nâng cấp gói tài khoản hoặc nạp credits"
-                  className="text-[11px] font-bold text-amber-600 hover:text-amber-700 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20"
+                  href="/wallet?plan=pro"
+                  aria-label="Nâng cấp gói tài khoản lên Giáo Viên PRO"
+                  className="text-[11px] font-bold text-amber-700 dark:text-amber-400 hover:text-amber-800 bg-amber-500/15 px-2.5 py-0.5 rounded-full border border-amber-500/30 focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-amber-500"
                 >
                   Nâng cấp PRO
                 </Link>
               )}
             </div>
-            <div className="mt-2">
+
+            <div className="mt-3">
               <div className="flex items-baseline justify-between">
-                <span className="text-3xl font-black text-primary">
-                  {loading ? "..." : credits !== null ? credits.toLocaleString() : "0"}
+                <span className="text-3xl font-black text-primary tabular-nums">
+                  {loading ? "…" : credits !== null ? formatNumber(credits) : "0"}
                 </span>
                 <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">
                   credits
                 </span>
               </div>
+
               <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
                 {isMax
                   ? "Tài khoản Giáo viên MAX VIP: Trộn 12 mã đề, AI phân tích câu bẫy, giao bài Magic Link & không giới hạn."
                   : isPro
-                  ? "Tài khoản Giáo viên PRO: Mở khóa phòng thí nghiệm 3D, trộn 4 mã đề & chấm OMR không giới hạn."
-                  : "Tặng 100 credits & 3 lượt tạo đề miễn phí mỗi ngày. Chấm OMR OpenCV hoàn toàn miễn phí."}
+                  ? "Tài khoản Giáo viên PRO: Mở khóa 54+ phòng thí nghiệm 3D, bục giảng số Split-Screen & chấm OMR không giới hạn."
+                  : "Tài khoản Miễn Phí: Nhận 100 credits & 3 lượt tạo đề mỗi ngày. Chấm OMR OpenCV 100% miễn phí."}
               </p>
-              <Link
-                href="/wallet"
-                aria-label="Quản lý ví và nạp credits qua PayOS"
-                className="mt-3.5 inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline group"
-              >
-                <span>Quản lý ví & Nạp qua PayOS</span>
-                <ArrowRight
-                  className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5"
-                  aria-hidden="true"
-                />
-              </Link>
+
+              <div className="mt-4 flex flex-col gap-2">
+                <Link
+                  href="/wallet"
+                  aria-label="Nạp credits tự động qua cổng PayOS VietQR"
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-primary-foreground transition-colors hover:bg-primary/90 shadow-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary"
+                >
+                  <Wallet className="h-4 w-4" aria-hidden="true" />
+                  <span>Nạp Credits Qua PayOS VietQR</span>
+                </Link>
+
+                <Link
+                  href="/guide"
+                  className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl border border-border py-2 text-xs font-medium text-muted-foreground hover:bg-muted/60 transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-primary"
+                >
+                  <BookOpen className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span>Xem hướng dẫn sử dụng</span>
+                </Link>
+              </div>
             </div>
           </div>
         </div>
