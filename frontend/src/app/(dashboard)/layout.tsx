@@ -14,6 +14,7 @@ import {
   X,
   ScanLine,
   Sparkles,
+  Crown,
   HelpCircle,
   FlaskConical,
   Presentation,
@@ -22,6 +23,7 @@ import {
 import { useState, useEffect, Suspense } from "react";
 import { useAuth } from "@/context/auth-context";
 import { getUserWallet } from "@/lib/api/wallet";
+import { isMaxUser, isProUser } from "@/lib/payment/plans";
 
 const sidebarLinks = [
   { href: "/dashboard", label: "Trang chủ", icon: LayoutDashboard },
@@ -185,8 +187,12 @@ function DashboardLayoutInner({
                 >
                   {profile?.name || user?.email || "Giáo viên"}
                 </p>
-                {profile?.tier === "pro" || profile?.tier === "school" ? (
-                  <span className="shrink-0 rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold text-amber-600 border border-amber-500/20">
+                {isMaxUser(profile) ? (
+                  <span className="shrink-0 rounded bg-amber-500 text-white px-1.5 py-0.5 text-[10px] font-black shadow-xs flex items-center gap-0.5">
+                    <Crown className="w-2.5 h-2.5" /> MAX
+                  </span>
+                ) : isProUser(profile) ? (
+                  <span className="shrink-0 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary border border-primary/20">
                     PRO
                   </span>
                 ) : (
@@ -227,9 +233,14 @@ function DashboardLayoutInner({
 
           <div className="flex-1" />
 
-          {/* PRO status badge or upgrade pill */}
-          {profile?.tier === "pro" || profile?.tier === "school" ? (
-            <span className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 px-3 py-1.5 text-xs font-bold text-white shadow-xs">
+          {/* PRO/MAX status badge or upgrade pill */}
+          {isMaxUser(profile) ? (
+            <span className="flex items-center gap-1.5 rounded-full bg-linear-to-r from-amber-500 to-amber-600 px-3 py-1.5 text-xs font-black text-white shadow-xs">
+              <Crown className="h-3.5 w-3.5" />
+              <span>GÓI MAX</span>
+            </span>
+          ) : isProUser(profile) ? (
+            <span className="flex items-center gap-1.5 rounded-full bg-linear-to-r from-blue-600 to-indigo-600 px-3 py-1.5 text-xs font-bold text-white shadow-xs">
               <Sparkles className="h-3.5 w-3.5" />
               <span>GÓI PRO</span>
             </span>

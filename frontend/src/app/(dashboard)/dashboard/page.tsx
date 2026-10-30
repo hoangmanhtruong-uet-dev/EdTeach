@@ -8,6 +8,7 @@ import {
   Clock,
   ArrowRight,
   Sparkles,
+  Crown,
   Plus,
   BookOpen,
   Calendar,
@@ -16,6 +17,7 @@ import Link from "next/link";
 import { useAuth } from "@/context/auth-context";
 import { getUserExams, Exam } from "@/lib/api/exams";
 import { getUserWallet } from "@/lib/api/wallet";
+import { isMaxUser, isProUser } from "@/lib/payment/plans";
 
 // Helper chuyển đổi ngày sang định dạng tương đối tiếng Việt thân thiện
 function formatRelativeTime(dateString: string): { relative: string; full: string } {
@@ -367,13 +369,23 @@ export default function DashboardPage() {
               <h2 className="font-semibold text-sm sm:text-base text-foreground">
                 Ví tài khoản
               </h2>
-              <Link
-                href="/wallet"
-                aria-label="Nâng cấp gói tài khoản hoặc nạp credits"
-                className="text-[11px] font-bold text-amber-600 hover:text-amber-700 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20"
-              >
-                Nâng cấp PRO
-              </Link>
+              {isMaxUser(profile) ? (
+                <span className="text-[11px] font-black text-amber-700 dark:text-amber-400 bg-amber-500/15 px-2.5 py-0.5 rounded-full border border-amber-500/30 flex items-center gap-1 shadow-2xs">
+                  <Crown className="w-3 h-3 text-amber-600 dark:text-amber-400" /> Gói MAX
+                </span>
+              ) : isProUser(profile) ? (
+                <span className="text-[11px] font-bold text-primary bg-primary/10 px-2.5 py-0.5 rounded-full border border-primary/20 flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-primary" /> Gói PRO
+                </span>
+              ) : (
+                <Link
+                  href="/wallet"
+                  aria-label="Nâng cấp gói tài khoản hoặc nạp credits"
+                  className="text-[11px] font-bold text-amber-600 hover:text-amber-700 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20"
+                >
+                  Nâng cấp PRO
+                </Link>
+              )}
             </div>
             <div className="mt-2">
               <div className="flex items-baseline justify-between">
@@ -385,7 +397,11 @@ export default function DashboardPage() {
                 </span>
               </div>
               <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
-                Tặng 100 credits & 3 lượt tạo đề miễn phí mỗi ngày. Chấm OMR OpenCV hoàn toàn miễn phí.
+                {isMaxUser(profile)
+                  ? "Tài khoản Giáo viên MAX VIP: Trộn 12 mã đề, AI phân tích câu bẫy, giao bài Magic Link & không giới hạn."
+                  : isProUser(profile)
+                  ? "Tài khoản Giáo viên PRO: Mở khóa phòng thí nghiệm 3D, trộn 4 mã đề & chấm OMR không giới hạn."
+                  : "Tặng 100 credits & 3 lượt tạo đề miễn phí mỗi ngày. Chấm OMR OpenCV hoàn toàn miễn phí."}
               </p>
               <Link
                 href="/wallet"

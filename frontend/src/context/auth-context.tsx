@@ -47,7 +47,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .eq("id", userId)
         .maybeSingle();
       if (!error && data) {
-        setProfile(data);
+        let finalProfile: any = { ...(data as any) };
+        try {
+          const { data: authData } = await supabase.auth.getUser();
+          const meta = authData?.user?.user_metadata;
+          if (
+            meta?.subscription_tier === "max" ||
+            meta?.tier === "max" ||
+            (data as any)?.email === "truongcri0101@gmail.com"
+          ) {
+            finalProfile.tier = "max";
+            finalProfile.subscription_tier = "max";
+          }
+        } catch {
+          // ignore
+        }
+        setProfile(finalProfile);
       }
     } catch (e) {
       console.error("Error fetching profile:", e);

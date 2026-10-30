@@ -54,7 +54,7 @@ export default function LabsPage() {
           <div className="flex items-start gap-3">
             <Sparkles className="mt-0.5 h-4 w-4 flex-none text-amber-600" />
             <p>
-              <strong>Chính sách trải nghiệm:</strong> Mỗi môn học có 1 bài thí nghiệm mẫu mở khóa hoàn toàn miễn phí cho Thầy Cô dùng thử trên lớp. Nâng cấp Gói PRO (99k/tháng) để mở khóa trọn bộ 54+ bài và nhận 30.000 credits soạn đề AI.
+              <strong>Chính sách trải nghiệm:</strong> Mỗi môn học có 1 bài thí nghiệm mẫu mở khóa hoàn toàn miễn phí cho Thầy Cô dùng thử trên lớp. Nâng cấp Gói PRO để mở khóa trọn bộ 54+ bài và nhận 30.000 credits soạn đề AI.
             </p>
           </div>
           <Link

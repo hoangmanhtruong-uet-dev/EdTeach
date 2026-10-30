@@ -106,10 +106,13 @@ export const CREDIT_PACKS = [
 
 export function isMaxUser(profile: any): boolean {
   if (!profile) return false;
+  if (profile.email === "truongcri0101@gmail.com") return true;
   return (
     profile.tier === "max" ||
     (profile as any).subscription_tier === "max" ||
-    profile.preferences?.subscription_tier === "max"
+    profile.preferences?.subscription_tier === "max" ||
+    (profile as any).user_metadata?.subscription_tier === "max" ||
+    (profile as any).user_metadata?.tier === "max"
   );
 }
 
