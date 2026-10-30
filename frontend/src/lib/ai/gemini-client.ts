@@ -2,7 +2,7 @@
 
 export async function callGeminiJson<T = any>(
   prompt: string,
-  preferredModels: string[] = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-3.5-flash-lite"]
+  preferredModels: string[] = ["gemini-flash-lite-latest", "gemini-flash-latest", "gemini-3.8-flash"]
 ): Promise<T> {
   const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY;
 
