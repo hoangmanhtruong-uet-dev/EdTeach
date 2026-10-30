@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -419,6 +419,27 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
   const [aiStatusMessage, setAiStatusMessage] = useState<string | null>(null);
   const [showActiveMenu, setShowActiveMenu] = useState<string | null>(null);
 
+  // Toast notification state (aria-live="polite")
+  const [toast, setToast] = useState<{ message: string; type: "info" | "success" | "warning" | "error" } | null>(null);
+  const showToast = useCallback((message: string, type: "info" | "success" | "warning" | "error" = "info") => {
+    setToast({ message, type });
+    setTimeout(() => {
+      setToast((prev) => (prev?.message === message ? null : prev));
+    }, 4000);
+  }, []);
+
+  // BeforeUnload navigation guard when changes are unsaved
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (savedStatus === "unsaved") {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [savedStatus]);
+
   // Daily Quota & Viral Referral states
   const [showQuotaModal, setShowQuotaModal] = useState(false);
   const [showShuffleModal, setShowShuffleModal] = useState(false);
@@ -767,16 +788,9 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
     const saCount = questions.filter((q) => q.blockType === "short_answer" || q.type === "short_answer").length;
     const essayCount = questions.filter((q) => q.blockType === "essay" || q.type === "essay").length;
 
-    alert(
-      "📊 THỐNG KÊ ĐỀ THI HIỆN TẠI:\n" +
-      "------------------------------------\n" +
-      `• Tổng số khối / câu hỏi: ${questions.length}\n` +
-      `• Câu trắc nghiệm (MCQ): ${mcqCount}\n` +
-      `• Câu Đúng / Sai (Format 2025): ${tfCount}\n` +
-      `• Câu trả lời ngắn (Format 2025): ${saCount}\n` +
-      `• Câu tự luận: ${essayCount}\n` +
-      "------------------------------------\n" +
-      "• Thang điểm quy chuẩn: 10.0 điểm"
+    showToast(
+      `📊 Thống kê: ${questions.length} khối (${mcqCount} MCQ • ${tfCount} Đúng/Sai • ${saCount} Trả lời ngắn • ${essayCount} Tự luận). Thang điểm 10.0đ`,
+      "info"
     );
   };
 
@@ -786,7 +800,7 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
     if (!promptToUse.trim() && !attachedImage && !attachedDoc) return;
 
     setIsGenerating(true);
-    setAiStatusMessage("Trợ lý AI đang thiết lập cấu trúc và sinh câu hỏi...");
+    setAiStatusMessage("Trợ lý AI đang thiết lập cấu trúc và sinh câu hỏi…");
     setSavedStatus("saving");
 
     let detectedSubject = subject;
@@ -1227,10 +1241,11 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
     const removed = questions.length - cleaned.length;
     setQuestions(cleaned);
     setShowActiveMenu(null);
-    alert(
+    showToast(
       `Đã dọn dẹp các đoạn trống thừa! ${
         removed > 0 ? `Đã xoá ${removed} đoạn/khối trống.` : "Đề thi đã chuẩn định dạng."
-      }`
+      }`,
+      "info"
     );
   };
 
@@ -1240,7 +1255,7 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
       .map((q, idx) => `Câu ${idx + 1}: ${q.content}`)
       .join("\n\n");
     navigator.clipboard?.writeText(allText).catch(() => {});
-    alert("Đã chọn và sao chép toàn bộ nội dung đề thi vào Clipboard!");
+    showToast("Đã chọn và sao chép toàn bộ nội dung đề thi vào Clipboard!", "success");
   };
 
   const handleFind = (query: string, direction: "next" | "prev") => {
@@ -1361,7 +1376,7 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
     setQuestions(nextQuestions);
     setSavedStatus("unsaved");
     setSearchMatches([]);
-    alert(`Đã thay thế nội dung trong ${count} vị trí/câu hỏi.`);
+    showToast(`Đã thay thế nội dung trong ${count} vị trí/câu hỏi.`, "success");
   };
 
   const handleInsertTable = (rows: number, cols: number) => {
@@ -4041,16 +4056,40 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
         </div>
 
         {/* Right: Actions & User Info */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-2 sm:gap-2.5">
+          {/* Flagship Action 1: Trộn Mã Đề & Ma Trận (Xanh dương nổi bật) */}
+          <button
+            type="button"
+            onClick={() => setShowShuffleModal(true)}
+            aria-label="Trộn 4-8 mã đề và tạo ma trận đáp án"
+            title="Trộn bộ 4-8 mã đề con hoán vị kèm ma trận barem chuẩn Bộ GD&ĐT"
+            className="flex items-center gap-1.5 rounded-full bg-blue-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs transition-colors hover:bg-blue-700 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500"
+          >
+            <Shuffle className="h-3.5 w-3.5" aria-hidden="true" />
+            <span className="hidden sm:inline">Trộn Mã Đề</span>
+          </button>
+
+          {/* Flagship Action 2: Xuất Word (.docx) (Xanh lá nổi bật) */}
+          <button
+            type="button"
+            onClick={handleExportDocx}
+            aria-label="Tải về file Word (.docx) chuẩn Bộ GD&ĐT"
+            title="Xuất file Word (.docx) chuẩn Times New Roman và hình vẽ vector"
+            className="flex items-center gap-1.5 rounded-full bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs transition-colors hover:bg-emerald-700 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500"
+          >
+            <Download className="h-3.5 w-3.5" aria-hidden="true" />
+            <span className="hidden sm:inline">Xuất Word</span>
+          </button>
+
           {/* Mời đồng nghiệp nhận +2.000 credits */}
           <button
+            type="button"
             onClick={() => setShowQuotaModal(true)}
-            className="flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800 shadow-sm transition hover:bg-amber-100 cursor-pointer"
+            className="hidden xl:flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800 shadow-sm transition hover:bg-amber-100 cursor-pointer"
             title="Mời đồng nghiệp để cả hai cùng nhận +2.000 credits miễn phí"
           >
-            <Gift className="h-3.5 w-3.5 text-amber-600" />
-            <span className="hidden sm:inline">🎁 Mời đồng nghiệp (+2.000 credits)</span>
-            <span className="sm:hidden">+2.000 cr</span>
+            <Gift className="h-3.5 w-3.5 text-amber-600" aria-hidden="true" />
+            <span>🎁 Mời đồng nghiệp (+2.000 cr)</span>
           </button>
 
           {/* Chia sẻ */}
@@ -4504,18 +4543,70 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
             {/* Tab content */}
             <div className="flex-1 overflow-y-auto px-3 pb-4">
               {activeLeftTab === "toc" ? (
-                questions.length === 0 ? (
-                  <div className="mt-8 flex flex-col items-center justify-center text-center text-slate-400">
-                    <List className="mb-3 h-8 w-8 stroke-[1.5] text-slate-300" />
-                    <p className="px-4 text-xs leading-relaxed">
-                      Tiêu đề và các câu hỏi sẽ hiện ở đây để bạn di chuyển nhanh trong đề.
-                    </p>
+                <div className="space-y-3">
+                  {/* Thanh Theo Dõi Cấu Trúc Điểm Chuẩn GDPT 2025 (Live Score Bar) */}
+                  <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-3 space-y-2 shadow-2xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-blue-900 uppercase tracking-wider flex items-center gap-1">
+                        <Scale className="w-3.5 h-3.5 text-blue-600" aria-hidden="true" />
+                        Cấu trúc GDPT 2025
+                      </span>
+                      <span className="rounded-full bg-blue-600 px-2 py-0.5 text-[10px] font-black text-white tabular-nums">
+                        {Math.min(10.0, Number((
+                          Math.min(3.0, questions.filter((q) => !q.blockType || q.blockType === "question" || q.type === "multiple_choice").length * 0.25) +
+                          Math.min(4.0, questions.filter((q) => q.blockType === "true_false" || q.type === "true_false").length * 1.0) +
+                          Math.min(3.0, questions.filter((q) => q.blockType === "short_answer" || q.type === "short_answer").length * 0.5)
+                        ).toFixed(1)))} / 10.0 đ
+                      </span>
+                    </div>
+
+                    <div className="space-y-1 text-[11px]">
+                      <div className="flex items-center justify-between text-slate-700">
+                        <span>Phần I (MCQ):</span>
+                        <span className="font-semibold tabular-nums text-slate-900">
+                          {questions.filter((q) => !q.blockType || q.blockType === "question" || q.type === "multiple_choice").length}/12 câu (3.0đ)
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-slate-700">
+                        <span>Phần II (Đúng/Sai):</span>
+                        <span className="font-semibold tabular-nums text-slate-900">
+                          {questions.filter((q) => q.blockType === "true_false" || q.type === "true_false").length}/4 câu (4.0đ)
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-slate-700">
+                        <span>Phần III (Trả lời ngắn):</span>
+                        <span className="font-semibold tabular-nums text-slate-900">
+                          {questions.filter((q) => q.blockType === "short_answer" || q.type === "short_answer").length}/6 câu (3.0đ)
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="w-full bg-blue-200/60 rounded-full h-1.5 overflow-hidden">
+                      <div
+                        className="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
+                        style={{
+                          width: `${Math.min(100, ((
+                            Math.min(3.0, questions.filter((q) => !q.blockType || q.blockType === "question" || q.type === "multiple_choice").length * 0.25) +
+                            Math.min(4.0, questions.filter((q) => q.blockType === "true_false" || q.type === "true_false").length * 1.0) +
+                            Math.min(3.0, questions.filter((q) => q.blockType === "short_answer" || q.type === "short_answer").length * 0.5)
+                          ) / 10.0) * 100)}%`
+                        }}
+                      />
+                    </div>
                   </div>
-                ) : (
-                  <div className="space-y-1">
-                    <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                      CÁC CÂU HỎI ({questions.length})
-                    </p>
+
+                  {questions.length === 0 ? (
+                    <div className="mt-6 flex flex-col items-center justify-center text-center text-slate-400">
+                      <List className="mb-2 h-7 w-7 stroke-[1.5] text-slate-300" aria-hidden="true" />
+                      <p className="px-3 text-xs leading-relaxed">
+                        Danh sách câu hỏi sẽ hiển thị ở đây để Thầy/Cô nhảy nhanh tới từng phần.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                        CÁC CÂU HỎI ({questions.length})
+                      </p>
                     {questions.map((q, idx) => {
                       let label = `Câu ${idx + 1}:`;
                       let preview = q.content ? q.content.replace(/\$[^$]*\$/g, "[công thức]") : "";
@@ -4616,8 +4707,9 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
                       )}
                     </div>
                   </div>
-                )
-              ) : (
+                )}
+              </div>
+            ) : (
                 /* Templates Tab */
                 <div className="space-y-2.5">
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
@@ -5719,7 +5811,7 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
                   const file = e.target.files?.[0];
                   if (!file) return;
                   if (file.size > 10 * 1024 * 1024) {
-                    alert("Vui lòng chọn ảnh dung lượng dưới 10MB");
+                    showToast("Vui lòng chọn ảnh dung lượng dưới 10MB", "warning");
                     return;
                   }
                   const reader = new FileReader();
@@ -5743,7 +5835,7 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
                   const file = e.target.files?.[0];
                   if (!file) return;
                   if (file.size > 10 * 1024 * 1024) {
-                    alert("Vui lòng chọn tệp dung lượng dưới 10MB");
+                    showToast("Vui lòng chọn tệp dung lượng dưới 10MB", "warning");
                     return;
                   }
                   const sizeStr = `${(file.size / 1024).toFixed(0)} KB`;
@@ -5874,7 +5966,8 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
                     <select
                       value={aiModelTier}
                       onChange={(e) => setAiModelTier(e.target.value as "medium" | "high")}
-                      className="rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[11px] font-semibold text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer shadow-xs"
+                      aria-label="Chọn mô hình AI"
+                      className="rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[11px] font-semibold text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer shadow-xs"
                       title="Flash: 500 cr (Gemini 3.5 Lite - 500 lượt/ngày siêu tốc) | Pro: 1.600 cr (Gemini 3.8 Flash - Flagship suy luận sâu & OCR chuẩn 2025)"
                     >
                       <option value="medium">⚡ Flash (500 cr)</option>
@@ -5884,7 +5977,8 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
                     <select
                       value={aiThinkingEffort}
                       onChange={(e) => setAiThinkingEffort(e.target.value as "low" | "medium" | "high")}
-                      className="rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[11px] text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer shadow-xs"
+                      aria-label="Mức độ suy luận AI"
+                      className="rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[11px] text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer shadow-xs"
                       title="Mức độ suy luận của AI: Thấp (Nhanh) | Trung bình (Chuẩn hóa ma trận) | Cao (Tự giải từng bước & kiểm chứng bẫy)"
                     >
                       <option value="medium">⚖️ Trung bình (Khuyên dùng)</option>
@@ -5893,9 +5987,11 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
                     </select>
 
                     <button
+                      type="button"
                       onClick={() => executeAiGenerate()}
                       disabled={isGenerating || (!aiPrompt.trim() && !attachedImage && !attachedDoc)}
-                      className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-900 text-white shadow transition hover:bg-slate-800 disabled:opacity-40 shrink-0 cursor-pointer"
+                      aria-label={isGenerating ? "Đang xử lý yêu cầu sinh đề..." : "Gửi yêu cầu tới AI"}
+                      className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-900 text-white shadow transition hover:bg-slate-800 disabled:opacity-40 shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                       title="Gửi yêu cầu tới AI"
                     >
                       {isGenerating ? (
@@ -6019,6 +6115,54 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
             window.location.reload();
           }}
         />
+      )}
+
+      {/* Non-blocking Toast Notification (WCAG aria-live polite) */}
+      {toast && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 rounded-xl border px-4 py-3 text-sm shadow-xl transition-all animate-in fade-in slide-in-from-bottom-2 duration-200"
+          style={{
+            backgroundColor:
+              toast.type === "success"
+                ? "#f0fdf4"
+                : toast.type === "error"
+                ? "#fef2f2"
+                : toast.type === "warning"
+                ? "#fffbeb"
+                : "#ffffff",
+            borderColor:
+              toast.type === "success"
+                ? "#bbf7d0"
+                : toast.type === "error"
+                ? "#fecaca"
+                : toast.type === "warning"
+                ? "#fde68a"
+                : "#e2e8f0",
+            color:
+              toast.type === "success"
+                ? "#15803d"
+                : toast.type === "error"
+                ? "#b91c1c"
+                : toast.type === "warning"
+                ? "#b45309"
+                : "#1e293b",
+          }}
+        >
+          {toast.type === "success" && <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" aria-hidden="true" />}
+          {toast.type === "error" && <AlertCircle className="h-4 w-4 shrink-0 text-red-600" aria-hidden="true" />}
+          {toast.type === "warning" && <AlertCircle className="h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />}
+          {(!toast.type || toast.type === "info") && <Sparkles className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />}
+          <span className="font-medium">{toast.message}</span>
+          <button
+            onClick={() => setToast(null)}
+            className="ml-2 rounded p-1 hover:bg-black/5 transition cursor-pointer"
+            aria-label="Đóng thông báo"
+          >
+            <X className="h-3.5 w-3.5" aria-hidden="true" />
+          </button>
+        </div>
       )}
     </div>
   );

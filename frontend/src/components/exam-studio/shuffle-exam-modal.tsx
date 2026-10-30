@@ -53,6 +53,19 @@ export function ShuffleExamModal({
   const [upgradeTier, setUpgradeTier] = useState<"pro" | "max" | null>(null);
   const [checkoutPlan, setCheckoutPlan] = useState<PricingPlan | null>(null);
 
+  // Close modal on Escape key
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    }
+    if (isOpen) {
+      window.addEventListener("keydown", handleKeyDown);
+      return () => window.removeEventListener("keydown", handleKeyDown);
+    }
+  }, [isOpen, onClose]);
+
   // Thuật toán xáo trộn Fisher-Yates
   function shuffleArray<T>(array: T[], seed: number): T[] {
     const arr = [...array];
@@ -226,13 +239,13 @@ export function ShuffleExamModal({
   const activeVariant = variants.find((v) => v.code === activeTab);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs animate-in fade-in duration-200 overscroll-contain">
       <div className="bg-white rounded-2xl max-w-5xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-neutral-200 overflow-hidden text-left">
         {/* Modal Header */}
         <div className="flex items-center justify-between p-4 border-b border-neutral-200 bg-neutral-50/80">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-              <Shuffle className="w-5 h-5" />
+              <Shuffle className="w-5 h-5" aria-hidden="true" />
             </div>
             <div>
               <h2 className="font-bold text-neutral-900 text-lg flex items-center gap-2">
@@ -248,10 +261,12 @@ export function ShuffleExamModal({
           </div>
 
           <button
+            type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition cursor-pointer"
+            aria-label="Đóng cửa sổ trộn đề"
+            className="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5" aria-hidden="true" />
           </button>
         </div>
 
@@ -270,6 +285,8 @@ export function ShuffleExamModal({
                   <button
                     key={num}
                     type="button"
+                    aria-pressed={isSelected}
+                    aria-label={`Trộn ${num} mã đề`}
                     onClick={() => {
                       if (requiresMax && !isMax) {
                         setUpgradeTier("max");

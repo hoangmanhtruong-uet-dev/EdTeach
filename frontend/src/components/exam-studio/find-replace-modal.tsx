@@ -45,21 +45,33 @@ export function FindReplaceModal({
     }
   }, [query]);
 
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    }
+    if (isOpen) {
+      window.addEventListener("keydown", handleKeyDown);
+      return () => window.removeEventListener("keydown", handleKeyDown);
+    }
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed top-28 right-8 z-50 w-80 rounded-xl border border-slate-200 bg-white p-3.5 shadow-xl select-none animate-in fade-in slide-in-from-top-2">
+    <div className="fixed top-28 right-8 z-50 w-80 rounded-xl border border-slate-200 bg-white p-3.5 shadow-xl select-none animate-in fade-in slide-in-from-top-2 overscroll-contain">
       {/* Top Header */}
       <div className="flex items-center justify-between pb-2 border-b border-slate-100">
         <div className="flex items-center gap-2 text-xs font-semibold text-slate-800">
           {mode === "find" ? (
             <>
-              <Search className="h-4 w-4 text-primary" />
+              <Search className="h-4 w-4 text-primary" aria-hidden="true" />
               <span>Tìm kiếm</span>
             </>
           ) : (
             <>
-              <Replace className="h-4 w-4 text-primary" />
+              <Replace className="h-4 w-4 text-primary" aria-hidden="true" />
               <span>Tìm và Thay thế</span>
             </>
           )}
@@ -68,16 +80,17 @@ export function FindReplaceModal({
           <button
             type="button"
             onClick={() => setMode(mode === "find" ? "replace" : "find")}
-            className="rounded px-1.5 py-0.5 text-[11px] text-blue-600 hover:bg-blue-50"
+            className="rounded px-1.5 py-0.5 text-[11px] text-blue-600 hover:bg-blue-50 focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-primary"
           >
             {mode === "find" ? "Hiện thay thế" : "Chỉ tìm"}
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+            aria-label="Đóng tìm kiếm"
+            className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-primary"
           >
-            <X className="h-3.5 w-3.5" />
+            <X className="h-3.5 w-3.5" aria-hidden="true" />
           </button>
         </div>
       </div>
@@ -88,6 +101,7 @@ export function FindReplaceModal({
           <input
             ref={searchInputRef}
             type="text"
+            aria-label="Nội dung tìm kiếm"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => {
@@ -98,12 +112,12 @@ export function FindReplaceModal({
                 onClose();
               }
             }}
-            placeholder="Tìm trong đề thi..."
-            className="w-full rounded-lg border border-slate-300 py-1.5 pl-3 pr-20 text-xs text-slate-900 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            placeholder="Tìm trong đề thi…"
+            className="w-full rounded-lg border border-slate-300 py-1.5 pl-3 pr-20 text-xs text-slate-900 focus-visible:outline-hidden focus-visible:border-blue-500 focus-visible:ring-1 focus-visible:ring-blue-500"
           />
           <div className="absolute right-2 flex items-center gap-1 text-[11px] text-slate-400">
             {query.trim() && (
-              <span>
+              <span className="tabular-nums">
                 {totalMatches > 0 ? `${matchIndex + 1}/${totalMatches}` : "0"}
               </span>
             )}
@@ -111,19 +125,21 @@ export function FindReplaceModal({
               type="button"
               onClick={() => onFind(query, "prev")}
               disabled={totalMatches === 0}
+              aria-label="Khớp trước"
               className="rounded p-0.5 hover:bg-slate-100 disabled:opacity-30"
               title="Khớp trước"
             >
-              <ChevronUp className="h-3.5 w-3.5" />
+              <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" />
             </button>
             <button
               type="button"
               onClick={() => onFind(query, "next")}
               disabled={totalMatches === 0}
+              aria-label="Khớp sau"
               className="rounded p-0.5 hover:bg-slate-100 disabled:opacity-30"
               title="Khớp sau"
             >
-              <ChevronDown className="h-3.5 w-3.5" />
+              <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -134,10 +150,11 @@ export function FindReplaceModal({
         <div className="mt-2 space-y-2">
           <input
             type="text"
+            aria-label="Nội dung thay thế"
             value={replacement}
             onChange={(e) => setReplacement(e.target.value)}
-            placeholder="Thay thế bằng..."
-            className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-900 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            placeholder="Thay thế bằng…"
+            className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-900 focus-visible:outline-hidden focus-visible:border-blue-500 focus-visible:ring-1 focus-visible:ring-blue-500"
           />
           <div className="flex items-center justify-end gap-1.5 pt-1">
             <button
