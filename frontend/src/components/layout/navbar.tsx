@@ -11,14 +11,14 @@ export function Navbar() {
   const { user, profile } = useAuth();
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-sm">
+    <header className="sticky top-0 z-50 border-b border-slate-200/90 bg-white/95 backdrop-blur-md shadow-2xs">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo */}
         <div className="flex items-center gap-2">
           <Link href="/" className="flex items-center gap-2">
-            <BookOpen className="h-7 w-7 text-primary" />
-            <span className="text-xl font-bold tracking-tight">
-              Edu<span className="text-primary">Test</span> AI
+            <BookOpen className="h-7 w-7 text-blue-600" />
+            <span className="text-xl font-bold tracking-tight text-slate-950">
+              Edu<span className="text-blue-600">Test</span> AI
             </span>
           </Link>
           <Link
@@ -35,13 +35,13 @@ export function Navbar() {
         <nav className="hidden items-center gap-6 md:flex">
           <Link
             href="#features"
-            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            className="text-sm font-semibold text-slate-600 transition-colors hover:text-slate-950"
           >
             Tính năng
           </Link>
           <Link
             href="#pricing"
-            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            className="text-sm font-semibold text-slate-600 transition-colors hover:text-slate-950"
           >
             Bảng giá
           </Link>
@@ -55,7 +55,7 @@ export function Navbar() {
           {user ? (
             <Link
               href="/dashboard"
-              className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+              className="inline-flex h-9 items-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-bold text-white transition-all hover:bg-blue-700 shadow-xs"
             >
               <LayoutDashboard className="h-4 w-4" />
               <span>{profile?.name || "Vào Dashboard"}</span>
@@ -64,14 +64,14 @@ export function Navbar() {
             <>
               <Link
                 href="/login"
-                className="inline-flex h-9 items-center gap-2 rounded-md border border-border px-4 text-sm font-medium transition-colors hover:bg-secondary"
+                className="inline-flex h-9 items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-bold text-slate-800 transition-colors hover:bg-slate-50 hover:border-slate-400"
               >
                 <LogIn className="h-4 w-4" />
                 Đăng nhập
               </Link>
               <Link
                 href="/register"
-                className="inline-flex h-9 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                className="inline-flex h-9 items-center rounded-xl bg-blue-600 px-4 text-sm font-bold text-white transition-all hover:bg-blue-700 shadow-xs"
               >
                 Dùng thử miễn phí
               </Link>
