@@ -45,6 +45,7 @@ export async function POST(req: NextRequest) {
           answer_key: session.answerKey || {},
           return_annotated_image: true,
         }),
+        signal: AbortSignal.timeout(3000),
       });
 
       if (omrRes.ok) {

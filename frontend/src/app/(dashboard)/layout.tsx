@@ -17,6 +17,7 @@ import {
   HelpCircle,
   FlaskConical,
   Presentation,
+  Store,
 } from "lucide-react";
 import { useState, useEffect, Suspense } from "react";
 import { useAuth } from "@/context/auth-context";
@@ -29,6 +30,7 @@ const sidebarLinks = [
   { href: "/grading", label: "Chấm trắc nghiệm", icon: ScanLine },
   { href: "/labs", label: "Phòng TN 3D", icon: FlaskConical },
   { href: "/whiteboard", label: "Bảng trắng", icon: Presentation },
+  { href: "/marketplace", label: "Chợ đề thi", icon: Store },
   { href: "/wallet", label: "Nạp điểm", icon: Wallet },
   { href: "/guide", label: "Hướng dẫn", icon: HelpCircle },
   { href: "/settings", label: "Cài đặt", icon: User },

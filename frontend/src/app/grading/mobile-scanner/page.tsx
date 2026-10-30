@@ -176,7 +176,7 @@ function ScannerContent() {
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         const imageBase64 = canvas.toDataURL("image/jpeg", 0.82);
 
-        // Send to PC
+        // Send to PC with timeout to prevent shutter freezing
         const res = await fetch("/api/grading/remote-session/submit-photo", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -186,21 +186,20 @@ function ScannerContent() {
             studentName: `Học sinh ${captureCount + 1}`,
             studentCode: `${1000 + captureCount + 1}`,
           }),
+          signal: AbortSignal.timeout(6000),
         });
 
         if (res.ok) {
           setCaptureCount((prev) => prev + 1);
         } else {
-          const data = await res.json();
-          alert(data.error || "Gửi ảnh thất bại");
+          const data = await res.json().catch(() => ({}));
+          console.warn("Gửi ảnh không thành công:", data.error);
         }
       }
     } catch (err: any) {
-      alert("Lỗi chụp ảnh: " + err.message);
+      console.error("Lỗi chụp ảnh:", err);
     } finally {
-      setTimeout(() => {
-        setIsCapturing(false);
-      }, 700);
+      setIsCapturing(false);
     }
   };
 
