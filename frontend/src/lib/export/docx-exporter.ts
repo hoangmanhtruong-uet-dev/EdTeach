@@ -20,11 +20,18 @@ function cleanMathSymbols(text: string): string {
   return text.replace(/\$\$/g, " ").replace(/\$/g, " ");
 }
 
+export interface ExportDocxOptions {
+  isTeachingStudentVersion?: boolean;
+  isTeachingTeacherVersion?: boolean;
+  customFilenameSuffix?: string;
+}
+
 export async function exportExamToDocx(
   exam: ExamWithQuestions,
   includeAnswers = false,
   isPro = false,
-  fontFamily = "Times New Roman"
+  fontFamily = "Times New Roman",
+  options?: ExportDocxOptions
 ) {
   const prefs = getUserPreferences();
   const effectiveFont = fontFamily || prefs.export.docxFont || "Times New Roman";
@@ -160,7 +167,11 @@ export async function exportExamToDocx(
       spacing: { after: 300 },
       children: [
         new TextRun({
-          text: includeAnswers
+          text: options?.isTeachingTeacherVersion
+            ? "--- BẢN CẦM TAY GIÁO VIÊN (KÈM LỜI GIẢI CHI TIẾT) ---"
+            : options?.isTeachingStudentVersion
+            ? "--- BẢN PHÁT HỌC SINH (CÓ CHỖ GHI CHÉP BÀI GIẢNG) ---"
+            : includeAnswers
             ? "--- ĐỀ THI KÈM HƯỚNG DẪN CHẤM & ĐÁP ÁN CHI TIẾT ---"
             : "--- ĐỀ THI CHÍNH THỨC ---",
           bold: true,
@@ -388,6 +399,54 @@ export async function exportExamToDocx(
         );
       }
     }
+
+    // If student note-taking version is enabled
+    if (options?.isTeachingStudentVersion) {
+      children.push(
+        new Paragraph({
+          indent: { left: 200 },
+          spacing: { before: 80, after: 60 },
+          children: [
+            new TextRun({
+              text: "Ghi chép / Lời giải của học sinh:",
+              italics: true,
+              color: "6B7280",
+              size: 18,
+            }),
+          ],
+        }),
+        new Paragraph({
+          spacing: { after: 60 },
+          children: [
+            new TextRun({
+              text: ". . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .",
+              color: "9CA3AF",
+              size: 18,
+            }),
+          ],
+        }),
+        new Paragraph({
+          spacing: { after: 60 },
+          children: [
+            new TextRun({
+              text: ". . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .",
+              color: "9CA3AF",
+              size: 18,
+            }),
+          ],
+        }),
+        new Paragraph({
+          spacing: { after: 120 },
+          children: [
+            new TextRun({
+              text: ". . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .",
+              color: "9CA3AF",
+              size: 18,
+            }),
+          ],
+        })
+      );
+    }
   });
 
   // End of test marker
@@ -462,10 +521,40 @@ export async function exportExamToDocx(
   });
 
   const blob = await Packer.toBlob(doc);
-  const fileName = `${(exam.name || "De_Thi").replace(/\s+/g, "_")}_${
-    includeAnswers ? "Dap_An" : "De_Thi"
-  }.docx`;
+  const suffix = options?.customFilenameSuffix
+    ? options.customFilenameSuffix
+    : includeAnswers
+    ? "Dap_An"
+    : "De_Thi";
+  const fileName = `${(exam.name || "De_Thi").replace(/\s+/g, "_")}_${suffix}.docx`;
   saveAs(blob, fileName);
+}
+
+/**
+ * Xuất Bộ Đề Kép phục vụ Giảng dạy (Gói PRO)
+ * Tự động tải về tuần tự 2 file Word:
+ * 1. Bản Học Sinh: Có chừa sẵn 3 dòng chấm ghi chép dưới mỗi câu để nghe giảng
+ * 2. Bản Giáo Viên: Có in kèm đáp án đúng và lời giải chi tiết
+ */
+export async function exportDualTeachingDocx(
+  exam: ExamWithQuestions,
+  isPro = true,
+  fontFamily = "Times New Roman"
+) {
+  // 1. Tải bản học sinh có dòng chấm ghi chép
+  await exportExamToDocx(exam, false, isPro, fontFamily, {
+    isTeachingStudentVersion: true,
+    customFilenameSuffix: "Ban_Hoc_Sinh_Ghi_Chep",
+  });
+
+  // Delay 750ms để trình duyệt không chặn popup tải 2 file liên tiếp
+  await new Promise((res) => setTimeout(res, 750));
+
+  // 2. Tải bản giáo viên có đáp án & lời giải chi tiết
+  await exportExamToDocx(exam, true, isPro, fontFamily, {
+    isTeachingTeacherVersion: true,
+    customFilenameSuffix: "Ban_Giao_Vien_Loi_Giai",
+  });
 }
 
 export async function exportShuffledExamsToDocx(

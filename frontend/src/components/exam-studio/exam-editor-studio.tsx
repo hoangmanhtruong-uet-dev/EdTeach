@@ -27,6 +27,7 @@ import {
   FolderOpen,
   Sparkles,
   Crown,
+  Presentation,
   RotateCcw,
   X,
   Undo2,
@@ -88,7 +89,7 @@ import {
 import { clsx } from "clsx";
 import { useAuth } from "@/context/auth-context";
 import { LatexRenderer } from "@/components/ui/latex-renderer";
-import { exportExamToDocx } from "@/lib/export/docx-exporter";
+import { exportExamToDocx, exportDualTeachingDocx } from "@/lib/export/docx-exporter";
 import { getUserPreferences } from "@/lib/preferences";
 import { ExamWithQuestions, Question, createExam, updateExam, getExamById } from "@/lib/api/exams";
 import { QuotaExhaustedModal } from "@/components/modals/quota-exhausted-modal";
@@ -1995,6 +1996,27 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
     await exportExamToDocx(examData, teacherMode, isPro, fontFamily);
   };
 
+  // Export Dual Teaching docx (Student with note lines + Teacher with solutions)
+  const handleExportDualDocx = async () => {
+    const examData: ExamWithQuestions = {
+      id: examId || "temp",
+      user_id: user?.id || "temp",
+      name: title,
+      subject,
+      grade,
+      chapter: "",
+      config: {},
+      status: "completed",
+      credit_cost: 0,
+      question_count: questions.length,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      questions: questions as any,
+    };
+    const isPro = isProUser(profile) || isProUser(user);
+    await exportDualTeachingDocx(examData, isPro, fontFamily);
+  };
+
   // Print
   const handlePrint = () => {
     window.print();
@@ -2405,6 +2427,16 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
                       className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-slate-50 text-blue-600 font-semibold"
                     >
                       <Shuffle className="h-3.5 w-3.5 text-blue-600" /> Trộn bộ 4 mã đề & Ma trận (.docx)
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleExportDualDocx();
+                        setShowActiveMenu(null);
+                      }}
+                      className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-slate-50 text-amber-700 font-bold"
+                      title="Tải về cùng lúc: 1 Bản Học Sinh (có dòng chấm chép bài) & 1 Bản Giáo Viên (kèm lời giải chi tiết)"
+                    >
+                      <Crown className="h-3.5 w-3.5 text-amber-600" /> Xuất Bộ Đề Kép Giảng Dạy (HS + GV) (.docx)
                     </button>
                     <button
                       onClick={() => {
@@ -4384,6 +4416,18 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
             <Shuffle className="h-3.5 w-3.5 text-blue-600" />
             <span>Trộn 4 mã đề (.docx)</span>
           </button>
+
+          {/* Quick Presentation / Teach Mode */}
+          {examId && (
+            <button
+              onClick={() => router.push(`/teach/${examId}`)}
+              className="ml-2 hidden sm:flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-300 px-3 py-1 text-xs font-bold text-amber-800 hover:bg-amber-100 shadow-2xs transition cursor-pointer"
+              title="Mở Bục Giảng Số: Trình chiếu câu hỏi phông lớn kết hợp Bảng nháp Excalidraw (Gói PRO)"
+            >
+              <Presentation className="h-3.5 w-3.5 text-amber-600" />
+              <span>Bục Giảng Số</span>
+            </button>
+          )}
         </div>
 
         {/* Word count & Total questions */}

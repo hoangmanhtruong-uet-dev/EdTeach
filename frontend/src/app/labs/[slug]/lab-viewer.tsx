@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   CheckCircle2,
   ChevronRight,
+  PenTool,
 } from "lucide-react";
 import {
   SUBJECT_LABEL,
@@ -20,11 +21,15 @@ import {
   labCoverUrl,
 } from "@/data/labs";
 import { useAuth } from "@/context/auth-context";
+import { isProUser as checkIsPro, isMaxUser as checkIsMax } from "@/lib/payment/plans";
+import { TransparentWhiteboardOverlay } from "@/components/labs/transparent-whiteboard-overlay";
 
 export function LabViewer({ lab }: { lab: LabLesson }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const { profile, isLoading } = useAuth();
-  const isProUser = profile?.tier === "pro" || profile?.tier === "school";
+  const { user, profile, isLoading } = useAuth();
+  const [showGlassOverlay, setShowGlassOverlay] = useState(false);
+
+  const isProUser = checkIsPro(profile) || checkIsPro(user) || checkIsMax(profile) || checkIsMax(user);
   const isFree = isLabFreeTrial(lab.slug);
   const isLocked = !isLoading && !isFree && !isProUser;
 
@@ -70,13 +75,28 @@ export function LabViewer({ lab }: { lab: LabLesson }) {
         )}
 
         {!isLocked && (
-          <button
-            onClick={handleFullscreen}
-            title="Toàn màn hình (F11)"
-            className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 cursor-pointer"
-          >
-            <Maximize2 className="h-4 w-4" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowGlassOverlay((prev) => !prev)}
+              title="Bật/Tắt Lớp kính vẽ trong suốt đè lên màn hình 3D (Gói PRO)"
+              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold transition cursor-pointer ${
+                showGlassOverlay
+                  ? "bg-amber-500 text-slate-950 shadow-xs ring-2 ring-amber-400"
+                  : "bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 shadow-2xs"
+              }`}
+            >
+              <PenTool className="h-3.5 w-3.5" />
+              <span>{showGlassOverlay ? "Tắt kính vẽ" : "Kính vẽ giảng bài (PRO)"}</span>
+            </button>
+
+            <button
+              onClick={handleFullscreen}
+              title="Toàn màn hình (F11)"
+              className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 cursor-pointer"
+            >
+              <Maximize2 className="h-4 w-4" />
+            </button>
+          </div>
         )}
       </div>
 
@@ -86,7 +106,7 @@ export function LabViewer({ lab }: { lab: LabLesson }) {
           <div className="flex items-center gap-2">
             <Sparkles className="h-3.5 w-3.5 text-amber-600 shrink-0" />
             <span>
-              Thầy Cô đang trải nghiệm bài dùng thử miễn phí môn {SUBJECT_LABEL[lab.subject]}. Nâng cấp PRO (99k/tháng) để mở full 54+ thí nghiệm & nhận 30.000 credits soạn đề AI!
+              Thầy Cô đang trải nghiệm bài dùng thử miễn phí môn {SUBJECT_LABEL[lab.subject]}. Nâng cấp PRO để mở full 54+ thí nghiệm & nhận 30.000 credits soạn đề AI!
             </span>
           </div>
           <Link
@@ -169,13 +189,20 @@ export function LabViewer({ lab }: { lab: LabLesson }) {
           </div>
         </div>
       ) : (
-        <iframe
-          ref={iframeRef}
-          src={`/labs/courses/${lab.slug}.html`}
-          className="flex-1 w-full border-0"
-          allow="fullscreen"
-          title={lab.titleVi}
-        />
+        <div className="relative flex-1 w-full overflow-hidden">
+          <iframe
+            ref={iframeRef}
+            src={`/labs/courses/${lab.slug}.html`}
+            className="h-full w-full border-0"
+            allow="fullscreen"
+            title={lab.titleVi}
+          />
+          <TransparentWhiteboardOverlay
+            isOpen={showGlassOverlay}
+            onClose={() => setShowGlassOverlay(false)}
+            labTitle={lab.titleVi}
+          />
+        </div>
       )}
     </div>
   );

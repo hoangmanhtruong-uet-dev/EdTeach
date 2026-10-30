@@ -17,11 +17,13 @@ import {
   X,
   QrCode,
   Sparkles,
+  Presentation,
 } from "lucide-react";
 import Link from "next/link";
-import { getUserExams, deleteExam, Exam } from "@/lib/api/exams";
+import { getUserExams, deleteExam, Exam, getExamById } from "@/lib/api/exams";
 import { useAuth } from "@/context/auth-context";
-import { isMaxUser, PricingPlan } from "@/lib/payment/plans";
+import { isMaxUser, isProUser, PricingPlan } from "@/lib/payment/plans";
+import { exportDualTeachingDocx } from "@/lib/export/docx-exporter";
 import { UpgradeTierModal } from "@/components/modals/upgrade-tier-modal";
 import { PaymentCheckoutModal } from "@/components/modals/payment-checkout-modal";
 
@@ -30,12 +32,28 @@ export default function ExamsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [exportingId, setExportingId] = useState<string | null>(null);
 
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
   const [magicLinkExam, setMagicLinkExam] = useState<Exam | null>(null);
   const [copiedMagicLink, setCopiedMagicLink] = useState(false);
   const [upgradeTier, setUpgradeTier] = useState<"pro" | "max" | null>(null);
   const [checkoutPlan, setCheckoutPlan] = useState<PricingPlan | null>(null);
+
+  const handleExportDualTeaching = async (id: string) => {
+    try {
+      setExportingId(id);
+      const fullExam = await getExamById(id);
+      if (fullExam) {
+        await exportDualTeachingDocx(fullExam, isProUser(profile) || isProUser(user));
+      }
+    } catch (e) {
+      console.error("Export dual docx error:", e);
+      alert("Lỗi khi xuất bộ đề giảng dạy.");
+    } finally {
+      setExportingId(null);
+    }
+  };
 
   const handleMagicLinkClick = (exam: Exam) => {
     if (!isMaxUser(profile)) {
@@ -182,14 +200,35 @@ export default function ExamsPage() {
                 <div className="hidden text-sm text-muted-foreground sm:col-span-2 sm:block">
                   {new Date(exam.created_at).toLocaleDateString("vi-VN")}
                 </div>
-                <div className="flex justify-end gap-1 sm:col-span-2">
+                <div className="flex items-center justify-end gap-1.5 sm:col-span-2">
+                  <Link
+                    href={`/teach/${exam.id}`}
+                    className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-bold text-amber-600 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50 transition cursor-pointer shadow-2xs"
+                    title="Bục Giảng Số: Trình chiếu chữa đề kết hợp Bảng nháp Excalidraw (Gói PRO)"
+                  >
+                    <Presentation className="h-3.5 w-3.5 text-amber-600" />
+                    <span className="hidden md:inline">Bục giảng</span>
+                  </Link>
+
                   <Link
                     href={`/exams/${exam.id}`}
                     className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground"
-                    title="Xem"
+                    title="Xem & Chỉnh sửa"
                   >
                     <Eye className="h-4 w-4" />
                   </Link>
+                  <button
+                    onClick={() => handleExportDualTeaching(exam.id)}
+                    disabled={exportingId === exam.id}
+                    className="rounded-lg p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 disabled:opacity-50 transition cursor-pointer"
+                    title="Tải Bộ Đề Kép: 1 Bản Học Sinh (có dòng chấm chép bài) & 1 Bản Giáo Viên (kèm lời giải chi tiết)"
+                  >
+                    {exportingId === exam.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                    ) : (
+                      <Download className="h-4 w-4 text-blue-600" />
+                    )}
+                  </button>
                   <button
                     onClick={() => handleMagicLinkClick(exam)}
                     className="rounded-lg p-2 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40"

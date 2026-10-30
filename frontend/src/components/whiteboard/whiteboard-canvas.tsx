@@ -15,6 +15,8 @@ interface WhiteboardCanvasProps {
   initialElements?: Record<string, unknown>[];
   initialAppState?: Record<string, unknown>;
   isPro?: boolean;
+  height?: string;
+  className?: string;
   onChange?: (elements: readonly Record<string, unknown>[], appState: Record<string, unknown>) => void;
   onApiReady?: (api: ExcalidrawImperativeAPI) => void;
 }
@@ -23,6 +25,8 @@ export default function WhiteboardCanvas({
   initialElements = [],
   initialAppState = {},
   isPro = false,
+  height,
+  className,
   onChange,
   onApiReady,
 }: WhiteboardCanvasProps) {
@@ -52,7 +56,7 @@ export default function WhiteboardCanvas({
   }, [excalidrawAPI, isPro, onApiReady]);
 
   return (
-    <div className="w-full h-full relative" style={{ height: "calc(100vh - 65px)" }}>
+    <div className={`w-full h-full relative ${className || ""}`} style={{ height: height || "calc(100vh - 65px)" }}>
       <Excalidraw
         excalidrawAPI={(api) => setExcalidrawAPI(api as unknown as ExcalidrawImperativeAPI)}
         initialData={{
