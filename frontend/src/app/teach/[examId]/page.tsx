@@ -38,6 +38,7 @@ import {
   FlaskConical,
   GraduationCap,
   AlertTriangle,
+  GripVertical,
 } from "lucide-react";
 import { getExamById, ExamWithQuestions, Question } from "@/lib/api/exams";
 import { useAuth } from "@/context/auth-context";
@@ -174,6 +175,45 @@ function TeachingStudioContent() {
 
   // Layout & Font Size for Projector
   const [splitRatio, setSplitRatio] = useState<number>(50);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+
+  // Dragging handlers for resizable split pane
+  const startDragging = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMove = (e: MouseEvent | TouchEvent) => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
+      const offsetX = clientX - rect.left;
+      let newRatio = Math.round((offsetX / rect.width) * 100);
+      // Clamp between 15% and 85%
+      newRatio = Math.max(15, Math.min(85, newRatio));
+      setSplitRatio(newRatio);
+    };
+
+    const handleUp = () => {
+      setIsDragging(false);
+    };
+
+    window.addEventListener("mousemove", handleMove);
+    window.addEventListener("mouseup", handleUp);
+    window.addEventListener("touchmove", handleMove);
+    window.addEventListener("touchend", handleUp);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMove);
+      window.removeEventListener("mouseup", handleUp);
+      window.removeEventListener("touchmove", handleMove);
+      window.removeEventListener("touchend", handleUp);
+    };
+  }, [isDragging]);
   const [fontSize, setFontSize] = useState<"md" | "lg" | "xl">("lg");
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -394,6 +434,12 @@ function TeachingStudioContent() {
         setShowFormula((prev) => !prev);
       } else if (e.key === "3") {
         setShowSolution((prev) => !prev);
+      } else if (e.key === "[") {
+        setSplitRatio((prev) => Math.max(15, prev - 5));
+      } else if (e.key === "]") {
+        setSplitRatio((prev) => Math.min(85, prev + 5));
+      } else if (e.key === "\\") {
+        setSplitRatio(50);
       }
     };
 
@@ -669,11 +715,11 @@ function TeachingStudioContent() {
           </div>
         </div>
 
-        {/* Center: Split View Controls */}
-        <div className="hidden md:flex items-center gap-1 rounded-xl bg-slate-800 p-1 border border-slate-700/80 text-xs">
+        {/* Center: Split View Controls with Resizing Presets */}
+        <div className="hidden lg:flex items-center gap-1 rounded-xl bg-slate-800 p-1 border border-slate-700/80 text-xs">
           <button
             onClick={() => setSplitRatio(100)}
-            title="Chỉ xem Đề thi (100% Câu hỏi)"
+            title="Chỉ xem Đề thi (100% Câu hỏi) [Alt+1]"
             className={`rounded-lg px-2.5 py-1 font-semibold transition cursor-pointer ${
               splitRatio === 100 ? "bg-primary text-white shadow-xs" : "text-slate-400 hover:text-white"
             }`}
@@ -681,17 +727,8 @@ function TeachingStudioContent() {
             Chỉ xem Đề
           </button>
           <button
-            onClick={() => setSplitRatio(50)}
-            title="Chia đôi màn hình (50% Đề - 50% Bảng nháp / 3D / Đa cách)"
-            className={`flex items-center gap-1 rounded-lg px-2.5 py-1 font-semibold transition cursor-pointer ${
-              splitRatio === 50 ? "bg-primary text-white shadow-xs" : "text-slate-400 hover:text-white"
-            }`}
-          >
-            <Columns2 className="w-3.5 h-3.5" /> 50:50
-          </button>
-          <button
             onClick={() => setSplitRatio(70)}
-            title="Ưu tiên Đề thi (70% Đề - 30% Cột phải)"
+            title="Ưu tiên Đề thi (70% Đề - 30% Cột phải) [Alt+2]"
             className={`rounded-lg px-2.5 py-1 font-semibold transition cursor-pointer ${
               splitRatio === 70 ? "bg-primary text-white shadow-xs" : "text-slate-400 hover:text-white"
             }`}
@@ -699,14 +736,47 @@ function TeachingStudioContent() {
             70% Đề
           </button>
           <button
+            onClick={() => setSplitRatio(50)}
+            title="Chia đôi màn hình (50% Đề - 50% Bảng nháp / 3D / Đa cách) [Alt+3 hoặc phím \]"
+            className={`flex items-center gap-1 rounded-lg px-2.5 py-1 font-semibold transition cursor-pointer ${
+              splitRatio === 50 ? "bg-primary text-white shadow-xs" : "text-slate-400 hover:text-white"
+            }`}
+          >
+            <Columns2 className="w-3.5 h-3.5" /> 50:50
+          </button>
+          <button
+            onClick={() => setSplitRatio(30)}
+            title="Ưu tiên Bảng nháp / 3D (30% Đề - 70% Cột phải) [Alt+4]"
+            className={`rounded-lg px-2.5 py-1 font-semibold transition cursor-pointer ${
+              splitRatio === 30 ? "bg-primary text-white shadow-xs" : "text-slate-400 hover:text-white"
+            }`}
+          >
+            30% Đề
+          </button>
+          <button
             onClick={() => setSplitRatio(0)}
-            title="Bung toàn màn hình Cột phải"
+            title="Bung toàn màn hình Cột phải (100% Bảng nháp / 3D) [Alt+5]"
             className={`rounded-lg px-2.5 py-1 font-semibold transition cursor-pointer ${
               splitRatio === 0 ? "bg-primary text-white shadow-xs" : "text-slate-400 hover:text-white"
             }`}
           >
             Chỉ xem Cột phải
           </button>
+
+          {/* Custom ratio badge when dragged freely */}
+          {![0, 30, 50, 70, 100].includes(splitRatio) && (
+            <span className="flex items-center gap-1.5 rounded-lg bg-blue-950/70 border border-blue-500/40 px-2 py-0.5 text-[11px] font-bold text-blue-300 tabular-nums shadow-xs">
+              <span>{splitRatio}% : {100 - splitRatio}%</span>
+              <button
+                type="button"
+                onClick={() => setSplitRatio(50)}
+                title="Nhấp để đặt lại về 50:50"
+                className="hover:text-white cursor-pointer text-slate-400 text-xs transition"
+              >
+                ↺
+              </button>
+            </span>
+          )}
         </div>
 
         {/* Right Tools: Font Size, Fullscreen */}
@@ -752,7 +822,11 @@ function TeachingStudioContent() {
       </header>
 
       {/* 2. BODY: SPLIT VIEW (LEFT QUESTION, RIGHT 3-TAB PANE) */}
-      <div className="flex flex-1 overflow-hidden relative">
+      <div ref={containerRef} className="flex flex-1 overflow-hidden relative">
+        {/* Invisible overlay during drag to prevent iframe / canvas event capturing */}
+        {isDragging && (
+          <div className="fixed inset-0 z-50 cursor-col-resize select-none" />
+        )}
         {/* ================= LEFT PANE: CÂU HỎI & MỞ TỪNG LỚP ĐÁP ÁN ================= */}
         {splitRatio > 0 && (
           <div
@@ -827,8 +901,28 @@ function TeachingStudioContent() {
                       )}
                     </div>
 
-                    {/* Action Buttons: Live Cloner & Scaffolding */}
+                    {/* Action Buttons: Live Cloner, Scaffolding & Quick Maximize */}
                     <div className="flex items-center gap-2">
+                      {/* Quick Maximize / Restore Left Pane */}
+                      <button
+                        type="button"
+                        onClick={() => setSplitRatio(splitRatio === 100 ? 50 : 100)}
+                        title={splitRatio === 100 ? "Thu nhỏ Đề thi về chia đôi 50:50" : "Phóng to tối đa Đề thi (100%)"}
+                        className="inline-flex items-center gap-1 rounded-xl border border-slate-700 bg-slate-800/90 px-2.5 py-1.5 text-xs font-semibold text-slate-300 hover:bg-slate-700 hover:text-white transition cursor-pointer shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                        aria-label={splitRatio === 100 ? "Thu nhỏ Đề thi về chia đôi" : "Phóng to tối đa Đề thi"}
+                      >
+                        {splitRatio === 100 ? (
+                          <>
+                            <Minimize2 className="w-3.5 h-3.5 text-blue-400" aria-hidden="true" />
+                            <span className="hidden xl:inline">Thu nhỏ</span>
+                          </>
+                        ) : (
+                          <>
+                            <Maximize2 className="w-3.5 h-3.5" aria-hidden="true" />
+                            <span className="hidden xl:inline">Bung to Đề</span>
+                          </>
+                        )}
+                      </button>
                       {/* Live 1-Click Question Cloner (MAX) */}
                       <button
                         onClick={handleLiveCloneQuestion}
@@ -1193,6 +1287,70 @@ function TeachingStudioContent() {
           </div>
         )}
 
+        {/* ================= DRAGGABLE RESIZE DIVIDER (THU PHÓNG KÉO THẢ) ================= */}
+        {splitRatio > 0 && splitRatio < 100 && (
+          <div
+            onMouseDown={startDragging}
+            onTouchStart={startDragging}
+            onDoubleClick={() => setSplitRatio(50)}
+            role="separator"
+            aria-orientation="vertical"
+            aria-valuenow={splitRatio}
+            aria-valuemin={15}
+            aria-valuemax={85}
+            aria-label="Kéo để thay đổi độ rộng giữa cột đề thi và cột bảng nháp"
+            title="Kéo sang trái/phải để thu phóng kích thước các tab (Nhấp đúp để chia đều 50:50)"
+            className={`group relative z-30 flex w-2.5 shrink-0 cursor-col-resize items-center justify-center bg-slate-900 border-x border-slate-800 hover:bg-blue-600 transition-colors select-none ${
+              isDragging ? "bg-blue-600 border-blue-500" : ""
+            }`}
+          >
+            {/* Visual Grip Handle in Center */}
+            <div className="absolute flex h-14 w-4 items-center justify-center rounded-full bg-slate-800 text-slate-400 shadow-md border border-slate-700 group-hover:bg-blue-500 group-hover:text-white group-hover:border-blue-400 transition-all pointer-events-none">
+              <GripVertical className="h-3.5 w-3.5" aria-hidden="true" />
+            </div>
+
+            {/* Quick 1-click resize arrows on hover */}
+            <div className="absolute top-1/2 -translate-y-1/2 hidden group-hover:flex flex-col gap-1 z-40 pointer-events-auto">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSplitRatio((prev) => Math.max(15, prev - 10));
+                }}
+                className="h-5 w-5 -left-6 absolute -top-9 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 flex items-center justify-center text-[10px] shadow-lg cursor-pointer"
+                title="Thu nhỏ Đề thi (-10%)"
+                aria-label="Thu nhỏ Đề thi (-10%)"
+              >
+                ◀
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSplitRatio(50);
+                }}
+                className="h-5 w-5 -left-2.5 absolute -top-2.5 rounded-full bg-blue-600 text-white font-bold flex items-center justify-center text-[9px] shadow-lg cursor-pointer"
+                title="Đặt lại chia đôi 50:50"
+                aria-label="Đặt lại chia đôi 50:50"
+              >
+                =
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSplitRatio((prev) => Math.min(85, prev + 10));
+                }}
+                className="h-5 w-5 left-1 absolute -top-9 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 flex items-center justify-center text-[10px] shadow-lg cursor-pointer"
+                title="Phóng to Đề thi (+10%)"
+                aria-label="Phóng to Đề thi (+10%)"
+              >
+                ▶
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* ================= RIGHT PANE: CỘT PHẢI ĐA NĂNG 3 TAB ================= */}
         {splitRatio < 100 && (
           <div
@@ -1236,17 +1394,40 @@ function TeachingStudioContent() {
                 </button>
               </div>
 
-              {/* Action for active tab */}
-              {activeRightTab === "whiteboard" && (
+              {/* Actions for right tab & Quick Maximize */}
+              <div className="flex items-center gap-1.5">
+                {activeRightTab === "whiteboard" && (
+                  <button
+                    onClick={handleClearCurrentDrawing}
+                    title="Xóa trắng bảng nháp của câu này"
+                    className="flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1 text-xs font-semibold text-red-400 hover:bg-red-950/40 transition cursor-pointer shadow-2xs"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Xóa nháp</span>
+                  </button>
+                )}
+
+                {/* Quick Maximize / Restore Right Tab */}
                 <button
-                  onClick={handleClearCurrentDrawing}
-                  title="Xóa trắng bảng nháp của câu này"
-                  className="flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1 text-xs font-semibold text-red-400 hover:bg-red-950/40 transition cursor-pointer shadow-2xs"
+                  type="button"
+                  onClick={() => setSplitRatio(splitRatio === 0 ? 50 : 0)}
+                  title={splitRatio === 0 ? "Thu nhỏ Cột phải về chia đôi 50:50" : "Phóng to tối đa Cột phải (100%)"}
+                  className="flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1 text-xs font-semibold text-slate-300 hover:bg-slate-700 hover:text-white transition cursor-pointer shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  aria-label={splitRatio === 0 ? "Thu nhỏ Cột phải về chia đôi 50:50" : "Phóng to tối đa Cột phải"}
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Xóa nháp</span>
+                  {splitRatio === 0 ? (
+                    <>
+                      <Minimize2 className="w-3.5 h-3.5 text-amber-400" aria-hidden="true" />
+                      <span className="hidden sm:inline">Thu nhỏ</span>
+                    </>
+                  ) : (
+                    <>
+                      <Maximize2 className="w-3.5 h-3.5" aria-hidden="true" />
+                      <span className="hidden sm:inline">Bung to Tab</span>
+                    </>
+                  )}
                 </button>
-              )}
+              </div>
 
               {activeRightTab === "lab3d" && (
                 <div className="flex items-center gap-2">
