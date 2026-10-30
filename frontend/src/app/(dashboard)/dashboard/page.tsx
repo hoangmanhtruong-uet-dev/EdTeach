@@ -172,9 +172,9 @@ export default function DashboardPage() {
           {latestExam && (
             <Link
               href={`/teach/${latestExam.id}`}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 px-3.5 py-2 text-xs font-bold text-blue-700 transition-colors hover:bg-blue-100 shadow-2xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 dark:border-blue-800/80 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 px-3.5 py-2 text-xs font-bold transition-colors hover:bg-blue-100 dark:hover:bg-blue-900/60 shadow-2xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500"
             >
-              <Presentation className="h-4 w-4 text-blue-600" aria-hidden="true" />
+              <Presentation className="h-4 w-4 text-blue-600 dark:text-blue-400" aria-hidden="true" />
               <span>Vào Bục Giảng Số</span>
             </Link>
           )}
@@ -287,21 +287,21 @@ export default function DashboardPage() {
           {/* Action 2: Bục Giảng Số 4.0 */}
           <Link
             href={latestExam ? `/teach/${latestExam.id}` : "/exams"}
-            className="flex items-center gap-3 rounded-xl border border-blue-200/80 bg-blue-50/40 p-3.5 transition-colors hover:bg-blue-50/80 group focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500"
+            className="flex items-center gap-3 rounded-xl border border-blue-200/80 bg-blue-50/40 dark:border-blue-800/60 dark:bg-blue-950/30 p-3.5 transition-colors hover:bg-blue-50/80 dark:hover:bg-blue-950/50 group focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500"
           >
             <div className="h-10 w-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 group-hover:scale-105 motion-reduce:transform-none transition-transform shadow-xs">
               <Presentation className="h-5 w-5" aria-hidden="true" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                <p className="text-sm font-bold text-foreground group-hover:text-blue-700 transition-colors truncate">
+                <p className="text-sm font-bold text-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate">
                   Bục Giảng Số 4.0
                 </p>
                 <span className="rounded bg-blue-600 text-white px-1.5 py-0.2 text-[9px] font-black uppercase">
                   PRO
                 </span>
               </div>
-              <p className="text-xs text-blue-800/80 truncate">
+              <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
                 Split-Screen & Kính vẽ chiếu lớp
               </p>
             </div>
@@ -310,21 +310,21 @@ export default function DashboardPage() {
           {/* Action 3: Phòng Thí Nghiệm 3D */}
           <Link
             href="/labs"
-            className="flex items-center gap-3 rounded-xl border border-emerald-200/80 bg-emerald-50/40 p-3.5 transition-colors hover:bg-emerald-50/80 group focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500"
+            className="flex items-center gap-3 rounded-xl border border-emerald-200/80 bg-emerald-50/40 dark:border-emerald-800/60 dark:bg-emerald-950/30 p-3.5 transition-colors hover:bg-emerald-50/80 dark:hover:bg-emerald-950/50 group focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500"
           >
             <div className="h-10 w-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 group-hover:scale-105 motion-reduce:transform-none transition-transform shadow-xs">
               <FlaskConical className="h-5 w-5" aria-hidden="true" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                <p className="text-sm font-bold text-foreground group-hover:text-emerald-700 transition-colors truncate">
+                <p className="text-sm font-bold text-foreground group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors truncate">
                   Phòng TN 3D
                 </p>
                 <span className="rounded bg-emerald-600 text-white px-1.5 py-0.2 text-[9px] font-black uppercase">
                   54+ Bài
                 </span>
               </div>
-              <p className="text-xs text-emerald-800/80 truncate">
+              <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
                 Vật lý, Hóa, Sinh, Địa tương tác
               </p>
             </div>
@@ -446,9 +446,9 @@ export default function DashboardPage() {
                         href={`/teach/${exam.id}`}
                         aria-label={`Trình chiếu Bục Giảng Số cho đề thi ${exam.name}`}
                         title="Chiếu lớp học Split-Screen & Kính vẽ"
-                        className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100 transition-colors shadow-2xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500"
+                        className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 dark:border-blue-800/80 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/60 px-2.5 py-1.5 text-xs font-bold transition-colors shadow-2xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500"
                       >
-                        <Presentation className="h-3.5 w-3.5 text-blue-600" aria-hidden="true" />
+                        <Presentation className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" aria-hidden="true" />
                         <span className="hidden md:inline">Chiếu Bục Giảng</span>
                       </Link>
 

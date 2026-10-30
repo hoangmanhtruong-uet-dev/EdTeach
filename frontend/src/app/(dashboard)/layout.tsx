@@ -19,6 +19,8 @@ import {
   FlaskConical,
   Presentation,
   Store,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { useState, useEffect, Suspense, useCallback } from "react";
 import { useAuth } from "@/context/auth-context";
@@ -52,10 +54,10 @@ function NavLinks({ onClose }: { onClose: () => void }) {
             href={link.href}
             onClick={onClose}
             aria-current={isActive ? "page" : undefined}
-            className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary ${
+            className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary ${
               isActive
-                ? "bg-primary text-primary-foreground shadow-xs"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                ? "bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-400 font-bold border border-blue-200 dark:border-blue-800/60 shadow-2xs"
+                : "text-muted-foreground hover:bg-muted/70 hover:text-foreground"
             }`}
           >
             <link.icon className="h-5 w-5 shrink-0" aria-hidden="true" />
@@ -75,9 +77,26 @@ function DashboardLayoutInner({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, profile, signOut } = useAuth();
   const [credits, setCredits] = useState<number | null>(null);
+  const [isDark, setIsDark] = useState(false);
 
   const isMax = isMaxUser(profile) || isMaxUser(user);
   const isPro = isProUser(profile) || isProUser(user);
+
+  const toggleTheme = () => {
+    const nextDark = !isDark;
+    setIsDark(nextDark);
+    try {
+      if (nextDark) {
+        document.documentElement.classList.add("dark");
+        localStorage.setItem("app_theme", "dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+        localStorage.setItem("app_theme", "light");
+      }
+    } catch {
+      // ignore
+    }
+  };
 
   // Close sidebar on Escape key
   const handleKeyDown = useCallback(
@@ -112,17 +131,23 @@ function DashboardLayoutInner({
     // Khởi tạo theme từ localStorage
     try {
       const savedTheme = localStorage.getItem("app_theme") || "system";
+      let darkModeActive = false;
       if (savedTheme === "dark") {
         document.documentElement.classList.add("dark");
+        darkModeActive = true;
       } else if (savedTheme === "light") {
         document.documentElement.classList.remove("dark");
+        darkModeActive = false;
       } else {
         if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
           document.documentElement.classList.add("dark");
+          darkModeActive = true;
         } else {
           document.documentElement.classList.remove("dark");
+          darkModeActive = false;
         }
       }
+      setIsDark(darkModeActive);
     } catch {
       // ignore
     }
@@ -282,6 +307,21 @@ function DashboardLayoutInner({
 
           <div className="flex-1" />
 
+          {/* Theme Toggle Button (Light / Dark) */}
+          <button
+            type="button"
+            onClick={toggleTheme}
+            aria-label={`Chuyển sang giao diện ${isDark ? "Sáng" : "Tối"}`}
+            title={`Giao diện ${isDark ? "Tối (Bấm để chuyển Sáng)" : "Sáng (Bấm để chuyển Tối)"}`}
+            className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer shadow-2xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary"
+          >
+            {isDark ? (
+              <Sun className="h-4 w-4 text-amber-400" aria-hidden="true" />
+            ) : (
+              <Moon className="h-4 w-4 text-slate-600" aria-hidden="true" />
+            )}
+          </button>
+
           {/* PRO/MAX status badge or upgrade pill */}
           {isMax ? (
             <span className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 px-3 py-1.5 text-xs font-black text-white shadow-xs">
@@ -297,7 +337,7 @@ function DashboardLayoutInner({
             <Link
               href="/wallet?plan=pro"
               aria-label="Nâng cấp gói Giáo Viên PRO"
-              className="flex items-center gap-1.5 rounded-full bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 px-3 py-1.5 text-xs font-bold transition-colors shadow-2xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-amber-500"
+              className="flex items-center gap-1.5 rounded-full bg-amber-50 hover:bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/60 dark:hover:bg-amber-900/40 border border-amber-300 px-3 py-1.5 text-xs font-bold transition-colors shadow-2xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-amber-500"
             >
               <Sparkles className="h-3.5 w-3.5 text-amber-600" aria-hidden="true" />
               <span>Nâng cấp PRO</span>
@@ -332,7 +372,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <Suspense fallback={<div className="h-screen w-screen bg-[#ebf3fb]" />}>
+    <Suspense fallback={<div className="h-screen w-screen bg-background" />}>
       <DashboardLayoutInner>{children}</DashboardLayoutInner>
     </Suspense>
   );

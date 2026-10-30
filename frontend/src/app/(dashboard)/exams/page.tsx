@@ -172,18 +172,18 @@ export default function ExamsPage() {
         ) : (
           <div className="divide-y divide-border">
             <div className="grid grid-cols-12 gap-4 p-4 text-xs font-semibold text-muted-foreground sm:grid">
-              <div className="col-span-5 sm:col-span-5">Tên đề thi</div>
+              <div className="col-span-5 sm:col-span-4">Tên đề thi</div>
               <div className="hidden sm:col-span-2 sm:block">Môn / Lớp</div>
               <div className="hidden sm:col-span-1 sm:block">Số câu</div>
               <div className="hidden sm:col-span-2 sm:block">Ngày tạo</div>
-              <div className="col-span-7 text-right sm:col-span-2">Thao tác</div>
+              <div className="col-span-7 text-right sm:col-span-3">Thao tác</div>
             </div>
             {filteredExams.map((exam) => (
               <div
                 key={exam.id}
                 className="grid grid-cols-12 items-center gap-4 p-4 transition-colors hover:bg-muted/50"
               >
-                <div className="col-span-12 sm:col-span-5">
+                <div className="col-span-12 sm:col-span-4">
                   <div className="overflow-hidden">
                     <Link href={`/exams/${exam.id}`} className="truncate font-medium hover:text-primary">
                       {exam.name}
@@ -216,15 +216,15 @@ export default function ExamsPage() {
                 <div className="hidden text-sm tabular-nums text-muted-foreground sm:col-span-2 sm:block">
                   {new Date(exam.created_at).toLocaleDateString("vi-VN")}
                 </div>
-                <div className="flex items-center justify-end gap-1.5 sm:col-span-2">
+                <div className="flex items-center justify-end gap-1 sm:col-span-3 flex-wrap sm:flex-nowrap">
                   <Link
                     href={`/teach/${exam.id}`}
                     aria-label={`Trình chiếu Bục Giảng Số đề ${exam.name}`}
-                    className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-bold text-amber-600 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50 transition cursor-pointer shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+                    className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500 transition-colors shadow-2xs whitespace-nowrap shrink-0 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500"
                     title="Bục Giảng Số: Trình chiếu chữa đề kết hợp Bảng nháp Excalidraw (Gói PRO)"
                   >
-                    <Presentation className="h-3.5 w-3.5 text-amber-600" aria-hidden="true" />
-                    <span className="hidden md:inline">Bục giảng</span>
+                    <Presentation className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                    <span>Bục giảng</span>
                   </Link>
 
                   <Link
@@ -240,20 +240,20 @@ export default function ExamsPage() {
                     onClick={() => handleExportDualTeaching(exam.id)}
                     disabled={exportingId === exam.id}
                     aria-label={`Tải bộ đề kép Word của đề ${exam.name}`}
-                    className="rounded-lg p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 disabled:opacity-50 transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                    className="rounded-lg p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 disabled:opacity-50 transition cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500 shrink-0"
                     title="Tải Bộ Đề Kép: 1 Bản Học Sinh (có dòng chấm chép bài) & 1 Bản Giáo Viên (kèm lời giải chi tiết)"
                   >
                     {exportingId === exam.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin text-blue-600" aria-hidden="true" />
+                      <Loader2 className="h-4 w-4 animate-spin text-blue-600 dark:text-blue-400" aria-hidden="true" />
                     ) : (
-                      <Download className="h-4 w-4 text-blue-600" aria-hidden="true" />
+                      <Download className="h-4 w-4 text-blue-600 dark:text-blue-400" aria-hidden="true" />
                     )}
                   </button>
                   <button
                     type="button"
                     onClick={() => handleMagicLinkClick(exam)}
                     aria-label={`Giao đề online qua Magic Link cho đề ${exam.name}`}
-                    className="rounded-lg p-2 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+                    className="rounded-lg p-1.5 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-amber-500 shrink-0"
                     title="Giao đề Online qua Magic Link (Đặc quyền MAX)"
                   >
                     <Share2 className="h-4 w-4" aria-hidden="true" />
@@ -263,7 +263,7 @@ export default function ExamsPage() {
                     onClick={() => handleDelete(exam.id)}
                     disabled={deletingId === exam.id}
                     aria-label={`Xóa đề ${exam.name}`}
-                    className="rounded-lg p-2 text-muted-foreground hover:bg-red-50 hover:text-red-600 disabled:opacity-50 transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                    className="rounded-lg p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-50 transition cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-destructive shrink-0"
                     title="Xóa"
                   >
                     {deletingId === exam.id ? (

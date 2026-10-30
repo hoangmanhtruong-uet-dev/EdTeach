@@ -2,44 +2,44 @@
 
 :root {
   color-scheme: light;
-  --background: #ebf3fb;
+  --background: #f8fafc;
   --foreground: #0f172a;
   --primary: #2563eb;
   --primary-foreground: #ffffff;
-  --secondary: #e2eefb;
-  --secondary-foreground: #1e3a5f;
-  --accent: #dbeafe;
-  --accent-foreground: #1e40af;
-  --muted: #edf4fc;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #1e293b;
+  --accent: #eff6ff;
+  --accent-foreground: #1d4ed8;
+  --muted: #f1f5f9;
   --muted-foreground: #64748b;
-  --border: #d6e4f5;
+  --border: #e2e8f0;
   --ring: #2563eb;
   --destructive: #ef4444;
-  --success: #22c55e;
+  --success: #16a34a;
   --warning: #f59e0b;
   --card: #ffffff;
   --card-foreground: #0f172a;
-  --radius: 0.5rem;
+  --radius: 0.75rem;
 }
 
 .dark {
   color-scheme: dark;
-  --background: #0b1329;
+  --background: #090d16;
   --foreground: #f8fafc;
   --primary: #3b82f6;
   --primary-foreground: #ffffff;
-  --secondary: #1e293b;
+  --secondary: #172033;
   --secondary-foreground: #f8fafc;
-  --accent: #1e3a8a;
-  --accent-foreground: #bfdbfe;
-  --muted: #172554;
+  --accent: #1e293b;
+  --accent-foreground: #93c5fd;
+  --muted: #111827;
   --muted-foreground: #94a3b8;
   --border: #1e293b;
   --ring: #3b82f6;
   --destructive: #ef4444;
   --success: #22c55e;
   --warning: #f59e0b;
-  --card: #0f172a;
+  --card: #0e1526;
   --card-foreground: #f8fafc;
 }
 
@@ -76,6 +76,7 @@ body {
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
   background: var(--muted);
