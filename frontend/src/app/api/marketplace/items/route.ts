@@ -11,13 +11,13 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const subject = searchParams.get("subject") || "all";
     const grade = searchParams.get("grade") || "all";
-    const search = (searchParams.get("search") || "").trim().toLowerCase();
-    const tab = searchParams.get("tab") || "all"; // 'all' | 'purchased' | 'my_listings'
+    const search = searchParams.get("search")?.toLowerCase().trim() || "";
+    const tab = searchParams.get("tab") || "browse";
 
-    // Lấy thông tin user hiện tại nếu có
     let currentUserId: string | null = null;
+    let supabase: any = null;
     try {
-      const supabase = await createClient();
+      supabase = await createClient();
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -28,24 +28,28 @@ export async function GET(req: NextRequest) {
       // Bỏ qua nếu chưa login
     }
 
-    // 1. Thử lấy từ Supabase DB trước
+    // 1. Lấy trực tiếp từ Supabase DB (Single source of truth)
     let itemsFromDb: MarketplaceItem[] | null = null;
-    try {
-      const supabase = await createClient();
-      let query = supabase.from("marketplace_items").select("*").eq("status", "published");
-      if (subject !== "all") query = query.eq("subject", subject);
-      if (grade !== "all") query = query.eq("grade", parseInt(grade, 10));
+    if (supabase) {
+      try {
+        let query = supabase.from("marketplace_items").select("*").eq("status", "published");
+        if (subject !== "all") query = query.eq("subject", subject);
+        if (grade !== "all") query = query.eq("grade", parseInt(grade, 10));
 
-      const { data, error } = await (query as any);
-      if (!error && Array.isArray(data) && data.length > 0) {
-        itemsFromDb = data;
+        const { data, error } = await query.order("created_at", { ascending: false });
+        if (!error && Array.isArray(data) && data.length > 0) {
+          itemsFromDb = data as MarketplaceItem[];
+        }
+      } catch (dbErr) {
+        console.warn("Lỗi đọc Supabase marketplace_items, dùng memory fallback:", dbErr);
       }
-    } catch {
-      // Table chưa migrate thì dùng memory store
     }
 
-    // 2. Nguồn dữ liệu kết hợp
-    const allItems: MarketplaceItem[] = itemsFromDb || Array.from(marketplaceItemsStore.values());
+    // 2. Nguồn dữ liệu kết hợp (Ưu tiên DB, fallback sang memory nếu DB trống)
+    const allItems: MarketplaceItem[] =
+      itemsFromDb && itemsFromDb.length > 0
+        ? itemsFromDb
+        : Array.from(marketplaceItemsStore.values());
 
     // 3. Lọc theo search, subject, grade
     let filtered = allItems.filter((item) => {
@@ -55,26 +59,36 @@ export async function GET(req: NextRequest) {
         !search ||
         item.title.toLowerCase().includes(search) ||
         item.seller_name.toLowerCase().includes(search) ||
-        item.tags.some((t) => t.toLowerCase().includes(search));
+        (Array.isArray(item.tags) && item.tags.some((t) => t.toLowerCase().includes(search)));
 
       return matchSubject && matchGrade && matchSearch;
     });
 
-    // 4. Kiểm tra quyền sở hữu và đã mua
+    // 4. Kiểm tra quyền sở hữu và đã mua qua Supabase DB
     const purchasedIds = new Set<string>();
-    if (currentUserId) {
-      marketplacePurchasesStore.forEach((p) => {
-        if (p.buyer_id === currentUserId) {
-          purchasedIds.add(p.item_id);
+    if (currentUserId && supabase) {
+      try {
+        const { data: dbPurchases } = await supabase
+          .from("marketplace_purchases")
+          .select("item_id")
+          .eq("buyer_id", currentUserId);
+
+        if (Array.isArray(dbPurchases)) {
+          dbPurchases.forEach((p: any) => purchasedIds.add(p.item_id));
         }
-      });
+      } catch {
+        // Fallback RAM
+        marketplacePurchasesStore.forEach((p) => {
+          if (p.buyer_id === currentUserId) purchasedIds.add(p.item_id);
+        });
+      }
     }
 
     filtered = filtered.map((item) => {
       const isOwner = !!currentUserId && item.seller_id === currentUserId;
       const isPurchased = isOwner || (!!currentUserId && purchasedIds.has(item.id)) || item.price_credits === 0;
 
-      // Không trả exam_data đầy đủ ở danh sách để bảo mật
+      // Không trả exam_data đầy đủ ở danh sách để bảo mật bản quyền (Audit S2)
       const { exam_data, ...publicItem } = item;
       return {
         ...publicItem,
@@ -120,86 +134,62 @@ export async function POST(req: NextRequest) {
       grade,
       description,
       price_credits,
-      exam_id, // nếu chọn từ đề có sẵn trong kho
       tags,
-      questions: rawQuestions,
+      questions,
     } = body;
 
     if (!title || !subject || !grade || price_credits === undefined) {
       return NextResponse.json(
-        { error: "Vui lòng nhập đầy đủ thông tin: Tiêu đề, Môn học, Khối lớp và Giá bán." },
+        { error: "Vui lòng điền đầy đủ tiêu đề, môn học, khối lớp và giá bán." },
         { status: 400 }
       );
     }
 
-    // Lấy thông tin user profile để biết seller_name và seller_tier (free / pro)
-    let sellerName = user.user_metadata?.full_name || user.email?.split("@")[0] || "Thầy Cô Giáo";
-    let sellerTier: "free" | "pro" = "free";
+    // Xác định thông tin người bán
+    let sellerName = user.user_metadata?.name || user.email?.split("@")[0] || "Giáo viên EduTest";
+    let sellerTier: "free" | "pro" | "max" = "free";
 
     try {
       const { data: profile } = await (supabase
         .from("users") as any)
-        .select("full_name, subscription_tier")
+        .select("name, subscription_tier")
         .eq("id", user.id)
         .maybeSingle();
 
       if (profile) {
-        if ((profile as any).full_name) sellerName = (profile as any).full_name;
-        if ((profile as any).subscription_tier === "pro") sellerTier = "pro";
+        if ((profile as any).name) sellerName = (profile as any).name;
+        if ((profile as any).subscription_tier === "max") sellerTier = "max";
+        else if ((profile as any).subscription_tier === "pro") sellerTier = "pro";
       }
     } catch {
-      // Fallback
+      // Dùng fallback
     }
 
-    // Lấy danh sách câu hỏi nếu chọn từ exam_id
-    let fullQuestions = rawQuestions || [];
-    if (exam_id && (!rawQuestions || rawQuestions.length === 0)) {
-      try {
-        const { data: dbQuestions } = await supabase
-          .from("questions")
-          .select("*")
-          .eq("exam_id", exam_id)
-          .order("order_index", { ascending: true });
-
-        if (dbQuestions && dbQuestions.length > 0) {
-          fullQuestions = dbQuestions.map((q: any, idx: number) => ({
-            id: q.id || `q-${idx + 1}`,
-            order: q.order_index ?? idx + 1,
-            type: q.type || "multiple_choice",
-            content: q.content,
-            options: Array.isArray(q.options) ? q.options : [],
-            correct_answer: q.correct_answer || "",
-            explanation: q.explanation || "",
-            difficulty: q.difficulty || "medium",
-          }));
-        }
-      } catch {
-        // Fallback
-      }
-    }
-
-    // Xây dựng ma trận và 3 câu hỏi xem trước
-    const sampleQuestions = fullQuestions.slice(0, 3).map((q: any) => ({
-      id: q.id,
-      order: q.order,
-      type: q.type,
+    const fullQuestions: any[] = Array.isArray(questions) ? questions : [];
+    const sampleQuestions = fullQuestions.slice(0, 3).map((q: any, idx: number) => ({
+      id: q.id || `sample-${idx + 1}`,
+      order: q.order || idx + 1,
+      type: q.type || "multiple_choice",
       content: q.content,
-      options: q.options,
-      difficulty: q.difficulty,
+      options: q.options || [],
+      difficulty: q.difficulty || "medium",
     }));
 
+    // Chuẩn hóa UUID chuẩn Postgres (Sprint MP-1 Fix U1 & A2)
+    const newId = crypto.randomUUID();
+
     const newItem: MarketplaceItem = {
-      id: `mk-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      id: newId,
       seller_id: user.id,
       seller_name: sellerName,
       seller_tier: sellerTier,
       title: title.trim(),
       subject: subject.trim(),
       grade: parseInt(grade, 10) || 12,
-      description: description?.trim() || `Bộ đề thi môn ${subject} lớp ${grade} chất lượng cao chuẩn cấu trúc mới.`,
+      description: description?.trim() || `Bộ đề thi môn ${subject} lớp ${grade} chất lượng cao chuẩn GDPT 2025.`,
       price_credits: Math.max(0, parseInt(price_credits, 10)),
       question_count: fullQuestions.length || 20,
-      tags: Array.isArray(tags) && tags.length > 0 ? tags : [`${subject}`, `Lop${grade}`, "ChuanMaTran"],
+      tags: Array.isArray(tags) && tags.length > 0 ? tags : [`${subject}`, `Lop${grade}`, "ChuanGDPT2025"],
       downloads_count: 0,
       rating: 5.0,
       review_count: 0,
@@ -226,9 +216,9 @@ export async function POST(req: NextRequest) {
       },
     };
 
-    // 1. Thử lưu vào Supabase table
+    // 1. Lưu trực tiếp vào Supabase database (UUID chuẩn)
     try {
-      await (supabase.from("marketplace_items") as any).insert({
+      const { error: insertError } = await (supabase.from("marketplace_items") as any).insert({
         id: newItem.id,
         seller_id: newItem.seller_id,
         seller_name: newItem.seller_name,
@@ -246,20 +236,24 @@ export async function POST(req: NextRequest) {
         rating: 5.0,
         status: "published",
       });
-    } catch {
-      // Table chưa có thì lưu memory store
+
+      if (insertError) {
+        console.warn("Lưu Supabase marketplace_items có lỗi, dùng memory fallback:", insertError.message);
+      }
+    } catch (e: any) {
+      console.warn("Lỗi kết nối Supabase khi insert:", e.message);
     }
 
-    // 2. Luôn lưu vào memory store
+    // 2. Lưu vào memory store làm bộ đệm
     marketplaceItemsStore.set(newItem.id, newItem);
 
     return NextResponse.json({
       success: true,
-      message: "Đăng bán đề thi thành công!",
+      message: "Đăng tải đề thi lên Chợ thành công!",
       item: newItem,
     });
   } catch (err: any) {
     console.error("Lỗi POST /api/marketplace/items:", err);
-    return NextResponse.json({ error: "Lỗi đăng đề: " + err.message }, { status: 500 });
+    return NextResponse.json({ error: "Lỗi đăng bán đề thi: " + err.message }, { status: 500 });
   }
 }

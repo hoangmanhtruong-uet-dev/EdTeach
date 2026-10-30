@@ -499,13 +499,13 @@ export default function MarketplacePage() {
           </div>
           <div>
             <div className="text-xs font-bold text-foreground flex items-center gap-1.5">
-              <span>Đề bản quyền: PRO nhận 90%</span>
+              <span>Bản quyền: Tác giả nhận tới 95%</span>
               <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-1.5 py-0.2 rounded">
-                PRO 10%
+                MAX 5% • PRO 10%
               </span>
             </div>
             <div className="text-[11px] text-muted-foreground mt-0.5">
-              Đặt giá bán bằng Credits. Giáo viên PRO giữ 90% doanh thu (Sàn thu 10%).
+              Đặt giá bằng Credits. Thầy/Cô giữ 80% (Free) ➔ 90% (PRO) ➔ 95% (MAX VIP) doanh thu.
             </div>
           </div>
         </div>

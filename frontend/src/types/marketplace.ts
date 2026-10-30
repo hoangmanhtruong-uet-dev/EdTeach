@@ -35,7 +35,7 @@ export interface MarketplaceItem {
   id: string;
   seller_id: string;
   seller_name: string;
-  seller_tier: 'free' | 'pro';
+  seller_tier: 'free' | 'pro' | 'max';
   title: string;
   subject: string;
   grade: number;

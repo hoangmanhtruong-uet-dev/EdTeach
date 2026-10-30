@@ -11,16 +11,35 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const item = marketplaceItemsStore.get(id);
+    const supabase = await createClient();
 
-    if (!item) {
-      return NextResponse.json({ error: "Không tìm thấy đề thi này." }, { status: 404 });
+    // 1. Thử lấy từ Supabase DB
+    let item: any = null;
+    try {
+      const { data, error } = await supabase
+        .from("marketplace_items")
+        .select("*")
+        .eq("id", id)
+        .maybeSingle();
+
+      if (!error && data) {
+        item = data;
+      }
+    } catch {
+      // Fallback memory
     }
 
-    // Xác định user hiện tại
+    if (!item) {
+      item = marketplaceItemsStore.get(id);
+    }
+
+    if (!item) {
+      return NextResponse.json({ error: "Không tìm thấy đề thi này trên chợ." }, { status: 404 });
+    }
+
+    // 2. Xác định user hiện tại
     let currentUserId: string | null = null;
     try {
-      const supabase = await createClient();
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -29,13 +48,27 @@ export async function GET(
       // Bỏ qua
     }
 
+    // 3. Kiểm tra quyền sở hữu
     const isOwner = !!currentUserId && item.seller_id === currentUserId;
-    const isPurchased =
-      isOwner ||
-      item.price_credits === 0 ||
-      marketplacePurchasesStore.some(
-        (p) => p.item_id === id && p.buyer_id === currentUserId
-      );
+    let isPurchased = isOwner || item.price_credits === 0;
+
+    if (!isPurchased && currentUserId) {
+      try {
+        const { data: purchase } = await supabase
+          .from("marketplace_purchases")
+          .select("id")
+          .eq("buyer_id", currentUserId)
+          .eq("item_id", id)
+          .maybeSingle();
+
+        if (purchase) isPurchased = true;
+      } catch {
+        // Fallback memory
+        if (marketplacePurchasesStore.some((p) => p.item_id === id && p.buyer_id === currentUserId)) {
+          isPurchased = true;
+        }
+      }
+    }
 
     if (isPurchased) {
       // Người mua hoặc tác giả: nhận full 100% câu hỏi + đáp án + giải thích
@@ -63,4 +96,3 @@ export async function GET(
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
-

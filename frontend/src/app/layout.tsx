@@ -32,14 +32,10 @@ export default function RootLayout({
   return (
     <html
       lang="vi"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased light`}
-      style={{ colorScheme: "light" }}
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
-      <head>
-        <meta name="color-scheme" content="light only" />
-        <meta name="supported-color-schemes" content="light" />
-      </head>
-      <body className="min-h-full flex flex-col bg-white text-slate-900" style={{ backgroundColor: "#ffffff", color: "#0f172a" }}>
+      <body className="min-h-full flex flex-col bg-background text-foreground">
         <AuthProvider>
           <ToastProvider>
             <Suspense fallback={null}>

@@ -24,28 +24,62 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Thiếu mã đề thi." }, { status: 400 });
     }
 
-    const item = marketplaceItemsStore.get(item_id);
-    if (!item) {
-      return NextResponse.json({ error: "Không tìm thấy đề thi." }, { status: 404 });
+    // 1. Lấy đề thi từ Supabase DB hoặc memory
+    let item: any = null;
+    try {
+      const { data, error } = await supabase
+        .from("marketplace_items")
+        .select("*")
+        .eq("id", item_id)
+        .maybeSingle();
+
+      if (!error && data) {
+        item = data;
+      }
+    } catch {
+      // Fallback memory
     }
 
-    // Kiểm tra quyền: tác giả, miễn phí, hoặc đã mua
+    if (!item) {
+      item = marketplaceItemsStore.get(item_id);
+    }
+
+    if (!item) {
+      return NextResponse.json({ error: "Không tìm thấy đề thi trên chợ." }, { status: 404 });
+    }
+
+    // 2. Kiểm tra quyền sở hữu hoặc đã mua
     const isOwner = item.seller_id === user.id;
     const isFree = item.price_credits === 0;
-    const isPurchased = marketplacePurchasesStore.some(
-      (p) => p.item_id === item_id && p.buyer_id === user.id
-    );
+    let isPurchased = isOwner || isFree;
 
-    if (!isOwner && !isFree && !isPurchased) {
+    if (!isPurchased) {
+      try {
+        const { data: purchase } = await supabase
+          .from("marketplace_purchases")
+          .select("id")
+          .eq("buyer_id", user.id)
+          .eq("item_id", item_id)
+          .maybeSingle();
+
+        if (purchase) isPurchased = true;
+      } catch {
+        if (marketplacePurchasesStore.some((p) => p.item_id === item_id && p.buyer_id === user.id)) {
+          isPurchased = true;
+        }
+      }
+    }
+
+    if (!isPurchased) {
       return NextResponse.json(
         { error: "Thầy/Cô cần mở khóa bộ đề này trước khi sao chép vào Studio." },
         { status: 403 }
       );
     }
 
-    const questions = item.exam_data?.questions || [];
+    const questions: any[] = item.exam_data?.questions || [];
 
-    // 1. Tạo bản ghi mới trong bảng exams
+    // 3. Tạo bản ghi THẬT trong bảng exams (Sprint MP-1 Fix U10 & A9)
     const newExamData = {
       user_id: user.id,
       name: `[Chợ Đề Thi] ${item.title}`,
@@ -54,7 +88,7 @@ export async function POST(req: NextRequest) {
       chapter: `Bản quyền từ: ${item.seller_name}`,
       status: "completed" as const,
       credit_cost: 0,
-      question_count: questions.length || item.question_count,
+      question_count: questions.length || item.question_count || 20,
       config: {
         cloned_from_marketplace_id: item.id,
         seller_name: item.seller_name,
@@ -62,39 +96,43 @@ export async function POST(req: NextRequest) {
       },
     };
 
-    let createdExamId = `exam-cloned-${Date.now()}`;
-    try {
-      const { data: createdExam, error: examError } = await (supabase.from("exams") as any)
-        .insert(newExamData)
-        .select()
-        .single();
+    const { data: createdExam, error: examError } = await (supabase.from("exams") as any)
+      .insert(newExamData)
+      .select()
+      .single();
 
-      if (!examError && createdExam) {
-        createdExamId = createdExam.id;
+    if (examError || !createdExam) {
+      console.error("Lỗi insert exams:", examError);
+      return NextResponse.json(
+        { error: "Không thể tạo bản ghi đề thi mới: " + (examError?.message || "Lỗi DB") },
+        { status: 500 }
+      );
+    }
 
-        // 2. Chèn từng câu hỏi vào questions table
-        if (questions.length > 0) {
-          const insertQuestions = questions.map((q, idx) => ({
-            exam_id: createdExamId,
-            type: q.type || "multiple_choice",
-            content: q.content,
-            options: q.options || [],
-            correct_answer: q.correct_answer || "",
-            explanation: q.explanation || "",
-            difficulty: q.difficulty || "medium",
-            order_index: q.order ?? idx + 1,
-          }));
+    const createdExamId = createdExam.id;
 
-          await (supabase.from("questions") as any).insert(insertQuestions);
-        }
+    // 4. Chèn từng câu hỏi thật vào questions table
+    if (questions.length > 0) {
+      const insertQuestions = questions.map((q: any, idx: number) => ({
+        exam_id: createdExamId,
+        type: q.type || "multiple_choice",
+        content: q.content || "",
+        options: q.options || [],
+        correct_answer: q.correct_answer || "",
+        explanation: q.explanation || "",
+        difficulty: q.difficulty || "medium",
+        order_index: q.order ?? q.order_index ?? idx + 1,
+      }));
+
+      const { error: qError } = await (supabase.from("questions") as any).insert(insertQuestions);
+      if (qError) {
+        console.warn("Lỗi insert questions:", qError.message);
       }
-    } catch (e: any) {
-      console.warn("Lỗi khi ghi exams vào Supabase:", e.message);
     }
 
     return NextResponse.json({
       success: true,
-      message: "Đã sao chép đề thi vào kho cá nhân của Thầy/Cô!",
+      message: "Đã sao chép đề thi vào kho cá nhân của Thầy/Cô thành công!",
       exam_id: createdExamId,
     });
   } catch (err: any) {
@@ -102,4 +140,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Lỗi sao chép đề: " + err.message }, { status: 500 });
   }
 }
-
