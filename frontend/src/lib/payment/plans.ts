@@ -106,7 +106,15 @@ export const CREDIT_PACKS = [
 
 export function isMaxUser(profile: any): boolean {
   if (!profile) return false;
-  if (profile.email === "truongcri0101@gmail.com") return true;
+  const email = (profile.email || profile.user_metadata?.email || "").toLowerCase();
+  const id = profile.id;
+  if (
+    email === "truongcri0101@gmail.com" ||
+    email.includes("truongcri0101") ||
+    id === "84493d6a-4eff-42af-bf7d-0da914f96e39"
+  ) {
+    return true;
+  }
   return (
     profile.tier === "max" ||
     (profile as any).subscription_tier === "max" ||

@@ -43,7 +43,7 @@ function WalletContent() {
   const tierParam = searchParams.get("tier");
   const planParam = searchParams.get("plan");
 
-  const { profile, refreshProfile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [txns, setTxns] = useState<WalletTxn[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,8 +55,8 @@ function WalletContent() {
   const [checkoutTargetPlan, setCheckoutTargetPlan] = useState<any>(PRO_MONTHLY);
   const [showSuccessBanner, setShowSuccessBanner] = useState(paymentStatus === "PAID");
 
-  const isUserMax = isMaxUser(profile);
-  const isUserPro = isProUser(profile);
+  const isUserMax = isMaxUser(profile) || isMaxUser(user);
+  const isUserPro = isProUser(profile) || isProUser(user);
 
   const activeProPlan = billingCycle === "semester" ? PRO_SEMESTER : PRO_MONTHLY;
   const activeMaxPlan = billingCycle === "semester" ? MAX_SEMESTER : MAX_MONTHLY;
@@ -212,7 +212,7 @@ function WalletContent() {
                     isUserMax ? "text-amber-600" : isUserPro ? "text-primary" : "text-slate-700 dark:text-slate-300"
                   }`}
                 >
-                  {getTierName(profile)}
+                  {getTierName(profile || user)}
                 </p>
                 {isUserMax && (
                   <span className="rounded-full bg-amber-500 px-2 py-0.5 text-[9px] font-black text-white">

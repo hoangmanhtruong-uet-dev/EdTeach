@@ -660,14 +660,14 @@ export default function SettingsPage() {
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-muted-foreground">Hạng tài khoản:</span>
                       <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${
-                        isMaxUser(profile)
+                        (isMaxUser(profile) || isMaxUser(user))
                           ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
-                          : isProUser(profile)
+                          : (isProUser(profile) || isProUser(user))
                           ? "bg-primary/10 text-primary border border-primary/20"
                           : "bg-muted text-muted-foreground border border-border"
                       }`}>
                         <Sparkles className="w-3.5 h-3.5" />
-                        {getTierName(profile)}
+                        {getTierName(profile || user)}
                       </span>
                     </div>
 

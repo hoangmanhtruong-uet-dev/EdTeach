@@ -76,6 +76,9 @@ function DashboardLayoutInner({
   const { user, profile, signOut } = useAuth();
   const [credits, setCredits] = useState<number | null>(null);
 
+  const isMax = isMaxUser(profile) || isMaxUser(user);
+  const isPro = isProUser(profile) || isProUser(user);
+
   useEffect(() => {
     async function loadWallet() {
       try {
@@ -187,11 +190,11 @@ function DashboardLayoutInner({
                 >
                   {profile?.name || user?.email || "Giáo viên"}
                 </p>
-                {isMaxUser(profile) ? (
+                {isMax ? (
                   <span className="shrink-0 rounded bg-amber-500 text-white px-1.5 py-0.5 text-[10px] font-black shadow-xs flex items-center gap-0.5">
                     <Crown className="w-2.5 h-2.5" /> MAX
                   </span>
-                ) : isProUser(profile) ? (
+                ) : isPro ? (
                   <span className="shrink-0 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary border border-primary/20">
                     PRO
                   </span>
@@ -234,12 +237,12 @@ function DashboardLayoutInner({
           <div className="flex-1" />
 
           {/* PRO/MAX status badge or upgrade pill */}
-          {isMaxUser(profile) ? (
+          {isMax ? (
             <span className="flex items-center gap-1.5 rounded-full bg-linear-to-r from-amber-500 to-amber-600 px-3 py-1.5 text-xs font-black text-white shadow-xs">
               <Crown className="h-3.5 w-3.5" />
               <span>GÓI MAX</span>
             </span>
-          ) : isProUser(profile) ? (
+          ) : isPro ? (
             <span className="flex items-center gap-1.5 rounded-full bg-linear-to-r from-blue-600 to-indigo-600 px-3 py-1.5 text-xs font-bold text-white shadow-xs">
               <Sparkles className="h-3.5 w-3.5" />
               <span>GÓI PRO</span>

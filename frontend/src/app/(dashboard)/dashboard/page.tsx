@@ -51,6 +51,9 @@ export default function DashboardPage() {
   const [credits, setCredits] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const isMax = isMaxUser(profile) || isMaxUser(user);
+  const isPro = isProUser(profile) || isProUser(user);
+
   useEffect(() => {
     async function loadDashboard() {
       try {
@@ -369,11 +372,11 @@ export default function DashboardPage() {
               <h2 className="font-semibold text-sm sm:text-base text-foreground">
                 Ví tài khoản
               </h2>
-              {isMaxUser(profile) ? (
+              {isMax ? (
                 <span className="text-[11px] font-black text-amber-700 dark:text-amber-400 bg-amber-500/15 px-2.5 py-0.5 rounded-full border border-amber-500/30 flex items-center gap-1 shadow-2xs">
                   <Crown className="w-3 h-3 text-amber-600 dark:text-amber-400" /> Gói MAX
                 </span>
-              ) : isProUser(profile) ? (
+              ) : isPro ? (
                 <span className="text-[11px] font-bold text-primary bg-primary/10 px-2.5 py-0.5 rounded-full border border-primary/20 flex items-center gap-1">
                   <Sparkles className="w-3 h-3 text-primary" /> Gói PRO
                 </span>
@@ -397,9 +400,9 @@ export default function DashboardPage() {
                 </span>
               </div>
               <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
-                {isMaxUser(profile)
+                {isMax
                   ? "Tài khoản Giáo viên MAX VIP: Trộn 12 mã đề, AI phân tích câu bẫy, giao bài Magic Link & không giới hạn."
-                  : isProUser(profile)
+                  : isPro
                   ? "Tài khoản Giáo viên PRO: Mở khóa phòng thí nghiệm 3D, trộn 4 mã đề & chấm OMR không giới hạn."
                   : "Tặng 100 credits & 3 lượt tạo đề miễn phí mỗi ngày. Chấm OMR OpenCV hoàn toàn miễn phí."}
               </p>
