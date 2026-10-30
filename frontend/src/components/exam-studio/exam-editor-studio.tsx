@@ -26,6 +26,7 @@ import {
   Share2,
   FolderOpen,
   Sparkles,
+  Crown,
   RotateCcw,
   X,
   Undo2,
@@ -103,6 +104,9 @@ import {
 import { FormulaEditorModal } from "./formula-editor-modal";
 import { FindReplaceModal } from "./find-replace-modal";
 import { ShuffleExamModal } from "./shuffle-exam-modal";
+import { isProUser, isMaxUser, PricingPlan } from "@/lib/payment/plans";
+import { UpgradeTierModal } from "@/components/modals/upgrade-tier-modal";
+import { PaymentCheckoutModal } from "@/components/modals/payment-checkout-modal";
 import {
   VariationTableModal,
   VariationTableRenderer,
@@ -417,6 +421,8 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
   // Daily Quota & Viral Referral states
   const [showQuotaModal, setShowQuotaModal] = useState(false);
   const [showShuffleModal, setShowShuffleModal] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState<"pro" | "max" | null>(null);
+  const [checkoutPlan, setCheckoutPlan] = useState<PricingPlan | null>(null);
   const [dailyQuota, setDailyQuota] = useState(3);
   const [dailyUsed, setDailyUsed] = useState(0);
   const [userReferralCode, setUserReferralCode] = useState("EDUTEACH");
@@ -5801,6 +5807,22 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
                       <Paperclip className="h-4 w-4" />
                       <span className="text-[10px] hidden sm:inline">Kẹp file</span>
                     </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!isMaxUser(profile)) {
+                          setShowUpgradeModal("max");
+                          return;
+                        }
+                        setAiPrompt("Hãy phân tích toàn bộ các câu hỏi hiện có trong đề thi này và tạo ra một đề thi MỚI tương đương (cùng ma trận kiến thức, cùng dạng bài toán và độ khó, nhưng thay đổi toàn bộ số liệu, ngữ cảnh và các phương án gây nhiễu chuẩn Bộ GD&ĐT 2025).");
+                      }}
+                      title="Đặc quyền Gói MAX: AI tự động phân tích và nhân bản đề thi tương đương"
+                      className="flex items-center gap-1 rounded px-2 py-1 text-[11px] font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition cursor-pointer"
+                    >
+                      <Crown className="h-3.5 w-3.5 text-amber-600" />
+                      <span className="text-[10px] font-bold">Clone đề (MAX)</span>
+                    </button>
                   </div>
 
                   {/* Right: Model Tier, Thinking Effort & Send button */}
@@ -5924,8 +5946,36 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
         grade={grade}
         durationMinutes={parseInt(duration, 10) || 45}
         originalQuestions={questions}
-        isPro={(profile as any)?.tier === "pro" || (profile as any)?.tier === "school"}
+        isPro={isProUser(profile)}
+        isMax={isMaxUser(profile)}
       />
+
+      {/* Upgrade Tier Modal */}
+      {showUpgradeModal && (
+        <UpgradeTierModal
+          isOpen={!!showUpgradeModal}
+          onClose={() => setShowUpgradeModal(null)}
+          requiredTier={showUpgradeModal}
+          onSelectPlan={(plan) => {
+            setShowUpgradeModal(null);
+            setCheckoutPlan(plan);
+          }}
+        />
+      )}
+
+      {/* Payment Checkout Modal */}
+      {checkoutPlan && (
+        <PaymentCheckoutModal
+          isOpen={!!checkoutPlan}
+          onClose={() => setCheckoutPlan(null)}
+          selectedPlan={checkoutPlan}
+          onSuccess={() => {
+            setCheckoutPlan(null);
+            setShowUpgradeModal(null);
+            window.location.reload();
+          }}
+        />
+      )}
     </div>
   );
 }

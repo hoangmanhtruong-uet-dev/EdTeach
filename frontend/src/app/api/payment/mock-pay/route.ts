@@ -34,6 +34,7 @@ export async function POST(req: NextRequest) {
 
     const cleanCode = order_code.trim().toUpperCase();
     let orderCredits = 100;
+    let orderAmount = 0;
     let orderId = "";
 
     // 1. Thử tìm trong Supabase
@@ -49,6 +50,7 @@ export async function POST(req: NextRequest) {
       if (order) {
         orderFoundInDb = true;
         orderCredits = order.credits;
+        orderAmount = order.amount || 0;
         orderId = order.id;
 
         if (order.status === "paid") {
@@ -76,6 +78,7 @@ export async function POST(req: NextRequest) {
       const fbOrder = getFallbackOrder(cleanCode);
       if (fbOrder) {
         orderCredits = fbOrder.credits;
+        orderAmount = fbOrder.amount || 0;
         orderId = fbOrder.id;
         markFallbackOrderPaid(cleanCode);
       } else {
@@ -115,6 +118,39 @@ export async function POST(req: NextRequest) {
           });
         } catch {
           // ignore txn log failure
+        }
+      }
+
+      // Nâng cấp tier nếu mua gói PRO hoặc MAX
+      if (orderAmount === 229000 || orderAmount === 899000) {
+        try {
+          const { error: maxErr } = await (supabase.from("users") as any)
+            .update({ tier: "max", updated_at: nowIso })
+            .eq("id", user.id);
+          if (maxErr) {
+            const { data: u } = await (supabase.from("users") as any)
+              .select("preferences")
+              .eq("id", user.id)
+              .maybeSingle();
+            const prefs = u?.preferences || {};
+            await (supabase.from("users") as any)
+              .update({
+                tier: "pro",
+                preferences: { ...prefs, subscription_tier: "max" },
+                updated_at: nowIso,
+              })
+              .eq("id", user.id);
+          }
+        } catch {
+          // ignore
+        }
+      } else if (orderAmount === 149000 || orderAmount === 599000 || orderAmount === 99000) {
+        try {
+          await (supabase.from("users") as any)
+            .update({ tier: "pro", updated_at: nowIso })
+            .eq("id", user.id);
+        } catch {
+          // ignore
         }
       }
     } catch {

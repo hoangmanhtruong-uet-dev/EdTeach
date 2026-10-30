@@ -13,26 +13,28 @@ import {
   Sparkles,
   ShieldCheck,
   Check,
+  Crown,
+  Zap,
+  ArrowRight,
+  FileCheck2,
+  Cpu,
+  Layers,
+  Share2,
 } from "lucide-react";
 import { getUserWallet, getWalletTransactions, Wallet, WalletTxn } from "@/lib/api/wallet";
 import { PaymentCheckoutModal } from "@/components/modals/payment-checkout-modal";
 import { useAuth } from "@/context/auth-context";
-
-const proPlan = {
-  name: "Gói Giáo Viên PRO",
-  price: "99.000đ",
-  amount: 99000,
-  credits: 30000,
-  period: "/tháng",
-  isPro: true,
-};
-
-const pricingPlans = [
-  { credits: 50, price: "49.000đ", amount: 49000, perCredit: "980đ", popular: false, isPro: false },
-  { credits: 100, price: "89.000đ", amount: 89000, perCredit: "890đ", popular: true, isPro: false },
-  { credits: 200, price: "159.000đ", amount: 159000, perCredit: "795đ", popular: false, isPro: false },
-  { credits: 500, price: "349.000đ", amount: 349000, perCredit: "698đ", popular: false, isPro: false },
-];
+import {
+  PRO_MONTHLY,
+  PRO_SEMESTER,
+  MAX_MONTHLY,
+  MAX_SEMESTER,
+  CREDIT_PACKS,
+  isProUser,
+  isMaxUser,
+  getTierName,
+  PricingPlan,
+} from "@/lib/payment/plans";
 
 function WalletContent() {
   const searchParams = useSearchParams();
@@ -41,16 +43,23 @@ function WalletContent() {
   const tierParam = searchParams.get("tier");
   const planParam = searchParams.get("plan");
 
-  const { profile, refreshProfile, refreshWallet } = useAuth();
+  const { profile, refreshProfile } = useAuth();
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [txns, setTxns] = useState<WalletTxn[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedPlanIndex, setSelectedPlanIndex] = useState(1);
+
+  // Billing cycle: "monthly" | "semester"
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "semester">("monthly");
+  const [selectedCreditPackIndex, setSelectedCreditPackIndex] = useState(1);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-  const [checkoutTargetPlan, setCheckoutTargetPlan] = useState<any>(pricingPlans[1]);
+  const [checkoutTargetPlan, setCheckoutTargetPlan] = useState<any>(PRO_MONTHLY);
   const [showSuccessBanner, setShowSuccessBanner] = useState(paymentStatus === "PAID");
 
-  const isProUser = profile?.tier === "pro" || profile?.tier === "school";
+  const isUserMax = isMaxUser(profile);
+  const isUserPro = isProUser(profile);
+
+  const activeProPlan = billingCycle === "semester" ? PRO_SEMESTER : PRO_MONTHLY;
+  const activeMaxPlan = billingCycle === "semester" ? MAX_SEMESTER : MAX_MONTHLY;
 
   async function loadData() {
     try {
@@ -79,13 +88,16 @@ function WalletContent() {
     }
   }, [paymentStatus]);
 
-  // Nếu user truy cập từ nút nâng cấp ?plan=pro, mở ngay modal checkout PRO
+  // URL query trigger for ?plan=pro or ?plan=max
   useEffect(() => {
-    if (planParam === "pro" && !isProUser) {
-      setCheckoutTargetPlan(proPlan);
+    if (planParam === "max" && !isUserMax) {
+      setCheckoutTargetPlan(activeMaxPlan);
+      setIsCheckoutOpen(true);
+    } else if (planParam === "pro" && !isUserPro) {
+      setCheckoutTargetPlan(activeProPlan);
       setIsCheckoutOpen(true);
     }
-  }, [planParam, isProUser]);
+  }, [planParam, isUserMax, isUserPro]);
 
   if (loading) {
     return (
@@ -98,71 +110,118 @@ function WalletContent() {
   const balance = wallet?.balance ?? 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Banner PayOS thanh toán thành công */}
       {showSuccessBanner && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-800 flex items-center justify-between shadow-xs animate-in fade-in">
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 dark:border-emerald-900/40 dark:bg-emerald-950/20 p-4 text-emerald-800 dark:text-emerald-300 flex items-center justify-between shadow-xs animate-in fade-in">
           <div className="flex items-center gap-3">
             <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
             <div>
               <p className="font-bold text-sm">
-                {tierParam === "pro"
-                  ? "Thanh toán thành công! Chúc mừng bạn đã lên Gói PRO Giáo Viên."
+                {tierParam === "max"
+                  ? "Thanh toán thành công! Chúc mừng bạn đã nâng cấp GÓI LUYỆN THI MAX VIP."
+                  : tierParam === "pro"
+                  ? "Thanh toán thành công! Chúc mừng bạn đã lên GÓI GIÁO VIÊN PRO."
                   : "Thanh toán PayOS thành công!"}
               </p>
-              <p className="text-xs text-emerald-700">
-                {tierParam === "pro"
-                  ? "Toàn bộ 54+ Phòng Thí Nghiệm 3D độc quyền và +30.000 credits soạn đề AI đã được kích hoạt cho tài khoản của bạn."
-                  : `Giao dịch đã được xác nhận. ${creditsParam ? `+${creditsParam} Credits` : "Credits"} đã được cộng vào ví của bạn.`}
+              <p className="text-xs text-emerald-700 dark:text-emerald-400">
+                Giao dịch của bạn đã được xác nhận tự động. Hạn mức và các đặc quyền VIP đã kích hoạt ngay lập tức.
               </p>
             </div>
           </div>
           <button
             onClick={() => setShowSuccessBanner(false)}
-            className="text-xs font-semibold px-2 py-1 rounded-md bg-white border border-emerald-200 text-emerald-800 hover:bg-emerald-100 transition cursor-pointer"
+            className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-white dark:bg-card border border-emerald-200 text-emerald-800 dark:text-emerald-200 hover:bg-emerald-100 transition cursor-pointer"
           >
             Đóng
           </button>
         </div>
       )}
 
-      <div className="flex items-center justify-between">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Ví Credits & Gói Dịch Vụ</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Ví Credits & Gói Dịch Vụ</h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Quản lý số dư, nâng cấp Gói PRO và nạp credits tự động qua cổng PayOS / VietQR 24/7
+            Quản lý số dư, mở khóa đặc quyền Gói PRO / Gói MAX và nạp credits tự động 24/7 qua VietQR PayOS.
           </p>
+        </div>
+
+        {/* Cycle Toggle */}
+        <div className="inline-flex items-center rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-neutral-100/70 dark:bg-muted/40 p-1 self-start sm:self-auto">
+          <button
+            type="button"
+            onClick={() => setBillingCycle("monthly")}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              billingCycle === "monthly"
+                ? "bg-white dark:bg-card text-foreground shadow-xs"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Gói 1 Tháng
+          </button>
+          <button
+            type="button"
+            onClick={() => setBillingCycle("semester")}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              billingCycle === "semester"
+                ? "bg-primary text-primary-foreground shadow-xs"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <span>Gói Học Kỳ (5 Tháng)</span>
+            <span className="rounded-full bg-amber-400 text-amber-950 px-1.5 py-0.2 text-[9px] font-black">
+              -20%
+            </span>
+          </button>
         </div>
       </div>
 
-      {/* Balance & Tier cards */}
+      {/* Overview Cards */}
       <div className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-xl border border-border bg-card p-6">
+        <div className="rounded-2xl border border-border bg-card p-6 shadow-xs">
           <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-primary/10 p-2.5">
-              <WalletIcon className="h-5 w-5 text-primary" />
+            <div className="rounded-xl bg-primary/10 p-3">
+              <WalletIcon className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Số dư hiện tại</p>
-              <p className="text-2xl font-bold">{balance.toLocaleString()} credits</p>
+              <p className="text-xs font-semibold text-muted-foreground">Số dư hiện tại</p>
+              <p className="text-2xl font-black text-foreground">{balance.toLocaleString()} credits</p>
             </div>
           </div>
         </div>
 
-        <div className="rounded-xl border border-border bg-card p-6">
+        <div className="rounded-2xl border border-border bg-card p-6 shadow-xs">
           <div className="flex items-center gap-3">
-            <div className={`rounded-lg p-2.5 ${isProUser ? "bg-amber-100" : "bg-slate-100"}`}>
-              <Sparkles className={`h-5 w-5 ${isProUser ? "text-amber-600" : "text-slate-500"}`} />
+            <div
+              className={`rounded-xl p-3 ${
+                isUserMax
+                  ? "bg-amber-500/10 text-amber-600"
+                  : isUserPro
+                  ? "bg-primary/10 text-primary"
+                  : "bg-muted text-muted-foreground"
+              }`}
+            >
+              {isUserMax ? <Crown className="h-6 w-6" /> : <Sparkles className="h-6 w-6" />}
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Hạng tài khoản</p>
+              <p className="text-xs font-semibold text-muted-foreground">Hạng tài khoản</p>
               <div className="flex items-center gap-2">
-                <p className={`text-2xl font-bold ${isProUser ? "text-amber-600" : "text-slate-700"}`}>
-                  {isProUser ? "GÓI PRO" : "GÓI FREE"}
+                <p
+                  className={`text-xl font-black ${
+                    isUserMax ? "text-amber-600" : isUserPro ? "text-primary" : "text-slate-700 dark:text-slate-300"
+                  }`}
+                >
+                  {getTierName(profile)}
                 </p>
-                {isProUser && (
-                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
-                    VIP
+                {isUserMax && (
+                  <span className="rounded-full bg-amber-500 px-2 py-0.5 text-[9px] font-black text-white">
+                    MAX
+                  </span>
+                )}
+                {isUserPro && !isUserMax && (
+                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[9px] font-bold text-primary">
+                    PRO
                   </span>
                 )}
               </div>
@@ -170,27 +229,166 @@ function WalletContent() {
           </div>
         </div>
 
-        <div className="rounded-xl border border-border bg-card p-6">
+        <div className="rounded-2xl border border-border bg-card p-6 shadow-xs">
           <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-green-100 p-2.5">
-              <ShieldCheck className="h-5 w-5 text-green-600" />
+            <div className="rounded-xl bg-emerald-500/10 p-3 text-emerald-600">
+              <ShieldCheck className="h-6 w-6" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Cổng thanh toán</p>
-              <p className="text-2xl font-bold text-green-600">PayOS 24/7</p>
+              <p className="text-xs font-semibold text-muted-foreground">Cổng thanh toán tự động</p>
+              <p className="text-2xl font-black text-emerald-600">VietQR 24/7</p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Transaction history */}
-        <div className="rounded-xl border border-border bg-card lg:col-span-2">
-          <div className="flex items-center justify-between border-b border-border p-5">
-            <h2 className="font-semibold">Lịch sử giao dịch</h2>
-            <button className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-              <Clock className="h-4 w-4" /> Xem tất cả
+      {/* Main Pricing Cards Grid (PRO vs MAX) */}
+      <div className="space-y-4">
+        <div className="text-center max-w-xl mx-auto mb-2">
+          <h2 className="text-xl font-bold tracking-tight">Gói dịch vụ dành riêng cho Giáo viên Việt Nam</h2>
+          <p className="text-xs text-muted-foreground mt-1">
+            Thiết kế tối ưu theo nghiệp vụ thực tế: Không watermark, tráo mã đề chuẩn Bộ GD&ĐT 2025 và chấm tự động.
+          </p>
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Card 1: GÓI PRO */}
+          <div
+            className={`rounded-3xl border p-6 sm:p-7 transition-all flex flex-col justify-between relative bg-card ${
+              isUserPro && !isUserMax
+                ? "border-primary ring-2 ring-primary/40 shadow-md"
+                : "border-border shadow-xs hover:border-primary/50"
+            }`}
+          >
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="rounded-full bg-primary/10 text-primary px-3 py-1 text-xs font-bold">
+                  {activeProPlan.badge}
+                </span>
+                <span className="text-xs font-medium text-muted-foreground">
+                  {activeProPlan.period}
+                </span>
+              </div>
+
+              <h3 className="text-2xl font-black text-foreground">{activeProPlan.name}</h3>
+              <div className="mt-2 flex items-baseline gap-1.5">
+                <span className="text-3xl font-black text-primary">{activeProPlan.price}</span>
+                <span className="text-xs text-muted-foreground">{activeProPlan.period}</span>
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
+                {activeProPlan.description}
+              </p>
+
+              <hr className="my-5 border-border" />
+
+              <div className="space-y-2.5 text-xs">
+                <p className="font-bold text-foreground">Đặc quyền nổi bật:</p>
+                {activeProPlan.features.map((feat, i) => (
+                  <div key={i} className="flex items-start gap-2.5">
+                    <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <span className="text-neutral-700 dark:text-neutral-300 leading-snug">{feat}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setCheckoutTargetPlan(activeProPlan);
+                setIsCheckoutOpen(true);
+              }}
+              disabled={isUserPro}
+              className={`mt-6 w-full py-3.5 rounded-2xl text-xs font-bold transition shadow-xs cursor-pointer flex items-center justify-center gap-1.5 ${
+                isUserPro && !isUserMax
+                  ? "bg-emerald-600 text-white opacity-90 cursor-default"
+                  : isUserMax
+                  ? "bg-muted text-muted-foreground cursor-default"
+                  : "bg-primary text-primary-foreground hover:bg-primary/90"
+              }`}
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>
+                {isUserPro && !isUserMax
+                  ? "Đang sử dụng Gói PRO"
+                  : isUserMax
+                  ? "Bạn đã có đặc quyền MAX cao hơn"
+                  : `Nâng cấp Gói PRO (${activeProPlan.price})`}
+              </span>
             </button>
+          </div>
+
+          {/* Card 2: GÓI MAX (HIGHLIGHTED) */}
+          <div className="rounded-3xl border-2 border-amber-400 bg-linear-to-b from-amber-500/10 via-amber-500/5 to-transparent p-6 sm:p-7 shadow-lg flex flex-col justify-between relative overflow-hidden">
+            <div className="absolute -right-12 -top-12 w-36 h-36 bg-amber-400/20 rounded-full blur-2xl pointer-events-none" />
+
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="rounded-full bg-linear-to-r from-amber-500 to-amber-600 px-3.5 py-1 text-xs font-black text-white shadow-xs flex items-center gap-1">
+                  <Crown className="w-3.5 h-3.5" />
+                  {activeMaxPlan.badge}
+                </span>
+                <span className="text-xs font-bold text-amber-800 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/40 px-2.5 py-0.5 rounded-md">
+                  {activeMaxPlan.period}
+                </span>
+              </div>
+
+              <h3 className="text-2xl font-black text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
+                {activeMaxPlan.name}
+              </h3>
+              <div className="mt-2 flex items-baseline gap-1.5">
+                <span className="text-3xl font-black text-amber-600 dark:text-amber-400">{activeMaxPlan.price}</span>
+                <span className="text-xs text-neutral-500">{activeMaxPlan.period}</span>
+              </div>
+              <p className="mt-2 text-xs text-neutral-600 dark:text-neutral-300 leading-relaxed">
+                {activeMaxPlan.description}
+              </p>
+
+              <hr className="my-5 border-amber-200/60 dark:border-amber-800/40" />
+
+              <div className="space-y-2.5 text-xs">
+                <p className="font-bold text-amber-900 dark:text-amber-300">Toàn bộ quyền lợi PRO cộng thêm:</p>
+                {activeMaxPlan.features.map((feat, i) => (
+                  <div key={i} className="flex items-start gap-2.5">
+                    <Check className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                    <span className="text-neutral-800 dark:text-neutral-200 font-medium leading-snug">{feat}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setCheckoutTargetPlan(activeMaxPlan);
+                setIsCheckoutOpen(true);
+              }}
+              disabled={isUserMax}
+              className={`mt-6 w-full py-3.5 rounded-2xl text-xs font-black transition shadow-md cursor-pointer flex items-center justify-center gap-2 ${
+                isUserMax
+                  ? "bg-emerald-600 text-white opacity-90 cursor-default"
+                  : "bg-linear-to-r from-amber-500 via-amber-600 to-amber-700 hover:from-amber-600 hover:to-amber-800 text-white shadow-amber-500/25"
+              }`}
+            >
+              <Crown className="w-4 h-4" />
+              <span>
+                {isUserMax ? "Bạn đang sở hữu Gói MAX VIP" : `Nâng cấp Gói MAX ngay (${activeMaxPlan.price})`}
+              </span>
+              {!isUserMax && <ArrowRight className="w-4 h-4" />}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Credit Packs & Transaction history */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Transaction History */}
+        <div className="rounded-2xl border border-border bg-card lg:col-span-2 shadow-xs">
+          <div className="flex items-center justify-between border-b border-border p-5">
+            <h2 className="font-semibold text-base">Lịch sử giao dịch ví</h2>
+            <span className="text-xs text-muted-foreground flex items-center gap-1">
+              <Clock className="h-3.5 w-3.5" /> Gần đây nhất
+            </span>
           </div>
           <div className="divide-y divide-border">
             {txns.length === 0 ? (
@@ -235,118 +433,57 @@ function WalletContent() {
           </div>
         </div>
 
-        {/* Pricing plans & PRO Package */}
-        <div className="space-y-4">
-          {/* Card GÓI PRO NÂNG CẤP */}
-          <div className="rounded-2xl border-2 border-amber-400 bg-gradient-to-b from-amber-500/10 via-amber-500/5 to-transparent p-5 shadow-sm relative overflow-hidden">
-            <div className="absolute -right-12 -top-12 w-28 h-28 bg-amber-400/20 rounded-full blur-xl pointer-events-none" />
-
-            <div className="flex items-center justify-between mb-3">
-              <span className="rounded-full bg-gradient-to-r from-amber-500 to-amber-600 px-3 py-1 text-[11px] font-extrabold text-white uppercase tracking-wider shadow-xs flex items-center gap-1">
-                <Sparkles className="w-3 h-3" /> Gói Khuyên Dùng
-              </span>
-              <span className="text-xs font-semibold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-md">
-                {proPlan.period}
-              </span>
-            </div>
-
-            <h3 className="text-xl font-bold text-neutral-900">{proPlan.name}</h3>
-            <div className="mt-1 flex items-baseline gap-1">
-              <span className="text-2xl font-black text-amber-600">{proPlan.price}</span>
-              <span className="text-xs text-neutral-500">/tháng</span>
-            </div>
-
-            <p className="mt-2 text-xs text-neutral-600 leading-relaxed">
-              Mở khóa toàn bộ học liệu 3D và tối đa sức mạnh AI soạn đề bám sát chuẩn Bộ GD&ĐT 2025.
-            </p>
-
-            <ul className="mt-4 space-y-2 text-xs text-neutral-700 border-t border-amber-200/60 pt-3">
-              <li className="flex items-center gap-2 font-semibold text-neutral-900">
-                <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>Cộng thêm <strong>+30.000 Credits</strong> soạn đề AI vào ví</span>
-              </li>
-              <li className="flex items-center gap-2 font-semibold text-neutral-900">
-                <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>Mở khóa toàn bộ <strong>54+ Phòng Thí Nghiệm 3D</strong> (Lý, Hóa, Sinh, Địa)</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>Đủ soạn ~60 đề AI Tiêu chuẩn hoặc ~20 đề AI Chuyên sâu</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>Chấm trắc nghiệm OMR & Mobile Scanner không giới hạn</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>Tải file Word (.docx) & PDF chuẩn Bộ GD&ĐT không giới hạn</span>
-              </li>
-            </ul>
-
-            <button
-              onClick={() => {
-                setCheckoutTargetPlan(proPlan);
-                setIsCheckoutOpen(true);
-              }}
-              disabled={isProUser}
-              className={`mt-5 flex w-full items-center justify-center rounded-xl py-3 text-xs font-bold transition shadow-sm cursor-pointer ${
-                isProUser
-                  ? "bg-emerald-600 text-white opacity-80 cursor-default"
-                  : "bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-amber-500/20"
-              }`}
-            >
-              <Sparkles className="mr-1.5 inline h-4 w-4" />
-              {isProUser ? "Bạn đang sử dụng Gói PRO" : "Nâng cấp Gói PRO ngay (99.000đ)"}
-            </button>
+        {/* Nạp thêm credits lẻ */}
+        <div className="rounded-2xl border border-border bg-card p-5 shadow-xs space-y-4">
+          <div>
+            <h2 className="font-semibold text-base">Nạp thêm Credits lẻ</h2>
+            <p className="text-xs text-muted-foreground">Dành cho nhu cầu sinh thêm đề thi tức thời.</p>
           </div>
 
-          {/* Gói nạp Credits lẻ */}
-          <div className="rounded-xl border border-border bg-card p-5">
-            <h2 className="font-semibold mb-3">Hoặc Nạp Thêm Credits Lẻ</h2>
-            <div className="space-y-2.5">
-              {pricingPlans.map((plan, idx) => {
-                const isSelected = selectedPlanIndex === idx;
-                return (
-                  <div
-                    key={idx}
-                    onClick={() => {
-                      setSelectedPlanIndex(idx);
-                      setCheckoutTargetPlan(plan);
-                    }}
-                    className={`relative rounded-xl border p-3 transition-all cursor-pointer ${
-                      isSelected
-                        ? "border-primary bg-primary/5 shadow-xs"
-                        : "border-border hover:border-primary/50"
-                    }`}
-                  >
-                    {plan.popular && (
-                      <span className="absolute -top-2.5 right-4 rounded-full bg-primary px-2 py-0.5 text-[9px] font-bold text-primary-foreground">
-                        Phổ biến
-                      </span>
-                    )}
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-bold text-sm">{plan.credits} Credits</p>
-                        <p className="text-[11px] text-muted-foreground">{plan.perCredit}/credit</p>
-                      </div>
-                      <span className="text-sm font-bold text-primary">{plan.price}</span>
+          <div className="space-y-2.5">
+            {CREDIT_PACKS.map((plan, idx) => {
+              const isSelected = selectedCreditPackIndex === idx;
+              return (
+                <div
+                  key={idx}
+                  onClick={() => {
+                    setSelectedCreditPackIndex(idx);
+                    setCheckoutTargetPlan(plan);
+                  }}
+                  className={`relative rounded-xl border p-3 transition-all cursor-pointer ${
+                    isSelected
+                      ? "border-primary bg-primary/5 shadow-xs ring-1 ring-primary"
+                      : "border-border hover:border-primary/50"
+                  }`}
+                >
+                  {plan.popular && (
+                    <span className="absolute -top-2.5 right-4 rounded-full bg-primary px-2 py-0.5 text-[9px] font-bold text-primary-foreground">
+                      Phổ biến
+                    </span>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-bold text-sm">{plan.credits.toLocaleString()} Credits</p>
+                      <p className="text-[11px] text-muted-foreground">{plan.perCredit}/credit</p>
                     </div>
+                    <span className="text-sm font-bold text-primary">{plan.price}</span>
                   </div>
-                );
-              })}
-            </div>
-
-            <button
-              onClick={() => {
-                setCheckoutTargetPlan(pricingPlans[selectedPlanIndex]);
-                setIsCheckoutOpen(true);
-              }}
-              className="mt-4 flex w-full items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-primary-foreground hover:bg-primary/90 shadow-sm transition-colors cursor-pointer"
-            >
-              <Plus className="mr-1.5 inline h-4 w-4" />
-              Nạp {pricingPlans[selectedPlanIndex].credits} Credits ({pricingPlans[selectedPlanIndex].price})
-            </button>
+                </div>
+              );
+            })}
           </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setCheckoutTargetPlan(CREDIT_PACKS[selectedCreditPackIndex]);
+              setIsCheckoutOpen(true);
+            }}
+            className="w-full py-3 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Nạp {CREDIT_PACKS[selectedCreditPackIndex].credits} Credits ({CREDIT_PACKS[selectedCreditPackIndex].price})</span>
+          </button>
         </div>
       </div>
 

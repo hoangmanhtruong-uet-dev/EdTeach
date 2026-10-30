@@ -37,6 +37,7 @@ import { useAuth } from "@/context/auth-context";
 import { MarketplaceItem } from "@/types/marketplace";
 import { exportMarketplaceExamToDocx } from "@/lib/marketplace/export-docx";
 import { getUserExams, Exam } from "@/lib/api/exams";
+import { isProUser, isMaxUser } from "@/lib/payment/plans";
 
 export default function MarketplacePage() {
   const router = useRouter();
@@ -393,7 +394,8 @@ export default function MarketplacePage() {
   }, [items, selectedSubject, selectedGrade, search, activeTab]);
 
   const userBalance = wallet?.balance ?? 0;
-  const isProUser = (profile as any)?.subscription_tier === "pro";
+  const isUserPro = isProUser(profile);
+  const isUserMax = isMaxUser(profile);
 
   return (
     <div className="space-y-6 pb-12">
@@ -1398,10 +1400,12 @@ export default function MarketplacePage() {
                     <div className="text-[11px] text-emerald-700 font-medium">
                       👉 Bạn thực nhận:{" "}
                       <strong>
-                        {Math.round(sellPrice * (isProUser ? 0.9 : 0.8))} credits (~
-                        {(Math.round(sellPrice * (isProUser ? 0.9 : 0.8)) * 100).toLocaleString("vi-VN")}đ)
+                        {Math.round(sellPrice * (isUserMax ? 0.95 : isUserPro ? 0.9 : 0.8))} credits (~
+                        {(
+                          Math.round(sellPrice * (isUserMax ? 0.95 : isUserPro ? 0.9 : 0.8)) * 100
+                        ).toLocaleString("vi-VN")}đ)
                       </strong>{" "}
-                      mỗi lượt bán (Sàn thu {isProUser ? "10% PRO" : "20% Thường"}).
+                      mỗi lượt bán (Sàn thu {isUserMax ? "5% MAX" : isUserPro ? "10% PRO" : "20% Thường"}).
                     </div>
                   </div>
                 ) : (

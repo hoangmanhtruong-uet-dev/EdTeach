@@ -14,8 +14,12 @@ import {
   Sliders,
   Layers,
   Sparkles,
+  Crown,
 } from "lucide-react";
 import { exportShuffledExamsToDocx } from "@/lib/export/docx-exporter";
+import { UpgradeTierModal } from "@/components/modals/upgrade-tier-modal";
+import { PaymentCheckoutModal } from "@/components/modals/payment-checkout-modal";
+import { PricingPlan } from "@/lib/payment/plans";
 
 interface ShuffleExamModalProps {
   isOpen: boolean;
@@ -26,6 +30,7 @@ interface ShuffleExamModalProps {
   durationMinutes?: number;
   originalQuestions: any[];
   isPro?: boolean;
+  isMax?: boolean;
 }
 
 export function ShuffleExamModal({
@@ -37,6 +42,7 @@ export function ShuffleExamModal({
   durationMinutes = 45,
   originalQuestions,
   isPro = false,
+  isMax = false,
 }: ShuffleExamModalProps) {
   const [variantCount, setVariantCount] = useState<number>(4);
   const [startCode, setStartCode] = useState<number>(101);
@@ -44,6 +50,8 @@ export function ShuffleExamModal({
   const [activeTab, setActiveTab] = useState<string>("matrix"); // "matrix" | code
   const [isExporting, setIsExporting] = useState<boolean>(false);
   const [copiedMatrix, setCopiedMatrix] = useState<boolean>(false);
+  const [upgradeTier, setUpgradeTier] = useState<"pro" | "max" | null>(null);
+  const [checkoutPlan, setCheckoutPlan] = useState<PricingPlan | null>(null);
 
   // Thuật toán xáo trộn Fisher-Yates
   function shuffleArray<T>(array: T[], seed: number): T[] {
@@ -253,20 +261,46 @@ export function ShuffleExamModal({
           <div className="flex items-center gap-2">
             <span className="font-semibold text-neutral-700">Số lượng mã đề:</span>
             <div className="inline-flex rounded-lg border border-neutral-200 p-0.5 bg-neutral-50">
-              {[2, 4, 6].map((num) => (
-                <button
-                  key={num}
-                  type="button"
-                  onClick={() => setVariantCount(num)}
-                  className={`px-3 py-1 rounded-md font-bold transition cursor-pointer ${
-                    variantCount === num
-                      ? "bg-white text-primary shadow-xs border border-neutral-200"
-                      : "text-neutral-600 hover:text-neutral-900"
-                  }`}
-                >
-                  {num} Mã
-                </button>
-              ))}
+              {[2, 4, 6, 8, 12].map((num) => {
+                const isSelected = variantCount === num;
+                const requiresMax = num > 4;
+                const requiresPro = num === 4;
+
+                return (
+                  <button
+                    key={num}
+                    type="button"
+                    onClick={() => {
+                      if (requiresMax && !isMax) {
+                        setUpgradeTier("max");
+                        return;
+                      }
+                      if (requiresPro && !isPro) {
+                        setUpgradeTier("pro");
+                        return;
+                      }
+                      setVariantCount(num);
+                    }}
+                    className={`px-3 py-1 rounded-md font-bold transition cursor-pointer flex items-center gap-1 ${
+                      isSelected
+                        ? "bg-white text-primary shadow-xs border border-neutral-200"
+                        : "text-neutral-600 hover:text-neutral-900"
+                    }`}
+                  >
+                    <span>{num} Mã</span>
+                    {requiresMax && !isMax && (
+                      <span className="text-[9px] bg-amber-100 text-amber-800 font-black px-1 rounded">
+                        MAX
+                      </span>
+                    )}
+                    {requiresPro && !isPro && (
+                      <span className="text-[9px] bg-primary/10 text-primary font-bold px-1 rounded">
+                        PRO
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -468,6 +502,38 @@ export function ShuffleExamModal({
           </button>
         </div>
       </div>
+
+      {/* Upgrade Tier Modal */}
+      <UpgradeTierModal
+        isOpen={!!upgradeTier}
+        onClose={() => setUpgradeTier(null)}
+        requiredTier={upgradeTier || "pro"}
+        featureTitle={
+          upgradeTier === "max"
+            ? "Mở khóa Trộn 6 - 12 Mã Đề Công Nghiệp"
+            : "Mở khóa Trộn 4 Mã Đề Chuẩn Bộ GD&ĐT"
+        }
+        featureDesc={
+          upgradeTier === "max"
+            ? "Gói Luyện Thi MAX cho phép trộn công nghiệp tới 12 mã đề thi độc lập, chống gian lận tuyệt đối cho các kỳ thi thử và lớp học đông."
+            : "Gói PRO cho phép hoán vị tự động 4 mã đề thi kèm ma trận đáp án và bảng barem điểm chi tiết."
+        }
+        onSelectPlan={(plan) => setCheckoutPlan(plan)}
+      />
+
+      {/* PayOS Checkout Modal */}
+      {checkoutPlan && (
+        <PaymentCheckoutModal
+          isOpen={!!checkoutPlan}
+          onClose={() => setCheckoutPlan(null)}
+          selectedPlan={checkoutPlan}
+          onSuccess={() => {
+            setCheckoutPlan(null);
+            setUpgradeTier(null);
+            window.location.reload();
+          }}
+        />
+      )}
     </div>
   );
 }

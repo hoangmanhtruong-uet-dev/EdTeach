@@ -38,6 +38,7 @@ import {
   UserPreferences,
   DEFAULT_PREFERENCES,
 } from "@/lib/preferences";
+import { isProUser, isMaxUser, getTierName } from "@/lib/payment/plans";
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("profile");
@@ -658,9 +659,15 @@ export default function SettingsPage() {
                   <div className="pt-2 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-muted-foreground">Hạng tài khoản:</span>
-                      <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
+                      <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${
+                        isMaxUser(profile)
+                          ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                          : isProUser(profile)
+                          ? "bg-primary/10 text-primary border border-primary/20"
+                          : "bg-muted text-muted-foreground border border-border"
+                      }`}>
                         <Sparkles className="w-3.5 h-3.5" />
-                        {profile?.tier === "pro" ? "Gói Giáo Viên PRO (VIP)" : "Gói Miễn Phí (Standard)"}
+                        {getTierName(profile)}
                       </span>
                     </div>
 

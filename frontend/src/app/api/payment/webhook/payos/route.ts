@@ -84,6 +84,14 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Nếu creditsToAdd chưa có, suy luận theo mệnh giá gói
+    if (creditsToAdd === 0) {
+      if (paidAmount === 899000) creditsToAdd = 500000;
+      else if (paidAmount === 599000) creditsToAdd = 150000;
+      else if (paidAmount === 229000) creditsToAdd = 100000;
+      else if (paidAmount === 149000 || paidAmount === 99000) creditsToAdd = 30000;
+    }
+
     // 3. Nếu tìm thấy user, cộng tiền vào ví (Wallets)
     if (userId && creditsToAdd > 0) {
       const { data: wallet } = await (supabase.from("wallets") as any)
@@ -113,15 +121,45 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // Nếu là gói PRO (99.000đ hoặc mô tả có PRO), nâng cấp tier cho user
-      if (paidAmount === 99000 || data.description?.includes("PRO")) {
+      // Nâng cấp gói cước MAX hoặc PRO
+      if (paidAmount === 229000 || paidAmount === 899000 || data.description?.includes("MAX")) {
+        try {
+          const { error: tierErr } = await (supabase.from("users") as any)
+            .update({ tier: "max", updated_at: nowIso })
+            .eq("id", userId);
+
+          if (tierErr) {
+            // Fallback nếu constraint DB chưa cho phép 'max'
+            const { data: u } = await (supabase.from("users") as any)
+              .select("preferences")
+              .eq("id", userId)
+              .maybeSingle();
+            const prefs = u?.preferences || {};
+            await (supabase.from("users") as any)
+              .update({
+                tier: "pro",
+                preferences: { ...prefs, subscription_tier: "max" },
+                updated_at: nowIso,
+              })
+              .eq("id", userId);
+          }
+          console.log(`[PayOS Webhook] Đã nâng cấp tài khoản user ${userId} lên gói LUYỆN THI MAX!`);
+        } catch (tierErr) {
+          console.warn("Lỗi update tier MAX:", tierErr);
+        }
+      } else if (
+        paidAmount === 149000 ||
+        paidAmount === 599000 ||
+        paidAmount === 99000 ||
+        data.description?.includes("PRO")
+      ) {
         try {
           await (supabase.from("users") as any)
-            .update({ tier: "pro" })
+            .update({ tier: "pro", updated_at: nowIso })
             .eq("id", userId);
           console.log(`[PayOS Webhook] Đã nâng cấp tài khoản user ${userId} lên gói PRO!`);
         } catch (tierErr) {
-          console.warn("Lỗi update tier user:", tierErr);
+          console.warn("Lỗi update tier PRO:", tierErr);
         }
       }
     }

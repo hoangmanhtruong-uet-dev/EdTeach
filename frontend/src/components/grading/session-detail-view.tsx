@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   ArrowLeft,
   Camera,
@@ -27,8 +27,12 @@ import {
   Users,
   ShieldCheck,
   AlertTriangle,
+  Crown,
 } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
+import { isMaxUser, PricingPlan } from "@/lib/payment/plans";
+import { UpgradeTierModal } from "@/components/modals/upgrade-tier-modal";
+import { PaymentCheckoutModal } from "@/components/modals/payment-checkout-modal";
 
 export interface GradedStudent {
   id: string;
@@ -300,6 +304,97 @@ export function SessionDetailView({
   // Active links count
   const activeLinksCount = sessionLinks.filter((l) => !l.isClosed && Date.now() < l.expiresAt).length;
 
+  const [upgradeTier, setUpgradeTier] = useState<"pro" | "max" | null>(null);
+  const [checkoutPlan, setCheckoutPlan] = useState<PricingPlan | null>(null);
+  const [zaloNoteModal, setZaloNoteModal] = useState<{
+    isOpen: boolean;
+    studentName: string;
+    text: string;
+    copied: boolean;
+  } | null>(null);
+
+  // Top missed questions calculation
+  const topMissedQuestions = useMemo(() => {
+    if (session.gradedStudents.length === 0 || !session.answerKey) return [];
+    const questionStats: Record<
+      number,
+      { wrongCount: number; total: number; correctAns: string; wrongAnswers: Record<string, number> }
+    > = {};
+
+    Object.keys(session.answerKey).forEach((qKey) => {
+      const qNum = Number(qKey);
+      questionStats[qNum] = {
+        wrongCount: 0,
+        total: 0,
+        correctAns: (session.answerKey[qNum] || "").toUpperCase(),
+        wrongAnswers: {},
+      };
+    });
+
+    session.gradedStudents.forEach((std) => {
+      if (!std.studentAnswers) return;
+      Object.entries(std.studentAnswers).forEach(([qStr, rawStudentAns]) => {
+        const qNum = Number(qStr);
+        if (!questionStats[qNum]) return;
+        questionStats[qNum].total += 1;
+        const studentAns = (rawStudentAns || "").toUpperCase();
+        const correct = questionStats[qNum].correctAns;
+        if (studentAns && studentAns !== correct) {
+          questionStats[qNum].wrongCount += 1;
+          questionStats[qNum].wrongAnswers[studentAns] =
+            (questionStats[qNum].wrongAnswers[studentAns] || 0) + 1;
+        }
+      });
+    });
+
+    return Object.entries(questionStats)
+      .map(([qNumStr, stat]) => {
+        const wrongPct = stat.total > 0 ? Math.round((stat.wrongCount / stat.total) * 100) : 0;
+        const mostChosenWrong =
+          Object.entries(stat.wrongAnswers).sort((a, b) => b[1] - a[1])[0]?.[0] || "";
+        return {
+          questionNum: Number(qNumStr),
+          wrongCount: stat.wrongCount,
+          total: stat.total,
+          wrongPct,
+          correctAns: stat.correctAns,
+          mostChosenWrong,
+        };
+      })
+      .filter((q) => q.wrongCount > 0)
+      .sort((a, b) => b.wrongCount - a.wrongCount)
+      .slice(0, 5);
+  }, [session.gradedStudents, session.answerKey]);
+
+  const handleGenerateZaloNote = (student: GradedStudent) => {
+    if (!isMaxUser(profile)) {
+      setUpgradeTier("max");
+      return;
+    }
+
+    const review =
+      student.score >= 8
+        ? "Em nắm rất vững kiến thức nền tảng và tư duy vận dụng tốt các câu hỏi khó. Hãy tiếp tục duy trì phong độ này!"
+        : student.score >= 5
+        ? "Em có cố gắng và nắm được cấu trúc bài cơ bản. Tuy nhiên còn một số câu nhầm lẫn đáng tiếc, cần chú ý đọc kỹ đề và luyện tập thêm."
+        : "Em cần dành thêm thời gian ôn lại lý thuyết trọng tâm và làm lại các dạng bài cơ bản để cải thiện điểm số ở lần thi tới.";
+
+    const zaloText = `Kính gửi Quý phụ huynh em ${student.studentName} (Lớp ${
+      student.className || session.grade || ""
+    }):\nThầy/Cô xin gửi thông báo kết quả bài kiểm tra "${session.name}":\n- Điểm số: ${
+      student.score
+    }/10 (${student.correctCount}/${session.questionCount} câu đúng, ${
+      student.incorrectCount
+    } câu chưa chính xác)\n- Đánh giá từ giáo viên: ${review}\nThầy/Cô chúc em luôn học tốt và ngày càng tiến bộ!`;
+
+    setZaloNoteModal({
+      isOpen: true,
+      studentName: student.studentName,
+      text: zaloText,
+      copied: false,
+    });
+  };
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-6 font-sans">
       {/* 1. Header Match Screenshot */}
@@ -510,6 +605,56 @@ export function SessionDetailView({
           </div>
         </div>
       </div>
+
+      {/* Top câu hỏi cả lớp sai nhiều nhất (Gói PRO & MAX) */}
+      {topMissedQuestions.length > 0 && (
+        <div className="bg-white rounded-2xl border border-red-200/80 p-5 shadow-xs mb-8">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
+              <h3 className="font-bold text-sm text-neutral-900">
+                Top {topMissedQuestions.length} câu hỏi cả lớp sai nhiều nhất (Cần chữa bài trên lớp)
+              </h3>
+            </div>
+            <span className="text-[10px] font-black uppercase text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-md">
+              Phân tích lỗi sai
+            </span>
+          </div>
+
+          <p className="text-xs text-neutral-500 mb-4">
+            Thống kê tự động từ {session.gradedStudents.length} bài thi đã quét giúp giáo viên giải thích trọng tâm các điểm học sinh hay nhầm lẫn:
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            {topMissedQuestions.map((q) => (
+              <div
+                key={q.questionNum}
+                className="p-3.5 rounded-xl border border-neutral-200 bg-neutral-50/70 hover:border-red-300 transition"
+              >
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="font-bold text-sm text-neutral-900">Câu {q.questionNum}</span>
+                  <span className="text-xs font-black text-red-600 bg-red-100 px-1.5 py-0.5 rounded">
+                    {q.wrongPct}% sai
+                  </span>
+                </div>
+                <div className="text-[11px] text-neutral-600 space-y-1">
+                  <div>
+                    Đáp án đúng: <strong className="text-emerald-600 font-bold">{q.correctAns}</strong>
+                  </div>
+                  <div>
+                    Học sinh sai: <strong>{q.wrongCount}/{q.total} em</strong>
+                  </div>
+                  {q.mostChosenWrong && (
+                    <div className="text-amber-800">
+                      Bẫy nhiều ở: <strong>{q.mostChosenWrong}</strong>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* 4. Kết quả chấm bài Header & Table */}
       <div className="bg-white rounded-xl border border-neutral-200/90 shadow-xs overflow-hidden">
@@ -1027,6 +1172,30 @@ export function SessionDetailView({
               </div>
             </div>
 
+            {/* Zalo Teacher Feedback Card for MAX */}
+            <div className="mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 text-amber-950">
+              <div className="flex items-start gap-2.5">
+                <Crown className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-xs font-bold text-neutral-900">Phiếu nhận xét AI gửi Zalo Phụ huynh</p>
+                    <span className="rounded bg-amber-200 text-amber-900 text-[9px] font-black px-1.5 py-0.2">MAX</span>
+                  </div>
+                  <p className="text-[11px] text-neutral-600 mt-0.5">
+                    AI tự động tổng hợp ưu điểm & các câu làm sai thành lời nhận xét ân cần để gửi Zalo cho phụ huynh.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleGenerateZaloNote(selectedStudentDetail)}
+                className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white text-xs font-bold shadow-xs transition cursor-pointer shrink-0 flex items-center justify-center gap-1"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Tạo phiếu Zalo</span>
+              </button>
+            </div>
+
             {/* Question detail grid */}
             <h4 className="font-semibold text-xs text-neutral-700 uppercase tracking-wider mb-2.5">
               Chi tiết câu trả lời
@@ -1073,6 +1242,82 @@ export function SessionDetailView({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal Zalo Teacher Note (Gói MAX) */}
+      {zaloNoteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-neutral-200 relative text-left">
+            <button
+              onClick={() => setZaloNoteModal(null)}
+              className="absolute right-4 top-4 p-1.5 rounded-lg text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center">
+                <Crown className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="font-bold text-sm text-neutral-900">
+                  Phiếu nhận xét học sinh (Gửi Zalo Phụ huynh)
+                </h3>
+                <p className="text-[11px] text-neutral-500">
+                  Học sinh: <strong>{zaloNoteModal.studentName}</strong>
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4 text-xs text-neutral-800 font-mono whitespace-pre-wrap leading-relaxed max-h-60 overflow-y-auto mb-4">
+              {zaloNoteModal.text}
+            </div>
+
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] text-neutral-400">
+                Sao chép và dán trực tiếp vào khung chat Zalo của phụ huynh.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(zaloNoteModal.text);
+                  setZaloNoteModal({ ...zaloNoteModal, copied: true });
+                  setTimeout(() => {
+                    setZaloNoteModal((prev) => (prev ? { ...prev, copied: false } : null));
+                  }, 2500);
+                }}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary/90 transition shadow-xs cursor-pointer"
+              >
+                {zaloNoteModal.copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{zaloNoteModal.copied ? "Đã sao chép!" : "Sao chép gửi Zalo"}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Upgrade Tier Modal */}
+      <UpgradeTierModal
+        isOpen={!!upgradeTier}
+        onClose={() => setUpgradeTier(null)}
+        requiredTier={upgradeTier || "max"}
+        featureTitle="Tạo phiếu nhận xét AI gửi Zalo Phụ huynh"
+        featureDesc="Đặc quyền gói MAX: AI tự động phân tích ưu/nhược điểm từng học sinh dựa trên các câu đúng/sai để xuất mẫu tin nhắn trang trọng, chuyên nghiệp gửi trực tiếp cho phụ huynh qua Zalo."
+        onSelectPlan={(plan) => setCheckoutPlan(plan)}
+      />
+
+      {/* PayOS Checkout Modal */}
+      {checkoutPlan && (
+        <PaymentCheckoutModal
+          isOpen={!!checkoutPlan}
+          onClose={() => setCheckoutPlan(null)}
+          selectedPlan={checkoutPlan}
+          onSuccess={() => {
+            setCheckoutPlan(null);
+            setUpgradeTier(null);
+            window.location.reload();
+          }}
+        />
       )}
     </div>
   );
