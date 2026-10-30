@@ -150,7 +150,7 @@ export default function ExamsPage() {
       </div>
 
       {/* Exam List */}
-      <div className="rounded-xl border border-border bg-card shadow-xs">
+      <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-xs">
         {loading ? (
           <div className="flex h-48 items-center justify-center">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -220,7 +220,7 @@ export default function ExamsPage() {
                   <Link
                     href={`/teach/${exam.id}`}
                     aria-label={`Trình chiếu Bục Giảng Số đề ${exam.name}`}
-                    className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500 transition-colors shadow-2xs whitespace-nowrap shrink-0 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500"
+                    className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 min-h-[36px] text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500 transition-colors shadow-2xs whitespace-nowrap shrink-0 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500"
                     title="Bục Giảng Số: Trình chiếu chữa đề kết hợp Bảng nháp Excalidraw (Gói PRO)"
                   >
                     <Presentation className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
@@ -230,7 +230,7 @@ export default function ExamsPage() {
                   <Link
                     href={`/exams/${exam.id}`}
                     aria-label={`Xem và chỉnh sửa đề ${exam.name}`}
-                    className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    className="h-9 w-9 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     title="Xem & Chỉnh sửa"
                   >
                     <Eye className="h-4 w-4" aria-hidden="true" />
@@ -240,7 +240,7 @@ export default function ExamsPage() {
                     onClick={() => handleExportDualTeaching(exam.id)}
                     disabled={exportingId === exam.id}
                     aria-label={`Tải bộ đề kép Word của đề ${exam.name}`}
-                    className="rounded-lg p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 disabled:opacity-50 transition cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500 shrink-0"
+                    className="h-9 w-9 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-xl text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 disabled:opacity-50 transition cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500 shrink-0"
                     title="Tải Bộ Đề Kép: 1 Bản Học Sinh (có dòng chấm chép bài) & 1 Bản Giáo Viên (kèm lời giải chi tiết)"
                   >
                     {exportingId === exam.id ? (
@@ -253,7 +253,7 @@ export default function ExamsPage() {
                     type="button"
                     onClick={() => handleMagicLinkClick(exam)}
                     aria-label={`Giao đề online qua Magic Link cho đề ${exam.name}`}
-                    className="rounded-lg p-1.5 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-amber-500 shrink-0"
+                    className="h-9 w-9 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-xl text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-amber-500 shrink-0"
                     title="Giao đề Online qua Magic Link (Đặc quyền MAX)"
                   >
                     <Share2 className="h-4 w-4" aria-hidden="true" />
@@ -263,7 +263,7 @@ export default function ExamsPage() {
                     onClick={() => handleDelete(exam.id)}
                     disabled={deletingId === exam.id}
                     aria-label={`Xóa đề ${exam.name}`}
-                    className="rounded-lg p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-50 transition cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-destructive shrink-0"
+                    className="h-9 w-9 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-50 transition cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-destructive shrink-0"
                     title="Xóa"
                   >
                     {deletingId === exam.id ? (

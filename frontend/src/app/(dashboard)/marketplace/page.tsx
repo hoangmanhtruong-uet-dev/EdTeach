@@ -532,7 +532,7 @@ export default function MarketplacePage() {
           <div className="flex flex-wrap items-center gap-1">
             <button
               onClick={() => setActiveTab("all")}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+              className={`px-4 py-2 min-h-[36px] rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-center ${
                 activeTab === "all"
                   ? "bg-neutral-900 text-white"
                   : "text-muted-foreground hover:bg-muted"
@@ -542,7 +542,7 @@ export default function MarketplacePage() {
             </button>
             <button
               onClick={() => setActiveTab("free")}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
+              className={`px-4 py-2 min-h-[36px] rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
                 activeTab === "free"
                   ? "bg-emerald-600 text-white font-black"
                   : "text-emerald-700 bg-emerald-50 hover:bg-emerald-100"
@@ -553,7 +553,7 @@ export default function MarketplacePage() {
             </button>
             <button
               onClick={() => setActiveTab("paid")}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
+              className={`px-4 py-2 min-h-[36px] rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
                 activeTab === "paid"
                   ? "bg-amber-500 text-neutral-950 font-black"
                   : "text-amber-800 bg-amber-50 hover:bg-amber-100"
@@ -564,7 +564,7 @@ export default function MarketplacePage() {
             </button>
             <button
               onClick={() => setActiveTab("purchased")}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
+              className={`px-4 py-2 min-h-[36px] rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
                 activeTab === "purchased"
                   ? "bg-primary text-primary-foreground font-bold"
                   : "text-muted-foreground hover:bg-muted"
@@ -575,7 +575,7 @@ export default function MarketplacePage() {
             </button>
             <button
               onClick={() => setActiveTab("my_listings")}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
+              className={`px-4 py-2 min-h-[36px] rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
                 activeTab === "my_listings"
                   ? "bg-primary text-primary-foreground font-bold"
                   : "text-muted-foreground hover:bg-muted"

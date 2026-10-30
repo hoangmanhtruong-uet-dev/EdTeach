@@ -656,7 +656,7 @@ export function SessionDetailView({
             <div className="flex items-center gap-2">
               <button
                 onClick={handlePushToTeachingWhiteboard}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-linear-to-r from-red-600 to-rose-600 px-3.5 py-1.5 text-xs font-bold text-white hover:from-red-500 hover:to-rose-500 shadow-sm hover:shadow transition cursor-pointer shrink-0"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-linear-to-r from-red-600 to-rose-600 px-4 py-2 min-h-[36px] text-xs font-bold text-white hover:from-red-500 hover:to-rose-500 shadow-sm hover:shadow transition cursor-pointer shrink-0"
                 title="Đẩy trực tiếp các câu cả lớp hay sai lên Bục Giảng Số để thầy/cô chữa nóng tại lớp"
               >
                 <Sparkles className="w-3.5 h-3.5 text-amber-300" />
@@ -719,7 +719,7 @@ export function SessionDetailView({
 
             <button
               onClick={handleExportExcel}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-neutral-200 hover:bg-neutral-50 text-neutral-700 text-xs font-semibold transition shadow-xs self-start md:self-auto cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 min-h-[36px] rounded-xl border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-200 text-xs font-semibold transition shadow-xs self-start md:self-auto cursor-pointer"
             >
               <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
               <span>Xuất Excel</span>

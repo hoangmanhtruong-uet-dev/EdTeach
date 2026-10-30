@@ -152,7 +152,7 @@ function WalletContent() {
           <button
             type="button"
             onClick={() => setBillingCycle("monthly")}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`px-4 py-2 min-h-[36px] rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center ${
               billingCycle === "monthly"
                 ? "bg-white dark:bg-card text-foreground shadow-xs"
                 : "text-muted-foreground hover:text-foreground"
@@ -390,7 +390,7 @@ function WalletContent() {
               <Clock className="h-3.5 w-3.5" /> Gần đây nhất
             </span>
           </div>
-          <div className="divide-y divide-border">
+          <div className="overflow-x-auto divide-y divide-border">
             {txns.length === 0 ? (
               <p className="p-8 text-center text-sm text-muted-foreground">Chưa có giao dịch nào</p>
             ) : (

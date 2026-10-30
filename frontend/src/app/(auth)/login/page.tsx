@@ -151,13 +151,13 @@ export default function LoginPage() {
             </div>
 
             <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" className="rounded border-border" />
-                Ghi nhớ đăng nhập
+              <label className="flex items-center gap-2 text-sm cursor-pointer py-1.5 select-none min-h-[36px]">
+                <input type="checkbox" className="h-4 w-4 rounded border-border text-primary focus:ring-primary cursor-pointer" />
+                <span>Ghi nhớ đăng nhập</span>
               </label>
               <Link
                 href="/forgot-password"
-                className="text-sm text-primary hover:underline"
+                className="text-sm font-semibold text-primary hover:underline py-1.5 px-2 min-h-[36px] inline-flex items-center rounded-lg hover:bg-primary/5 transition-colors"
               >
                 Quên mật khẩu?
               </Link>
@@ -175,7 +175,7 @@ export default function LoginPage() {
 
         <p className="text-center text-sm text-muted-foreground">
           Chưa có tài khoản?{" "}
-          <Link href="/register" className="font-medium text-primary hover:underline">
+          <Link href="/register" className="font-bold text-primary hover:underline py-1.5 px-2 min-h-[36px] inline-flex items-center rounded-lg hover:bg-primary/5 transition-colors">
             Đăng ký miễn phí
           </Link>
         </p>

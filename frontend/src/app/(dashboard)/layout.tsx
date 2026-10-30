@@ -212,7 +212,7 @@ function DashboardLayoutInner({
             <Link
               href="/updates"
               title="Khám phá lộ trình bản chính thức v2.0.0"
-              className="hidden sm:inline-flex items-center gap-1 rounded bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 text-[9px] font-black uppercase text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 transition-colors shrink-0"
+              className="hidden sm:inline-flex items-center gap-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 px-2 py-1 min-h-[28px] text-[10px] font-black uppercase text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 transition-colors shrink-0"
             >
               <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" aria-hidden="true" />
               v2.0
@@ -222,7 +222,7 @@ function DashboardLayoutInner({
             type="button"
             onClick={() => setSidebarOpen(false)}
             aria-label="Đóng thanh điều hướng"
-            className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary lg:hidden"
+            className="flex h-10 w-10 min-h-[40px] min-w-[40px] items-center justify-center rounded-xl border border-border bg-card text-foreground hover:bg-muted transition-colors shadow-2xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary lg:hidden"
           >
             <X className="h-5 w-5" aria-hidden="true" />
           </button>
@@ -302,7 +302,7 @@ function DashboardLayoutInner({
             type="button"
             onClick={() => setSidebarOpen(true)}
             aria-label="Mở thanh điều hướng"
-            className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary lg:hidden"
+            className="flex h-10 w-10 min-h-[40px] min-w-[40px] items-center justify-center rounded-xl border border-border bg-card text-foreground hover:bg-muted transition-colors shadow-2xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary lg:hidden"
           >
             <Menu className="h-5 w-5" aria-hidden="true" />
           </button>
@@ -315,7 +315,7 @@ function DashboardLayoutInner({
             onClick={() => window.dispatchEvent(new CustomEvent("open-command-palette"))}
             aria-label="Mở Thanh Lệnh Toàn Năng (Ctrl+K)"
             title="Tìm kiếm đề thi & chuyển trang nhanh (Ctrl+K)"
-            className="hidden sm:inline-flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer shadow-2xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary mr-1"
+            className="hidden sm:inline-flex items-center gap-2 rounded-xl border border-border bg-card px-3.5 py-2 min-h-[36px] text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer shadow-2xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary mr-1"
           >
             <Search className="h-3.5 w-3.5" aria-hidden="true" />
             <span>Tìm kiếm…</span>
@@ -330,7 +330,7 @@ function DashboardLayoutInner({
             onClick={toggleTheme}
             aria-label={`Chuyển sang giao diện ${isDark ? "Sáng" : "Tối"}`}
             title={`Giao diện ${isDark ? "Tối (Bấm để chuyển Sáng)" : "Sáng (Bấm để chuyển Tối)"}`}
-            className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer shadow-2xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary"
+            className="flex h-10 w-10 min-h-[40px] min-w-[40px] items-center justify-center rounded-xl border border-border bg-card text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer shadow-2xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary"
           >
             {isDark ? (
               <Sun className="h-4 w-4 text-amber-400" aria-hidden="true" />

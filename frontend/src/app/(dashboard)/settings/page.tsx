@@ -675,9 +675,9 @@ export default function SettingsPage() {
                     <button
                       type="submit"
                       disabled={savingProfile}
-                      className="rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition cursor-pointer shadow-xs"
+                      className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-2.5 min-h-[40px] text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition cursor-pointer shadow-xs"
                     >
-                      {savingProfile ? "Đang lưu…" : "Lưu hồ sơ"}
+                      {savingProfile && <Loader2 className="h-4 w-4 animate-spin" />}<span>{savingProfile ? "Đang lưu…" : "Lưu hồ sơ"}</span>
                     </button>
                   </div>
                 </form>
@@ -1152,7 +1152,7 @@ export default function SettingsPage() {
                   <button
                     type="submit"
                     disabled={savingNotif}
-                    className="rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition cursor-pointer shadow-xs"
+                    className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-2.5 min-h-[40px] text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition cursor-pointer shadow-xs"
                   >
                     {savingNotif ? "Đang lưu…" : "Lưu tùy chọn thông báo"}
                   </button>

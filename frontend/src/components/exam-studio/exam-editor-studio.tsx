@@ -2410,7 +2410,7 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
               <div className="relative">
                 <button
                   onClick={() => setShowActiveMenu(showActiveMenu === "file" ? null : "file")}
-                  className={`rounded px-2 py-0.5 transition ${showActiveMenu === "file" ? "bg-slate-200 font-medium" : "hover:bg-slate-100"}`}
+                  className={`rounded-lg px-2.5 py-1 min-h-[32px] text-xs font-semibold transition cursor-pointer ${showActiveMenu === "file" ? "bg-slate-200 font-medium" : "hover:bg-slate-100"}`}
                 >
                   Tệp
                 </button>
@@ -2471,7 +2471,7 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
               <div className="relative">
                 <button
                   onClick={() => setShowActiveMenu(showActiveMenu === "edit" ? null : "edit")}
-                  className={`rounded px-2 py-0.5 transition ${showActiveMenu === "edit" ? "bg-slate-200 font-medium" : "hover:bg-slate-100"}`}
+                  className={`rounded-lg px-2.5 py-1 min-h-[32px] text-xs font-semibold transition cursor-pointer ${showActiveMenu === "edit" ? "bg-slate-200 font-medium" : "hover:bg-slate-100"}`}
                 >
                   Chỉnh sửa
                 </button>
@@ -2582,7 +2582,7 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
               <div className="relative">
                 <button
                   onClick={() => setShowActiveMenu(showActiveMenu === "view" ? null : "view")}
-                  className={`rounded px-2 py-0.5 transition ${showActiveMenu === "view" ? "bg-slate-200 font-medium" : "hover:bg-slate-100"}`}
+                  className={`rounded-lg px-2.5 py-1 min-h-[32px] text-xs font-semibold transition cursor-pointer ${showActiveMenu === "view" ? "bg-slate-200 font-medium" : "hover:bg-slate-100"}`}
                 >
                   Xem
                 </button>
@@ -2699,7 +2699,7 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
               <div className="relative">
                 <button
                   onClick={() => setShowActiveMenu(showActiveMenu === "insert" ? null : "insert")}
-                  className={`rounded px-2 py-0.5 transition ${showActiveMenu === "insert" ? "bg-slate-200 font-medium" : "hover:bg-slate-100"}`}
+                  className={`rounded-lg px-2.5 py-1 min-h-[32px] text-xs font-semibold transition cursor-pointer ${showActiveMenu === "insert" ? "bg-slate-200 font-medium" : "hover:bg-slate-100"}`}
                 >
                   Chèn
                 </button>
@@ -3207,7 +3207,7 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
               <div className="relative">
                 <button
                   onClick={() => setShowActiveMenu(showActiveMenu === "format" ? null : "format")}
-                  className={`rounded px-2 py-0.5 transition ${showActiveMenu === "format" ? "bg-slate-200 font-medium" : "hover:bg-slate-100"}`}
+                  className={`rounded-lg px-2.5 py-1 min-h-[32px] text-xs font-semibold transition cursor-pointer ${showActiveMenu === "format" ? "bg-slate-200 font-medium" : "hover:bg-slate-100"}`}
                 >
                   Định dạng
                 </button>
@@ -4000,7 +4000,7 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
               <div className="relative">
                 <button
                   onClick={() => setShowActiveMenu(showActiveMenu === "tools" ? null : "tools")}
-                  className={`rounded px-2 py-0.5 transition ${showActiveMenu === "tools" ? "bg-slate-200 font-medium" : "hover:bg-slate-100"}`}
+                  className={`rounded-lg px-2.5 py-1 min-h-[32px] text-xs font-semibold transition cursor-pointer ${showActiveMenu === "tools" ? "bg-slate-200 font-medium" : "hover:bg-slate-100"}`}
                 >
                   Công cụ
                 </button>

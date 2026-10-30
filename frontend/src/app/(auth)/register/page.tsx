@@ -205,20 +205,20 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="flex items-start gap-2 text-sm">
+              <label className="flex items-start gap-2 text-sm cursor-pointer py-1 min-h-[36px] select-none">
                 <input
                   type="checkbox"
                   checked={agreeTerms}
                   onChange={(e) => setAgreeTerms(e.target.checked)}
-                  className="mt-0.5 rounded border-border"
+                  className="mt-1 h-4 w-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
                 />
                 <span className="text-muted-foreground">
                   Tôi đồng ý với{" "}
-                  <Link href="/terms" className="text-primary hover:underline">
+                  <Link href="/terms" className="text-primary hover:underline font-semibold py-0.5 px-1">
                     Điều khoản sử dụng
                   </Link>{" "}
                   và{" "}
-                  <Link href="/privacy" className="text-primary hover:underline">
+                  <Link href="/privacy" className="text-primary hover:underline font-semibold py-0.5 px-1">
                     Chính sách bảo mật
                   </Link>
                 </span>
@@ -237,7 +237,7 @@ export default function RegisterPage() {
 
         <p className="text-center text-sm text-muted-foreground">
           Đã có tài khoản?{" "}
-          <Link href="/login" className="font-medium text-primary hover:underline">
+          <Link href="/login" className="font-bold text-primary hover:underline py-1.5 px-2 min-h-[36px] inline-flex items-center rounded-lg hover:bg-primary/5 transition-colors">
             Đăng nhập
           </Link>
         </p>
