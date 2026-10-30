@@ -137,35 +137,7 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // Kiểm tra quyền hạn: Gói PRO được chấm không giới hạn; Gói Free cần tối thiểu 5 credits
-      const { data: userProfile } = await (supabase.from("users") as any)
-        .select("tier")
-        .eq("id", user.id)
-        .maybeSingle();
-
-      const isPro = userProfile?.tier === "pro" || userProfile?.tier === "school";
-      let walletIdToDeduct: string | null = null;
-      let currentBal = 100;
-
-      if (!isPro) {
-        const { data: wallet } = await (supabase.from("wallets") as any)
-          .select("id, balance")
-          .eq("user_id", user.id)
-          .maybeSingle();
-
-        currentBal = wallet?.balance ?? 0;
-        if (!wallet || currentBal < 5) {
-          return NextResponse.json(
-            {
-              error: "TIER_REQUIRED",
-              message:
-                "Tính năng Chấm tự luận bằng AI yêu cầu Gói Giáo Viên PRO hoặc tối thiểu 5 credits trong ví. Thầy/Cô vui lòng nâng cấp gói hoặc nạp thêm credits.",
-            },
-            { status: 403 }
-          );
-        }
-        walletIdToDeduct = wallet.id;
-      }
+      // Tính năng chấm bài hoàn toàn miễn phí cho tất cả giáo viên (0 credits)
 
       if (!question || !studentAnswer) {
         return NextResponse.json(
@@ -247,24 +219,7 @@ TRẢ VỀ CHÍNH XÁC ĐỊNH DẠNG JSON NHƯ SAU:
             if (rawContent) {
               const parsed = JSON.parse(rawContent);
 
-              // Nếu là user Free, trừ 5 credits cho lượt chấm bài tự luận AI này
-              if (walletIdToDeduct) {
-                try {
-                  const newBal = Math.max(0, currentBal - 5);
-                  await (supabase.from("wallets") as any)
-                    .update({ balance: newBal, updated_at: new Date().toISOString() })
-                    .eq("id", walletIdToDeduct);
-
-                  await (supabase.from("wallet_txns") as any).insert({
-                    wallet_id: walletIdToDeduct,
-                    amount: -5,
-                    type: "generate_exam",
-                    description: "Chấm bài tự luận bằng AI Gemini Flash",
-                  });
-                } catch (deductErr) {
-                  console.warn("Deduct grading credit warning:", deductErr);
-                }
-              }
+              // Miễn phí 100% không trừ credits
 
               return NextResponse.json({
                 success: true,

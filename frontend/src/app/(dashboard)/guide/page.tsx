@@ -195,7 +195,7 @@ export default function GuidePage() {
                 <Sparkles className="w-4 h-4 text-primary" /> Mẹo cho Thầy/Cô:
               </p>
               <p>• Thầy/Cô có thể dán trực tiếp một đoạn văn bản đề thi cũ vào ô AI để hệ thống tự động bóc tách thành các câu trắc nghiệm.</p>
-              <p>• Tại trang <strong>Đề thi cộng đồng</strong>, Thầy/Cô có thể dán link các trang giáo dục (như VietJack, Hoc247...) để AI tải đề về máy trong 5 giây.</p>
+              <p>• Tại trang <strong>Soạn đề</strong>, Thầy/Cô có thể dán link các trang giáo dục (như VietJack, Hoc247...) hoặc tải file Word để AI chuyển đổi đề trong 5 giây.</p>
             </div>
           </div>
         )}

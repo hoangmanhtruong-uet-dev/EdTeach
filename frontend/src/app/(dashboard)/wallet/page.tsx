@@ -112,7 +112,7 @@ function WalletContent() {
               </p>
               <p className="text-xs text-emerald-700">
                 {tierParam === "pro"
-                  ? "Toàn bộ tính năng Chấm bài AI qua Camera và Học sinh tự nộp QR đã được kích hoạt vĩnh viễn cho tài khoản của bạn."
+                  ? "Toàn bộ 54+ Phòng Thí Nghiệm 3D độc quyền và +30.000 credits soạn đề AI đã được kích hoạt cho tài khoản của bạn."
                   : `Giao dịch đã được xác nhận. ${creditsParam ? `+${creditsParam} Credits` : "Credits"} đã được cộng vào ví của bạn.`}
               </p>
             </div>

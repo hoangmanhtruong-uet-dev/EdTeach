@@ -64,8 +64,6 @@ interface ExamSession {
 
 export default function GradingPage() {
   const { profile } = useAuth();
-  const isProUser = profile?.tier === "pro" || profile?.tier === "school";
-  const [showProUpgradeModal, setShowProUpgradeModal] = useState(false);
 
   // Danh sách các kỳ thi đã tạo (lưu trong localStorage để bền vững)
   const [sessions, setSessions] = useState<ExamSession[]>([]);
@@ -1063,9 +1061,9 @@ export default function GradingPage() {
               Tạo kỳ thi, in phiếu cho học sinh tô, rồi chụp phiếu để chấm. Ảnh phiếu và kết quả được
               lưu theo tài khoản để xem lại.
             </p>
-            <div className="mt-2 flex items-center gap-1.5 text-xs text-neutral-500 font-medium">
-              <Clock className="w-3.5 h-3.5 text-neutral-400" />
-              <span>Phí chấm: 20 điểm / bài</span>
+            <div className="mt-2 flex items-center gap-1.5 text-xs text-emerald-600 font-medium">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Miễn phí 100% (Chấm tự động không giới hạn bằng OpenCV OMR)</span>
             </div>
           </div>
 
@@ -1505,73 +1503,6 @@ export default function GradingPage() {
         </div>
       )}
 
-      {/* ========================================================= */}
-      {/* MODAL: NÂNG CẤP GÓI PRO ĐỂ SỬ DỤNG CHẤM BÀI AI & QR */}
-      {/* ========================================================= */}
-      {showProUpgradeModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-neutral-200 text-center relative">
-            <button
-              onClick={() => setShowProUpgradeModal(false)}
-              className="absolute right-4 top-4 p-1.5 rounded-lg text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-400 to-amber-500 text-white flex items-center justify-center mx-auto mb-3 shadow-md shadow-amber-500/20">
-              <Sparkles className="w-8 h-8" />
-            </div>
-
-            <div className="inline-block px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-extrabold uppercase tracking-wider mb-2">
-              PRO EXCLUSIVE
-            </div>
-
-            <h3 className="text-xl font-bold text-neutral-900 mb-2">
-              Tính năng dành riêng cho gói PRO
-            </h3>
-
-            <p className="text-xs text-neutral-600 mb-5 leading-relaxed">
-              Gói <strong>Giáo Viên PRO (99.000đ/tháng)</strong> mở khóa trọn bộ <strong>54+ Phòng Thí Nghiệm 3D</strong> độc quyền và tặng ngay <strong>30.000 Credits</strong> soạn đề AI bám sát chuẩn Bộ GD&ĐT 2025!
-            </p>
-
-            <div className="bg-neutral-50 rounded-xl p-3.5 text-left space-y-2 mb-6 border border-neutral-100 text-xs text-neutral-700">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>Mở khóa 54+ bài học tương tác 3D (Lý, Hóa, Sinh, Địa)</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>Cộng thêm +30.000 Credits tạo đề thi AI vào ví</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>Xuất file Word & bảng điểm lớp Excel UTF-8 BOM chuẩn</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>Không giới hạn số lượt chấm phiếu OMR và tạo đề</span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setShowProUpgradeModal(false)}
-                className="flex-1 py-2.5 rounded-xl border border-neutral-200 hover:bg-neutral-50 text-neutral-700 text-xs font-semibold transition cursor-pointer"
-              >
-                Để sau
-              </button>
-
-              <a
-                href="/wallet?plan=pro"
-                className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white text-xs font-bold transition shadow-md shadow-amber-500/20 flex items-center justify-center gap-1.5 cursor-pointer"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Nâng cấp PRO (99k)</span>
-              </a>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ======================================================== */}
       {/* MODAL 2: IN PHIẾU TÔ TRẮC NGHIỆM CHUẨN A4 BỘ GD&ĐT */}
@@ -2895,8 +2826,8 @@ export default function GradingPage() {
                 </a>
               </li>
               <li>
-                <a href="/marketplace" className="hover:text-neutral-900 transition">
-                  Đề thi cộng đồng
+                <a href="/labs" className="hover:text-neutral-900 transition">
+                  Phòng TN 3D
                 </a>
               </li>
               <li>
