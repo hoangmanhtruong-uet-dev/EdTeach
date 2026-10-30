@@ -72,6 +72,8 @@ type ExcalidrawAPI = {
   updateScene: (sceneData: { elements?: unknown[]; appState?: Record<string, unknown> }) => void;
 };
 
+const EMPTY_DRAWING_ELEMENTS: Record<string, unknown>[] = [];
+
 // Keyword mapping helper for 3D Labs
 function findAutoMatchingLab(content: string, subject?: string): LabLesson | null {
   if (!content) return null;
@@ -454,6 +456,33 @@ function TeachingStudioContent() {
     },
     [exam, saveCurrentQuestionDrawing]
   );
+
+  // Stable handlers for WhiteboardCanvas in Teach Mode (prevents infinite re-render loop)
+  const handleCanvasApiReady = useCallback((api: any) => {
+    excalidrawApiRef.current = api as unknown as ExcalidrawAPI;
+    const q = exam?.questions?.[currentIdxRef.current];
+    if (q && drawingsMapRef.current[q.id]) {
+      try {
+        api.updateScene({ elements: drawingsMapRef.current[q.id] });
+      } catch {
+        // ignore
+      }
+    }
+  }, [exam]);
+
+  const handleCanvasChange = useCallback((elements: readonly Record<string, unknown>[]) => {
+    const q = exam?.questions?.[currentIdxRef.current];
+    if (q) {
+      const elList = elements as unknown[];
+      drawingsMapRef.current[q.id] = elList;
+      const hasDrawing = elList.length > 0;
+      setQuestionsWithDrawings((prev) => {
+        if (prev[q.id] === hasDrawing) return prev;
+        return { ...prev, [q.id]: hasDrawing };
+      });
+      triggerTeachSave(drawingsMapRef.current);
+    }
+  }, [exam, triggerTeachSave]);
 
   // Set initial lab when exam loads
   useEffect(() => {
@@ -1533,25 +1562,9 @@ function TeachingStudioContent() {
                 <WhiteboardCanvas
                   height="100%"
                   isPro={isPro}
-                  initialElements={[]}
-                  onApiReady={(api) => {
-                    excalidrawApiRef.current = api as unknown as ExcalidrawAPI;
-                    if (currentQ && drawingsMapRef.current[currentQ.id]) {
-                      try {
-                        api.updateScene({ elements: drawingsMapRef.current[currentQ.id] });
-                      } catch {
-                        // ignore
-                      }
-                    }
-                  }}
-                  onChange={(elements) => {
-                    if (currentQ) {
-                      const elList = elements as unknown[];
-                      drawingsMapRef.current[currentQ.id] = elList;
-                      setQuestionsWithDrawings((prev) => ({ ...prev, [currentQ.id]: elList.length > 0 }));
-                      triggerTeachSave(drawingsMapRef.current);
-                    }
-                  }}
+                  initialElements={EMPTY_DRAWING_ELEMENTS}
+                  onApiReady={handleCanvasApiReady}
+                  onChange={handleCanvasChange}
                 />
               </div>
             )}
