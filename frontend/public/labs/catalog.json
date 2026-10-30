@@ -2,21 +2,21 @@
   {
     "slug": "haber-step",
     "subject": "chem",
-    "title": "合成氨工业",
-    "type": "工业流程",
-    "question": "怎样把空气里的氮又快、又多、又省地变成氨？",
+    "title": "Tổng hợp ammonia",
+    "type": "Quy trình công nghiệp",
+    "question": "Làm thế nào biến nitrogen trong không khí thành ammonia vừa nhanh, vừa nhiều, vừa tiết kiệm?",
     "textbook": [
-      "选择性必修1 化学反应原理 · 第二章 化学反应速率与化学平衡 · 第四节 化学反应的调控",
-      "必修第二册 · 第五章 化工生产中的重要非金属元素 · 第二节 氮及其化合物"
+      "Tự chọn bắt buộc 1 Nguyên lý phản ứng hoá học · Chương 2 Tốc độ phản ứng hoá học và cân bằng hoá học · Bài 4 Điều khiển phản ứng hoá học",
+      "Bắt buộc – Tập 2 · Chương 5 Các nguyên tố phi kim quan trọng trong sản xuất hoá học · Bài 2 Nitrogen và hợp chất"
     ],
     "steps": [
-      "为什么建厂",
-      "为什么净化",
-      "为什么加压",
-      "为什么高温",
-      "塔内什么样",
-      "为什么要循环",
-      "考核 · 当班长"
+      "Vì sao xây nhà máy",
+      "Vì sao làm sạch",
+      "Vì sao tăng áp",
+      "Vì sao nhiệt độ cao",
+      "Trong tháp ra sao",
+      "Vì sao tuần hoàn",
+      "Kiểm tra · trưởng ca"
     ],
     "file": "courses/haber-step.html",
     "cover": "covers/haber-step.webp",
@@ -25,21 +25,21 @@
   {
     "slug": "river-step",
     "subject": "geo",
-    "title": "河流地貌的发育",
-    "type": "原理与现象",
-    "question": "长江镇江段的岸线为什么持续向北推移？",
+    "title": "Sự phát triển của địa hình sông",
+    "type": "Nguyên lý, hiện tượng",
+    "question": "Vì sao đường bờ đoạn Trấn Giang của sông Trường Giang liên tục dịch chuyển về phía bắc?",
     "textbook": [
-      "选择性必修1 自然地理基础 · 第二章 地表形态的塑造 · 第三节 河流地貌的发育"
+      "Tự chọn bắt buộc 1 Cơ sở địa lý tự nhiên · Chương 2 Sự hình thành địa hình bề mặt · Bài 3 Sự phát triển của địa hình sông"
     ],
     "steps": [
-      "认识沙盘",
-      "山区V形谷",
-      "河谷剖面",
-      "冲积扇",
-      "凹岸凸岸",
-      "河漫滩",
-      "三角洲",
-      "考核：汛期来了"
+      "Làm quen sa bàn",
+      "Thung lũng chữ V",
+      "Mặt cắt thung lũng",
+      "Quạt bồi tích",
+      "Bờ lõm, bờ lồi",
+      "Bãi bồi",
+      "Tam giác châu",
+      "Kiểm tra: mùa lũ tới"
     ],
     "file": "courses/river-step.html",
     "cover": "covers/river-step.webp",
@@ -48,22 +48,22 @@
   {
     "slug": "rate-step",
     "subject": "chem",
-    "title": "化学反应速率的影响因素",
-    "type": "原理与现象",
-    "question": "同样两个反应，为什么有的几秒就完、有的等半天？快慢到底由什么决定？",
+    "title": "Các yếu tố ảnh hưởng đến tốc độ phản ứng hoá học",
+    "type": "Nguyên lý, hiện tượng",
+    "question": "Cùng là hai phản ứng, vì sao có phản ứng vài giây đã xong, có phản ứng phải chờ rất lâu? Nhanh hay chậm rốt cuộc do đâu quyết định?",
     "textbook": [
-      "必修第二册 · 第六章 化学反应与能量 · 实验活动7 化学反应速率的影响因素",
-      "选择性必修1 化学反应原理 · 第二章 化学反应速率与化学平衡 · 第一节 化学反应速率"
+      "Bắt buộc – Tập 2 · Chương 6 Phản ứng hoá học và năng lượng · Hoạt động thí nghiệm 7 Các yếu tố ảnh hưởng đến tốc độ phản ứng hoá học",
+      "Tự chọn bắt buộc 1 Nguyên lý phản ứng hoá học · Chương 2 Tốc độ phản ứng hoá học và cân bằng hoá học · Bài 1 Tốc độ phản ứng hoá học"
     ],
     "steps": [
-      "认识实验台",
-      "浓度",
-      "温度",
-      "催化剂",
-      "定量测速率",
-      "看进去",
-      "误差与错误操作",
-      "考核 · 当实验员"
+      "Làm quen bàn TN",
+      "Nồng độ",
+      "Nhiệt độ",
+      "Chất xúc tác",
+      "Đo tốc độ",
+      "Nhìn vào trong",
+      "Sai số và thao tác sai",
+      "Kiểm tra · Tự làm TN"
     ],
     "file": "courses/rate-step.html",
     "cover": "covers/rate-step.webp",
@@ -72,22 +72,22 @@
   {
     "slug": "insolation-step",
     "subject": "geo",
-    "title": "太阳直射点的回归运动与四季、五带",
-    "type": "原理与现象",
-    "question": "学校所在地的正午太阳高度和正午太阳方向，一年里为什么有规律地变化？",
+    "title": "Chuyển động biểu kiến của điểm Mặt Trời lên thiên đỉnh, bốn mùa và năm vành đai nhiệt",
+    "type": "Nguyên lý, hiện tượng",
+    "question": "Góc nhập xạ lúc giữa trưa và hướng Mặt Trời lúc giữa trưa ở nơi trường em, vì sao trong một năm lại thay đổi có quy luật?",
     "textbook": [
-      "选择性必修1 自然地理基础 · 第一章 地球的运动 · 第二节 地球运动的地理意义 · 太阳直射点的回归运动 · 四季和五带"
+      "Tự chọn bắt buộc 1 Cơ sở địa lý tự nhiên · Chương 1 Chuyển động của Trái Đất · Bài 2 Hệ quả địa lý của các chuyển động của Trái Đất · Chuyển động biểu kiến của điểm Mặt Trời lên thiên đỉnh · Bốn mùa và năm vành đai nhiệt"
     ],
     "steps": [
-      "黄赤交角",
-      "回归运动",
-      "正午高度",
-      "纬度分布",
-      "年内变化",
-      "正午方向",
-      "四季",
-      "五带",
-      "考核 · 点带"
+      "Góc hoàng – xích",
+      "Chuyển động biểu kiến",
+      "Góc giữa trưa",
+      "Theo vĩ độ",
+      "Thay đổi trong năm",
+      "Hướng giữa trưa",
+      "Bốn mùa",
+      "5 vành đai nhiệt",
+      "Kiểm tra · vành đai"
     ],
     "file": "courses/insolation-step.html",
     "cover": "covers/insolation-step.webp",
@@ -96,22 +96,22 @@
   {
     "slug": "ball-stick-step",
     "subject": "chem",
-    "title": "搭建球棍模型认识有机化合物分子结构",
-    "type": "原理与现象模拟",
-    "question": "分子画在纸上是平的，真实的三维形状到底是什么样？搭一座球棍模型能看出什么？",
+    "title": "Lắp mô hình rỗng (quả cầu – que) tìm hiểu cấu trúc phân tử hợp chất hữu cơ",
+    "type": "Mô phỏng nguyên lý và hiện tượng",
+    "question": "Phân tử vẽ trên giấy thì phẳng, hình dạng ba chiều thực sự của nó ra sao? Lắp một mô hình rỗng thì thấy được gì?",
     "textbook": [
-      "必修第二册 · 第七章 有机化合物 · 实验活动8 搭建球棍模型认识有机化合物分子结构"
+      "Bắt buộc – Tập 2 · Chương 7 Hợp chất hữu cơ · Hoạt động thí nghiệm 8 Lắp mô hình rỗng để tìm hiểu cấu trúc phân tử hợp chất hữu cơ"
     ],
     "steps": [
-      "零件盒",
-      "甲烷",
-      "二氯甲烷",
-      "单键能转",
-      "碳链",
-      "同分异构",
-      "乙烯与乙炔",
-      "苯",
-      "考核"
+      "Hộp linh kiện",
+      "Methane",
+      "Dichloromethane",
+      "Liên kết đơn quay được",
+      "Mạch carbon",
+      "Đồng phân",
+      "Ethylene và acetylene",
+      "Benzene",
+      "Kiểm tra"
     ],
     "file": "courses/ball-stick-step.html",
     "cover": "covers/ball-stick-step.webp",
@@ -120,22 +120,22 @@
   {
     "slug": "titration-step",
     "subject": "chem",
-    "title": "强酸与强碱的中和滴定",
-    "type": "原理与现象",
-    "question": "前面加了 20 多毫升几乎看不出变化，为什么最后半滴颜色就全变了？",
+    "title": "Chuẩn độ acid mạnh bằng base mạnh",
+    "type": "Nguyên lý, hiện tượng",
+    "question": "Trước đó thêm hơn 20 mL gần như không thấy thay đổi, vì sao nửa giọt cuối cùng lại làm đổi màu hẳn?",
     "textbook": [
-      "选择性必修1 化学反应原理 · 第三章 水溶液中的离子反应与平衡 · 第二节 水的电离和溶液的pH · 酸碱中和滴定 · 实验活动2"
+      "Tự chọn bắt buộc 1 Nguyên lý phản ứng hoá học · Chương 3 Phản ứng ion và cân bằng trong dung dịch nước · Bài 2 Sự điện li của nước và pH của dung dịch · Chuẩn độ trung hoà acid – base · Hoạt động thí nghiệm 2"
     ],
     "steps": [
-      "认识滴定装置",
-      "润洗与赶气泡",
-      "取液与加指示剂",
-      "逐滴加入",
-      "半滴到终点",
-      "读数与计算",
-      "看进去",
-      "误差与错误操作",
-      "考核 · 当滴定员"
+      "Bộ chuẩn độ",
+      "Tráng, đuổi bọt khí",
+      "Lấy dung dịch và thêm chất chỉ thị",
+      "Nhỏ từng giọt",
+      "Nửa giọt đến điểm cuối",
+      "Đọc số, tính toán",
+      "Nhìn vào trong",
+      "Sai số và thao tác sai",
+      "Kiểm tra · chuẩn độ"
     ],
     "file": "courses/titration-step.html",
     "cover": "covers/titration-step.webp",
@@ -144,22 +144,22 @@
   {
     "slug": "chlorine-step",
     "subject": "chem",
-    "title": "氯气的制备及性质",
-    "type": "原理与现象",
-    "question": "要一瓶干燥、纯净的氯气，装置里每一段各管什么？少一段会怎样？",
+    "title": "Điều chế và tính chất của chlorine",
+    "type": "Nguyên lý, hiện tượng",
+    "question": "Muốn có một bình chlorine khô, tinh khiết, mỗi đoạn của bộ thí nghiệm đảm nhận việc gì? Thiếu một đoạn thì sao?",
     "textbook": [
-      "必修第一册 · 第二章 海水中的重要元素——钠和氯 · 第二节 氯及其化合物"
+      "Bắt buộc – Tập 1 · Chương 2 Các nguyên tố quan trọng trong nước biển – sodium và chlorine · Bài 2 Chlorine và hợp chất"
     ],
     "steps": [
-      "认识装置",
-      "为什么加热",
-      "为什么要浓盐酸",
-      "第一瓶洗什么",
-      "第二瓶洗什么",
-      "怎么收集",
-      "多余的氯气去哪",
-      "氯水里有什么",
-      "考核 · 当实验员"
+      "Làm quen bộ thí nghiệm",
+      "Vì sao đun nóng",
+      "Vì sao cần acid đặc",
+      "Bình thứ nhất rửa gì",
+      "Bình thứ hai rửa gì",
+      "Thu thế nào",
+      "Chlorine dư đi đâu",
+      "Nước chlorine có gì",
+      "Kiểm tra · Tự làm TN"
     ],
     "file": "courses/chlorine-step.html",
     "cover": "covers/chlorine-step.webp",
@@ -168,21 +168,21 @@
   {
     "slug": "blast-furnace-step",
     "subject": "chem",
-    "title": "高炉炼铁",
-    "type": "工业流程",
-    "question": "一堆矿石从炉顶倒下去，怎么几小时后就变成一股铁水，还越省越好？",
+    "title": "Luyện gang lò cao",
+    "type": "Quy trình công nghiệp",
+    "question": "Một đống quặng đổ xuống từ đỉnh lò, sao vài giờ sau đã thành dòng gang lỏng, lại còn càng tiết kiệm càng tốt?",
     "textbook": [
-      "必修第二册 · 第八章 化学与可持续发展 · 第一节 自然资源的开发利用 · 金属矿物的开发利用"
+      "Bắt buộc – Tập 2 · Chương 8 Hoá học và phát triển bền vững · Bài 1 Khai thác và sử dụng tài nguyên thiên nhiên · Khai thác và sử dụng khoáng sản kim loại"
     ],
     "steps": [
-      "矿石变铁",
-      "分层布料",
-      "剖开看层",
-      "风口烧焦",
-      "逐级还原",
-      "石灰石造渣",
-      "风温的账",
-      "值班考核"
+      "Quặng thành gang",
+      "Rải liệu thành lớp",
+      "Cắt ra xem lớp",
+      "Mắt gió đốt cốc",
+      "Khử từng cấp",
+      "Đá vôi tạo xỉ",
+      "Bài toán nhiệt độ gió",
+      "Kiểm tra ca trực"
     ],
     "file": "courses/blast-furnace-step.html",
     "cover": "covers/blast-furnace-step.webp",
@@ -191,21 +191,21 @@
   {
     "slug": "smelting-step",
     "subject": "chem",
-    "title": "金属冶炼：电解熔融盐 + 铝热",
-    "type": "工业流程",
-    "question": "为什么铝只能靠电「拆」出来，而铁能被铝「换」出来？",
+    "title": "Luyện kim: điện phân muối nóng chảy + nhiệt nhôm",
+    "type": "Quy trình công nghiệp",
+    "question": "Vì sao nhôm chỉ có thể dùng điện để “tách” ra, còn sắt lại có thể bị nhôm “đẩy” ra?",
     "textbook": [
-      "必修第二册 · 第八章 化学与可持续发展 · 第一节 自然资源的开发利用 · 金属矿物的开发利用"
+      "Bắt buộc – Tập 2 · Chương 8 Hoá học và phát triển bền vững · Bài 1 Khai thác và sử dụng tài nguyên thiên nhiên · Khai thác và sử dụng khoáng sản kim loại"
     ],
     "steps": [
-      "三处台子",
-      "只能电解",
-      "剖开槽",
-      "谁往哪走",
-      "掺冰晶石",
-      "电耗的账",
-      "铝热",
-      "值班考核"
+      "Ba bàn",
+      "Chỉ điện phân",
+      "Cắt bể",
+      "Ai đi về đâu",
+      "Thêm cryolite",
+      "Bài toán điện năng",
+      "Nhiệt nhôm",
+      "Kiểm tra ca trực"
     ],
     "file": "courses/smelting-step.html",
     "cover": "covers/smelting-step.webp",
@@ -214,23 +214,23 @@
   {
     "slug": "currents-step",
     "subject": "geo",
-    "title": "世界洋流的分布规律与影响",
-    "type": "原理与现象",
-    "question": "数万只玩具鸭散落海面，为什么会漂到世界各地的海岸？",
+    "title": "Quy luật phân bố và ảnh hưởng của các dòng biển trên thế giới",
+    "type": "Nguyên lý, hiện tượng",
+    "question": "Hàng vạn con vịt đồ chơi rơi xuống mặt biển, vì sao lại trôi dạt tới bờ biển khắp nơi trên thế giới?",
     "textbook": [
-      "选择性必修1 自然地理基础 · 第四章 水的运动 · 第二节 洋流",
-      "必修第一册 · 第三章 地球上的水 · 第三节 海水的运动"
+      "Tự chọn bắt buộc 1 Cơ sở địa lý tự nhiên · Chương 4 Sự vận động của nước · Bài 2 Dòng biển",
+      "Bắt buộc – Tập 1 · Chương 3 Nước trên Trái Đất · Bài 3 Sự vận động của nước biển"
     ],
     "steps": [
-      "风推水走",
-      "中低纬成圈",
-      "中高纬反着转",
-      "寒暖流",
-      "不绕圈会倒转",
-      "海水性质",
-      "气候影响",
-      "渔场",
-      "考核 · 四站"
+      "Gió đẩy nước đi",
+      "Vĩ độ thấp – TB thành vòng",
+      "Vĩ độ TB – cao quay ngược",
+      "Dòng nóng, lạnh",
+      "Không vòng, đảo chiều",
+      "Tính chất nước biển",
+      "Ảnh hưởng khí hậu",
+      "Ngư trường",
+      "Kiểm tra · Bốn điểm"
     ],
     "file": "courses/currents-step.html",
     "cover": "covers/currents-step.webp",
@@ -239,20 +239,20 @@
   {
     "slug": "enso-step",
     "subject": "geo",
-    "title": "海—气相互作用与厄尔尼诺、拉尼娜",
-    "type": "原理与现象",
-    "question": "秘鲁沿海常年干旱，为什么 2016 年底海水一暖，就下起了暴雨、还死了近百人？",
+    "title": "Tương tác biển – khí quyển và El Niño, La Niña",
+    "type": "Nguyên lý, hiện tượng",
+    "question": "Ven biển Pê-ru quanh năm khô hạn, vì sao cuối năm 2016 nước biển vừa ấm lên đã mưa lớn, làm gần một trăm người thiệt mạng?",
     "textbook": [
-      "选择性必修1 自然地理基础 · 第四章 水的运动 · 第三节 海—气相互作用"
+      "Tự chọn bắt buộc 1 Cơ sở địa lý tự nhiên · Chương 4 Sự vận động của nước · Bài 3 Tương tác biển – khí quyển"
     ],
     "steps": [
-      "交换",
-      "差",
-      "环流",
-      "厄尔尼诺",
-      "越线",
-      "拉尼娜",
-      "考核"
+      "Trao đổi",
+      "Chênh",
+      "Hoàn lưu",
+      "El Niño",
+      "Vượt ngưỡng",
+      "La Niña",
+      "Kiểm tra"
     ],
     "file": "courses/enso-step.html",
     "cover": "covers/enso-step.webp",
@@ -261,21 +261,21 @@
   {
     "slug": "coal-gas-step",
     "subject": "chem",
-    "title": "煤的综合利用：以煤的气化为主线",
-    "type": "工业流程",
-    "question": "煤只能烧吗？怎么把煤变成能造化肥、造甲醇的气？",
+    "title": "Sử dụng tổng hợp than đá: lấy khí hoá than làm mạch chính",
+    "type": "Quy trình công nghiệp",
+    "question": "Than đá chỉ để đốt thôi sao? Làm thế nào biến than thành khí để sản xuất phân bón, methanol?",
     "textbook": [
-      "必修第二册 · 第八章 化学与可持续发展 · 第一节 自然资源的开发利用 · 煤的综合利用"
+      "Bắt buộc – Tập 2 · Chương 8 Hoá học và phát triển bền vững · Bài 1 Khai thác và sử dụng tài nguyên thiên nhiên · Sử dụng tổng hợp than"
     ],
     "steps": [
-      "为什么气化",
-      "供热还是供气",
-      "炉子里长什么样",
-      "蒸汽多好还是少好",
-      "变换调比例",
-      "为什么要脱硫",
-      "变成什么",
-      "考核"
+      "Vì sao khí hoá",
+      "Cấp nhiệt hay cấp khí",
+      "Bên trong lò trông thế nào",
+      "Hơi nước nhiều hay ít thì tốt",
+      "Chuyển hoá CO chỉnh tỉ lệ",
+      "Vì sao khử lưu huỳnh",
+      "Thành sản phẩm gì",
+      "Kiểm tra"
     ],
     "file": "courses/coal-gas-step.html",
     "cover": "covers/coal-gas-step.webp",
@@ -284,20 +284,20 @@
   {
     "slug": "sulfuric-step",
     "subject": "chem",
-    "title": "接触法制硫酸",
-    "type": "工业流程",
-    "question": "怎样把矿石里的硫，又快、又多、又省、又干净地变成硫酸？",
+    "title": "Điều chế H₂SO₄ (PP tiếp xúc)",
+    "type": "Quy trình công nghiệp",
+    "question": "Làm thế nào biến sulfur trong quặng thành sulfuric acid vừa nhanh, vừa nhiều, vừa tiết kiệm, vừa sạch?",
     "textbook": [
-      "必修第二册 · 第五章 化工生产中的重要非金属元素 · 第一节 硫及其化合物 · 工业制硫酸"
+      "Bắt buộc – Tập 2 · Chương 5 Các nguyên tố phi kim quan trọng trong sản xuất hoá học · Bài 1 Sulfur và hợp chất · Sản xuất sulfuric acid trong công nghiệp"
     ],
     "steps": [
-      "为什么分五段",
-      "为什么先净化",
-      "为什么这个温度",
-      "为什么要常压",
-      "塔内什么样",
-      "为什么用浓硫酸",
-      "考核 · 当班长"
+      "Vì sao chia 5 công đoạn",
+      "Vì sao làm sạch trước",
+      "Vì sao nhiệt độ này",
+      "Vì sao áp suất thường",
+      "Trong tháp ra sao",
+      "Vì sao dùng acid đặc",
+      "Kiểm tra · trưởng ca"
     ],
     "file": "courses/sulfuric-step.html",
     "cover": "covers/sulfuric-step.webp",
@@ -306,22 +306,22 @@
   {
     "slug": "hydrolysis-step",
     "subject": "chem",
-    "title": "盐类的水解及其应用",
-    "type": "原理与现象",
-    "question": "盐电离出来的离子看上去「既不酸也不碱」，凭什么能让溶液显出酸碱性？",
+    "title": "Sự thuỷ phân của muối và ứng dụng",
+    "type": "Nguyên lý, hiện tượng",
+    "question": "Các ion do muối phân li ra trông “chẳng acid cũng chẳng base”, dựa vào đâu mà làm dung dịch có tính acid hay base?",
     "textbook": [
-      "选择性必修1 化学反应原理 · 第三章 水溶液中的离子反应与平衡 · 第三节 盐类的水解 · 实验活动3 盐类水解的应用"
+      "Tự chọn bắt buộc 1 Nguyên lý phản ứng hoá học · Chương 3 Phản ứng ion và cân bằng trong dung dịch nước · Bài 3 Sự thuỷ phân của muối · Hoạt động thí nghiệm 3 Ứng dụng của sự thuỷ phân muối"
     ],
     "steps": [
-      "认识实验",
-      "盐的类型",
-      "看进去",
-      "浓度",
-      "温度",
-      "加酸抑制",
-      "净水",
-      "煮沸与蒸干",
-      "考核 · 配溶液"
+      "Làm quen thí nghiệm",
+      "Loại muối",
+      "Nhìn vào trong",
+      "Nồng độ",
+      "Nhiệt độ",
+      "Thêm acid ức chế",
+      "Làm trong",
+      "Đun sôi và cô cạn",
+      "Kiểm tra · pha dd"
     ],
     "file": "courses/hydrolysis-step.html",
     "cover": "covers/hydrolysis-step.webp",
@@ -330,22 +330,22 @@
   {
     "slug": "heating-step",
     "subject": "geo",
-    "title": "大气受热过程",
-    "type": "原理与现象",
-    "question": "太阳晒了一整天的地面，为什么白天先热起来，夜里又凉得那么快——大气到底替地面留住了多少热？",
+    "title": "Khí quyển nhận nhiệt",
+    "type": "Nguyên lý, hiện tượng",
+    "question": "Mặt đất phơi nắng cả ngày, vì sao ban ngày nóng lên trước, ban đêm lại nguội nhanh đến thế – khí quyển rốt cuộc giữ lại cho mặt đất bao nhiêu nhiệt?",
     "textbook": [
-      "必修第一册 · 第二章 地球上的大气 · 第二节 大气受热过程和大气运动 · 大气受热过程"
+      "Bắt buộc – Tập 1 · Chương 2 Khí quyển Trái Đất · Bài 2 Quá trình nhận nhiệt và chuyển động của khí quyển · Quá trình nhận nhiệt của khí quyển"
     ],
     "steps": [
-      "削弱",
-      "地面吸收",
-      "长波",
-      "截留",
-      "逆辐射",
-      "云",
-      "温室气体",
-      "月球对照",
-      "考核"
+      "Suy yếu",
+      "Mặt đất hấp thụ",
+      "Sóng dài",
+      "Giữ lại",
+      "Bức xạ ngược",
+      "Mây",
+      "Khí nhà kính",
+      "Đối chứng Mặt Trăng",
+      "Kiểm tra"
     ],
     "file": "courses/heating-step.html",
     "cover": "covers/heating-step.webp",
@@ -354,20 +354,20 @@
   {
     "slug": "karst-step",
     "subject": "geo",
-    "title": "喀斯特地貌的形成与识别",
-    "type": "原理与现象",
-    "question": "徐霞客写的「峭峰离立，分行竞颖」——这些像从地里长出来的尖峰，是怎么一块岩层变出来的？",
+    "title": "Sự hình thành và nhận biết địa hình các-xtơ",
+    "type": "Nguyên lý, hiện tượng",
+    "question": "Từ Hà Khách viết “núi dựng tách rời, xếp hàng đua nhọn” – những đỉnh nhọn như mọc lên từ lòng đất này được biến ra từ một lớp đá như thế nào?",
     "textbook": [
-      "必修第一册 · 第四章 地貌 · 第一节 常见地貌类型 · 喀斯特地貌"
+      "Bắt buộc – Tập 1 · Chương 4 Địa hình · Bài 1 Các dạng địa hình thường gặp · Địa hình các-xtơ"
     ],
     "steps": [
-      "溶",
-      "沟→洼",
-      "峰丛→峰林",
-      "孤峰→残丘",
-      "快慢",
-      "洞",
-      "考核"
+      "Tan",
+      "Rãnh→trũng",
+      "Cụm đỉnh→rừng đá",
+      "Núi sót→đồi sót",
+      "Nhanh chậm",
+      "Hang",
+      "Kiểm tra"
     ],
     "file": "courses/karst-step.html",
     "cover": "covers/karst-step.webp",
@@ -376,21 +376,21 @@
   {
     "slug": "cement-step",
     "subject": "chem",
-    "title": "工业制水泥",
-    "type": "工业流程",
-    "question": "一车石头和土，凭什么磨一磨、烧一烧、再磨一磨，就变成能撑起大坝的水泥？",
+    "title": "Sản xuất xi măng",
+    "type": "Quy trình công nghiệp",
+    "question": "Một xe đá và đất, dựa vào đâu mà nghiền một chút, nung một chút, rồi nghiền thêm là thành xi măng đủ sức xây đập?",
     "textbook": [
-      "必修第二册 · 第五章 化工生产中的重要非金属元素 · 第三节 无机非金属材料"
+      "Bắt buộc – Tập 2 · Chương 5 Các nguyên tố phi kim quan trọng trong sản xuất hoá học · Bài 3 Vật liệu vô cơ phi kim loại"
     ],
     "steps": [
-      "看全厂",
-      "备生料",
-      "预热分解",
-      "窑里走",
-      "烧成带",
-      "急冷",
-      "加石膏",
-      "值班考核"
+      "Xem toàn nhà máy",
+      "Chuẩn bị liệu",
+      "Gia nhiệt – phân huỷ",
+      "Đi trong lò",
+      "Vùng nung",
+      "Làm nguội nhanh",
+      "Thêm thạch cao",
+      "Kiểm tra ca trực"
     ],
     "file": "courses/cement-step.html",
     "cover": "covers/cement-step.webp",
@@ -399,21 +399,21 @@
   {
     "slug": "carbon-step",
     "subject": "geo",
-    "title": "全球气候变化与国家安全",
-    "type": "原理与现象",
-    "question": "马尔代夫为什么要把内阁会议开到 6 米深的海底去？",
+    "title": "Biến đổi khí hậu toàn cầu và an ninh quốc gia",
+    "type": "Nguyên lý, hiện tượng",
+    "question": "Vì sao Man-đi-vơ lại tổ chức họp nội các dưới đáy biển sâu 6 mét?",
     "textbook": [
-      "选择性必修3 资源、环境与国家安全 · 第三章 环境安全与国家安全 · 第四节 全球气候变化与国家安全"
+      "Tự chọn bắt buộc 3 Tài nguyên, môi trường và an ninh quốc gia · Chương 3 An ninh môi trường và an ninh quốc gia · Bài 4 Biến đổi khí hậu toàn cầu và an ninh quốc gia"
     ],
     "steps": [
-      "碳循环",
-      "两条输入",
-      "排放去向",
-      "保温增强",
-      "越线",
-      "国家",
-      "应对",
-      "考核"
+      "Chu trình carbon",
+      "Hai nguồn vào",
+      "Phát thải đi đâu",
+      "Giữ nhiệt tăng",
+      "Vượt ngưỡng",
+      "Quốc gia",
+      "Ứng phó",
+      "Kiểm tra"
     ],
     "file": "courses/carbon-step.html",
     "cover": "covers/carbon-step.webp",
@@ -422,19 +422,19 @@
   {
     "slug": "tectonic-step",
     "subject": "geo",
-    "title": "构造地貌的形成",
-    "type": "原理与现象",
-    "question": "青藏高原上为什么会找到阔叶树的叶子化石 —— 什么力量把地表抬起来、又把它切开？",
+    "title": "Sự hình thành địa hình kiến tạo",
+    "type": "Nguyên lý, hiện tượng",
+    "question": "Vì sao trên cao nguyên Thanh Tạng lại tìm thấy hoá thạch lá cây lá rộng – sức mạnh nào đã nâng bề mặt lên, rồi lại cắt nó ra?",
     "textbook": [
-      "选择性必修1 自然地理基础 · 第二章 地表形态的塑造 · 第二节 构造地貌的形成"
+      "Tự chọn bắt buộc 1 Cơ sở địa lý tự nhiên · Chương 2 Sự hình thành địa hình bề mặt · Bài 2 Sự hình thành địa hình kiến tạo"
     ],
     "steps": [
-      "弯",
-      "分",
-      "倒置",
-      "错开",
-      "升降",
-      "考核"
+      "Uốn",
+      "Phân bổ",
+      "Đảo ngược",
+      "Xê dịch",
+      "Nâng hạ",
+      "Kiểm tra"
     ],
     "file": "courses/tectonic-step.html",
     "cover": "covers/tectonic-step.webp",
@@ -443,22 +443,22 @@
   {
     "slug": "photoelectric-step",
     "subject": "phys",
-    "title": "光电效应",
-    "type": "原理与实验",
-    "question": "同一束光，为什么换成另一种金属就一个电子都打不出来？光电子的能量到底由光的什么决定？",
+    "title": "Hiệu ứng quang điện",
+    "type": "Nguyên lý và TN",
+    "question": "Cùng một chùm sáng, vì sao đổi sang kim loại khác thì không bật ra được electron nào? Năng lượng của quang electron rốt cuộc do yếu tố nào của ánh sáng quyết định?",
     "textbook": [
-      "选择性必修第三册 · 第四章 原子结构和波粒二象性 · 第二节 光电效应"
+      "Tự chọn bắt buộc – Tập 3 · Chương 4 Cấu trúc nguyên tử và lưỡng tính sóng – hạt · Bài 2 Hiệu ứng quang điện"
     ],
     "steps": [
-      "认识电路",
-      "加到饱和",
-      "反向扫描",
-      "改光强",
-      "换频率",
-      "换金属",
-      "作图测 h",
-      "真实器材",
-      "考核"
+      "Làm quen mạch điện",
+      "Tăng đến bão hoà",
+      "Quét chiều ngược",
+      "Đổi cường độ sáng",
+      "Đổi tần số",
+      "Đổi kim loại",
+      "Vẽ đồ thị đo h",
+      "Dụng cụ thực",
+      "Kiểm tra"
     ],
     "file": "courses/photoelectric-step.html",
     "cover": "covers/photoelectric-step.webp",
@@ -467,22 +467,22 @@
   {
     "slug": "capacitor-step",
     "subject": "phys",
-    "title": "观察电容器的充放电",
-    "type": "原理与实验",
-    "question": "电容器里到底存了什么？能不能只用一个数把它的「肚量」量出来？",
+    "title": "Quan sát sự tích điện và phóng điện của tụ điện",
+    "type": "Nguyên lý và TN",
+    "question": "Trong tụ điện thực sự chứa cái gì? Có thể chỉ dùng một con số để đo “sức chứa” của nó không?",
     "textbook": [
-      "必修第三册 · 第十章 静电场中的能量 · 第四节 电容器的电容 · 学生必做实验：观察电容器的充放电"
+      "Bắt buộc – Tập 3 · Chương 10 Năng lượng trong điện trường tĩnh · Bài 4 Điện dung của tụ điện · Thí nghiệm bắt buộc của học sinh: Quan sát sự tích điện và phóng điện của tụ điện"
     ],
     "steps": [
-      "认识器材",
-      "合向 1 充电",
-      "合向 2 放电",
-      "面积得电荷",
-      "两种接法",
-      "记录 q-u",
-      "换 C 换 R",
-      "真实器材",
-      "考核"
+      "Làm quen dụng cụ",
+      "Gạt sang 1 tích điện",
+      "Gạt sang 2 phóng điện",
+      "Diện tích ra điện tích",
+      "Hai cách mắc",
+      "Ghi q-u",
+      "Đổi C, đổi R",
+      "Dụng cụ thực",
+      "Kiểm tra"
     ],
     "file": "courses/capacitor-step.html",
     "cover": "covers/capacitor-step.webp",
@@ -491,23 +491,23 @@
   {
     "slug": "earth-motion-step",
     "subject": "geo",
-    "title": "地球运动的地理意义",
-    "type": "原理与现象",
-    "question": "同一时刻，为什么北京是中午、纽约是半夜，而夏天的白天又比冬天长？",
+    "title": "Hệ quả địa lý của các chuyển động của Trái Đất",
+    "type": "Nguyên lý, hiện tượng",
+    "question": "Cùng một thời điểm, vì sao ở Bắc Kinh là giữa trưa, ở Niu Oóc là nửa đêm, và ban ngày mùa hạ lại dài hơn mùa đông?",
     "textbook": [
-      "选择性必修1 自然地理基础 · 第一章 地球的运动 · 第二节 地球运动的地理意义",
-      "选择性必修1 自然地理基础 · 第一章 地球的运动 · 第一节 地球的自转和公转"
+      "Tự chọn bắt buộc 1 Cơ sở địa lý tự nhiên · Chương 1 Chuyển động của Trái Đất · Bài 2 Hệ quả địa lý của các chuyển động của Trái Đất",
+      "Tự chọn bắt buộc 1 Cơ sở địa lý tự nhiên · Chương 1 Chuyển động của Trái Đất · Bài 1 Chuyển động tự quay và chuyển động quanh Mặt Trời của Trái Đất"
     ],
     "steps": [
-      "自转",
-      "公转",
-      "昼夜半球",
-      "晨线昏线",
-      "地方时",
-      "时区日界线",
-      "昼夜长短",
-      "正午太阳高度",
-      "考核 · 时差"
+      "Tự quay",
+      "Quanh Mặt Trời",
+      "Bán cầu ngày/đêm",
+      "Đường sáng, đường tối",
+      "Giờ địa phương",
+      "Múi giờ, đường chuyển ngày",
+      "Độ dài ngày đêm",
+      "Góc nhập xạ giữa trưa",
+      "Kiểm tra · Chênh lệch giờ"
     ],
     "file": "courses/earth-motion-step.html",
     "cover": "covers/earth-motion-step.webp",
@@ -516,21 +516,21 @@
   {
     "slug": "accel-force-step",
     "subject": "phys",
-    "title": "实验：探究加速度与力、质量的关系",
-    "type": "原理与现象",
-    "question": "不直接测力、也不直接测加速度——一张纸带加几个槽码，能不能把 a 与 F、m 的关系量出来？",
+    "title": "Thí nghiệm: Tìm hiểu mối liên hệ giữa gia tốc với lực và khối lượng",
+    "type": "Nguyên lý, hiện tượng",
+    "question": "Không đo trực tiếp lực, cũng không đo trực tiếp gia tốc – chỉ với một băng giấy và vài quả nặng móc, liệu có đo được mối liên hệ giữa a với F và m không?",
     "textbook": [
-      "必修第一册 · 第四章 运动和力的关系 · 第二节 实验：探究加速度与力、质量的关系"
+      "Bắt buộc – Tập 1 · Chương 4 Mối liên hệ giữa chuyển động và lực · Bài 2 Thí nghiệm: Tìm hiểu mối liên hệ giữa gia tốc với lực và khối lượng"
     ],
     "steps": [
-      "认识器材",
-      "平衡阻力",
-      "打纸带",
-      "求加速度",
-      "a 与 F",
-      "a 与 m",
-      "误差",
-      "考核"
+      "Làm quen dụng cụ",
+      "Cân bằng ma sát",
+      "Gõ băng giấy",
+      "Tính gia tốc",
+      "a và F",
+      "a và m",
+      "Sai số",
+      "Kiểm tra"
     ],
     "file": "courses/accel-force-step.html",
     "cover": "covers/accel-force-step.webp",
@@ -539,22 +539,22 @@
   {
     "slug": "iron-step",
     "subject": "chem",
-    "title": "铁及其化合物：铁的价态转化",
-    "type": "原理与现象",
-    "question": "同一个铁元素，为什么在试管里一会儿是 +2 价、一会儿是 +3 价，我们凭什么知道它是哪一个？",
+    "title": "Sắt và hợp chất: chuyển hoá giữa các số oxi hoá của sắt",
+    "type": "Nguyên lý, hiện tượng",
+    "question": "Cùng là nguyên tố sắt, vì sao trong ống nghiệm lúc là +2, lúc là +3, và dựa vào đâu ta biết nó là loại nào?",
     "textbook": [
-      "必修第一册 · 第三章 铁 金属材料 · 第一节 铁及其化合物"
+      "Bắt buộc – Tập 1 · Chương 3 Sắt, vật liệu kim loại · Bài 1 Sắt và hợp chất"
     ],
     "steps": [
-      "认识实验",
-      "白色沉淀",
-      "隔绝空气",
-      "KSCN 检验",
-      "价态降下来",
-      "价态升回去",
-      "看进去",
-      "检铁站",
-      "考核 · 压到 +2 价"
+      "Làm quen thí nghiệm",
+      "Kết tủa trắng",
+      "Cách li không khí",
+      "Nhận biết bằng KSCN",
+      "Hạ số oxi hoá",
+      "Nâng số oxi hoá",
+      "Nhìn vào trong",
+      "Trạm thử sắt",
+      "Kiểm tra · hạ về +2"
     ],
     "file": "courses/iron-step.html",
     "cover": "covers/iron-step.webp",
@@ -563,21 +563,21 @@
   {
     "slug": "plasmolysis-step",
     "subject": "bio",
-    "title": "植物细胞的吸水和失水",
-    "type": "原理与现象",
-    "question": "菜叶泡在清水里会变硬挺，撒了盐会出水——植物细胞怎样吸水和失水？",
+    "title": "Sự hút nước và mất nước của tế bào thực vật",
+    "type": "Nguyên lý, hiện tượng",
+    "question": "Rau ngâm trong nước sạch sẽ cứng giòn, rắc muối thì rỉ nước – tế bào thực vật hút nước và mất nước như thế nào?",
     "textbook": [
-      "必修1 分子与细胞 · 第4章 细胞的物质输入和输出 · 第1节 被动运输 · 探究·实践：探究植物细胞的吸水和失水"
+      "Bắt buộc 1 Phân tử và tế bào · Chương 4 Sự vận chuyển các chất vào và ra khỏi tế bào · Bài 1 Vận chuyển thụ động · Tìm hiểu · Thực hành: Tìm hiểu sự hút nước và mất nước của tế bào thực vật"
     ],
     "steps": [
-      "渗透",
-      "原生质层",
-      "失水",
-      "水去哪",
-      "复原",
-      "甘油",
-      "测浓度",
-      "考核"
+      "Thẩm thấu",
+      "Lớp nguyên sinh chất",
+      "Mất nước",
+      "Nước đi đâu",
+      "Phản co",
+      "Glycerol",
+      "Đo nồng độ",
+      "Kiểm tra"
     ],
     "file": "courses/plasmolysis-step.html",
     "cover": "covers/plasmolysis-step.webp",
@@ -586,22 +586,22 @@
   {
     "slug": "electrolysis-step",
     "subject": "chem",
-    "title": "电解原理：电解氯化铜溶液与饱和食盐水",
-    "type": "原理与现象",
-    "question": "同一个直流电源，为什么电解氯化铜溶液得到铜和氯气，电解饱和食盐水却得到氢气、氯气和氢氧化钠？",
+    "title": "Nguyên lý điện phân: điện phân dung dịch copper(II) chloride và dung dịch muối ăn bão hoà",
+    "type": "Nguyên lý, hiện tượng",
+    "question": "Cùng một nguồn điện một chiều, vì sao điện phân dung dịch copper(II) chloride thu được copper và chlorine, còn điện phân dung dịch muối ăn bão hoà lại thu được hydrogen, chlorine và sodium hydroxide?",
     "textbook": [
-      "选择性必修1 化学反应原理 · 第四章 化学反应与电能 · 第二节 电解池 · 电解氯化铜溶液 · 电解饱和食盐水"
+      "Tự chọn bắt buộc 1 Nguyên lý phản ứng hoá học · Chương 4 Phản ứng hoá học và điện năng · Bài 2 Bình điện phân · Điện phân dung dịch copper(II) chloride · Điện phân dung dịch muối ăn bão hoà"
     ],
     "steps": [
-      "认识实验",
-      "接通电源",
-      "通得更久",
-      "看进去",
-      "换食盐水",
-      "阴极区变红",
-      "放电顺序",
-      "铜作阳极",
-      "考核 · 出 29.6 mg 铜"
+      "Làm quen thí nghiệm",
+      "Nối nguồn điện",
+      "Điện phân lâu hơn",
+      "Nhìn vào trong",
+      "Đổi sang nước muối",
+      "Vùng cathode hoá hồng",
+      "Thứ tự phóng điện",
+      "Cu làm anode",
+      "Kiểm tra · thu 29.6 mg copper"
     ],
     "file": "courses/electrolysis-step.html",
     "cover": "covers/electrolysis-step.webp",
@@ -610,22 +610,22 @@
   {
     "slug": "ammonia-step",
     "subject": "chem",
-    "title": "氨的制备与性质（含喷泉实验）",
-    "type": "原理与现象",
-    "question": "一瓶氨气，凭什么能把烧杯里的水自己「吸」到瓶子里去？",
+    "title": "Điều chế và tính chất của ammonia (gồm thí nghiệm “đài phun”)",
+    "type": "Nguyên lý, hiện tượng",
+    "question": "Một bình khí ammonia, dựa vào đâu mà tự “hút” được nước trong cốc lên bình?",
     "textbook": [
-      "必修第二册 · 第五章 化工生产中的重要非金属元素 · 第二节 氮及其化合物 · 氨和铵盐"
+      "Bắt buộc – Tập 2 · Chương 5 Các nguyên tố phi kim quan trọng trong sản xuất hoá học · Bài 2 Nitrogen và hợp chất · Ammonia và muối ammonium"
     ],
     "steps": [
-      "整套装置",
-      "管口朝哪边",
-      "干燥剂选谁",
-      "怎么收集",
-      "收多久",
-      "验满与白烟",
-      "做喷泉",
-      "看进去",
-      "考核 · 做喷泉"
+      "Toàn bộ thiết bị",
+      "Miệng ống hướng nào",
+      "Chọn chất làm khô",
+      "Thu thế nào",
+      "Thu bao lâu",
+      "Kiểm tra đầy và khói trắng",
+      "Làm đài phun",
+      "Nhìn vào trong",
+      "Kiểm tra · làm đài phun"
     ],
     "file": "courses/ammonia-step.html",
     "cover": "covers/ammonia-step.webp",
@@ -634,22 +634,22 @@
   {
     "slug": "equilibrium-step",
     "subject": "chem",
-    "title": "探究影响化学平衡移动的因素",
-    "type": "原理与实验",
-    "question": "改变一个条件，凭什么说平衡「往哪边移」？",
+    "title": "Tìm hiểu các yếu tố ảnh hưởng đến chuyển dịch cân bằng hoá học",
+    "type": "Nguyên lý và TN",
+    "question": "Thay đổi một điều kiện, dựa vào đâu mà nói cân bằng “chuyển dịch về phía nào”?",
     "textbook": [
-      "选择性必修1 化学反应原理 · 第二章 化学反应速率与化学平衡 · 实验活动1 探究影响化学平衡移动的因素"
+      "Tự chọn bắt buộc 1 Nguyên lý phản ứng hoá học · Chương 2 Tốc độ phản ứng hoá học và cân bằng hoá học · Hoạt động thí nghiệm 1 Tìm hiểu các yếu tố ảnh hưởng đến chuyển dịch cân bằng hoá học"
     ],
     "steps": [
-      "认识实验台",
-      "铁管加料",
-      "铁粉减料",
-      "铬管加碱",
-      "铬管加酸",
-      "冷热两盆",
-      "看进去",
-      "误差 · 读数",
-      "考核"
+      "Làm quen bàn TN",
+      "Thêm chất ống Fe",
+      "Bột sắt bớt chất",
+      "Thêm kiềm vào ống Cr",
+      "Thêm acid vào ống Cr",
+      "Hai chậu nóng – lạnh",
+      "Nhìn vào trong",
+      "Sai số · số đọc",
+      "Kiểm tra"
     ],
     "file": "courses/equilibrium-step.html",
     "cover": "covers/equilibrium-step.webp",
@@ -658,22 +658,22 @@
   {
     "slug": "flame-step",
     "subject": "chem",
-    "title": "焰色试验与原子光谱",
-    "type": "原理与现象",
-    "question": "金属在火焰里为什么各有各的颜色，这点颜色凭什么能当成「化验报告」？",
+    "title": "Thử màu ngọn lửa và quang phổ nguyên tử",
+    "type": "Nguyên lý, hiện tượng",
+    "question": "Vì sao mỗi kim loại cho ngọn lửa một màu riêng, và dựa vào đâu mà chút màu ấy có thể coi là “phiếu kết quả phân tích”?",
     "textbook": [
-      "必修第一册 · 第二章 海水中的重要元素——钠和氯 · 第一节 钠及其化合物 · 焰色试验",
-      "选择性必修2 物质结构与性质 · 第一章 原子结构与性质 · 第一节 原子结构 · 原子光谱"
+      "Bắt buộc – Tập 1 · Chương 2 Các nguyên tố quan trọng trong nước biển – sodium và chlorine · Bài 1 Sodium và hợp chất · Thử màu ngọn lửa",
+      "Tự chọn bắt buộc 2 Cấu trúc và tính chất của chất · Chương 1 Cấu trúc và tính chất của nguyên tử · Bài 1 Cấu trúc nguyên tử · Quang phổ nguyên tử"
     ],
     "steps": [
-      "认识实验",
-      "洗净铂丝",
-      "钠双线",
-      "钾与钴玻璃",
-      "能量与波长",
-      "发射与吸收",
-      "六种金属",
-      "考核 · 验出钾"
+      "Làm quen thí nghiệm",
+      "Rửa dây Pt",
+      "Vạch kép Na",
+      "K và kính cobalt",
+      "Năng lượng và bước sóng",
+      "Phát xạ và hấp thụ",
+      "Sáu kim loại",
+      "Kiểm tra · nhận biết K"
     ],
     "file": "courses/flame-step.html",
     "cover": "covers/flame-step.webp",
@@ -682,23 +682,23 @@
   {
     "slug": "galvanic-step",
     "subject": "chem",
-    "title": "原电池：单液到双液",
-    "type": "原理与现象",
-    "question": "同一杯稀硫酸里已经有电流了，为什么还要换成两杯、再加一根盐桥？",
+    "title": "Pin điện hoá: từ một dung dịch đến hai dung dịch",
+    "type": "Nguyên lý, hiện tượng",
+    "question": "Trong một cốc sulfuric acid loãng đã có dòng điện rồi, vì sao còn phải đổi thành hai cốc và thêm một cầu muối?",
     "textbook": [
-      "必修第二册 · 第六章 化学反应与能量 · 第一节 化学反应与能量变化 · 实验活动6 化学能转化成电能",
-      "选择性必修1 化学反应原理 · 第四章 化学反应与电能 · 第一节 原电池"
+      "Bắt buộc – Tập 2 · Chương 6 Phản ứng hoá học và năng lượng · Bài 1 Phản ứng hoá học và sự biến đổi năng lượng · Hoạt động thí nghiệm 6 Chuyển hoá năng lượng hoá học thành điện năng",
+      "Tự chọn bắt buộc 1 Nguyên lý phản ứng hoá học · Chương 4 Phản ứng hoá học và điện năng · Bài 1 Pin điện hoá"
     ],
     "steps": [
-      "两台装置",
-      "接通导线",
-      "谁在流",
-      "单液的代价",
-      "换成双液",
-      "拔出盐桥",
-      "看进去",
-      "浓度",
-      "考核 · 组装"
+      "Hai bộ pin",
+      "Nối dây dẫn",
+      "Cái gì đang chạy",
+      "Hạn chế pin 1 dd",
+      "Đổi sang hai dd",
+      "Rút cầu muối",
+      "Nhìn vào trong",
+      "Nồng độ",
+      "Kiểm tra · lắp pin"
     ],
     "file": "courses/galvanic-step.html",
     "cover": "covers/galvanic-step.webp",
@@ -707,23 +707,23 @@
   {
     "slug": "conductivity-step",
     "subject": "chem",
-    "title": "电解质的电离与溶液导电性、离子反应的实质",
-    "type": "原理与现象",
-    "question": "干手、湿手都是同一只手，为什么湿了反而容易触电？",
+    "title": "Sự điện li của chất điện li, tính dẫn điện của dung dịch và bản chất của phản ứng ion",
+    "type": "Nguyên lý, hiện tượng",
+    "question": "Tay khô hay tay ướt cũng là cùng một bàn tay, sao tay ướt lại dễ bị điện giật hơn?",
     "textbook": [
-      "必修第一册 · 第一章 物质及其变化 · 第二节 离子反应",
-      "选择性必修1 化学反应原理 · 第三章 水溶液中的离子反应与平衡 · 第一节 电离平衡 · 强电解质和弱电解质"
+      "Bắt buộc – Tập 1 · Chương 1 Chất và sự biến đổi của chất · Bài 2 Phản ứng ion",
+      "Tự chọn bắt buộc 1 Nguyên lý phản ứng hoá học · Chương 3 Phản ứng ion và cân bằng trong dung dịch nước · Bài 1 Cân bằng điện li · Chất điện li mạnh và chất điện li yếu"
     ],
     "steps": [
-      "认识台面",
-      "干燥与熔融",
-      "溶于水",
-      "水与蔗糖",
-      "强与弱",
-      "滴加稀硫酸",
-      "看进去",
-      "换错滴定剂",
-      "考核 · 找终点"
+      "Làm quen bàn TN",
+      "Khô và nóng chảy",
+      "Tan trong nước",
+      "Nước và sucrose",
+      "Mạnh và yếu",
+      "Nhỏ H₂SO₄ loãng",
+      "Nhìn vào trong",
+      "Đổi sai chất chuẩn độ",
+      "Kiểm tra · tìm điểm cuối"
     ],
     "file": "courses/conductivity-step.html",
     "cover": "covers/conductivity-step.webp",
@@ -732,21 +732,21 @@
   {
     "slug": "energy-step",
     "subject": "phys",
-    "title": "实验：验证机械能守恒定律",
-    "type": "原理与现象",
-    "question": "重物下落时，减少的重力势能是不是正好变成了增加的动能？一条纸带能不能把这件事量出来？",
+    "title": "Thí nghiệm: Kiểm chứng định luật bảo toàn cơ năng",
+    "type": "Nguyên lý, hiện tượng",
+    "question": "Khi vật nặng rơi, thế năng trọng trường giảm đi có đúng bằng động năng tăng thêm không? Một băng giấy có đo được điều này không?",
     "textbook": [
-      "必修第二册 · 第八章 机械能守恒定律 · 第五节 实验：验证机械能守恒定律"
+      "Bắt buộc – Tập 2 · Chương 8 Định luật bảo toàn cơ năng · Bài 5 Thí nghiệm: Kiểm chứng định luật bảo toàn cơ năng"
     ],
     "steps": [
-      "认识器材",
-      "先通电后释放",
-      "选点",
-      "量 h 算 v",
-      "记录作图",
-      "换重物",
-      "误差",
-      "考核"
+      "Làm quen dụng cụ",
+      "Bật điện rồi thả",
+      "Chọn điểm",
+      "Đo h, tính v",
+      "Ghi và vẽ đồ thị",
+      "Đổi vật nặng",
+      "Sai số",
+      "Kiểm tra"
     ],
     "file": "courses/energy-step.html",
     "cover": "covers/energy-step.webp",
@@ -755,21 +755,21 @@
   {
     "slug": "soil-step",
     "subject": "geo",
-    "title": "土壤的主要形成因素与土壤剖面观察",
-    "type": "原理与现象",
-    "question": "东北的土又黑又肥，南方的土为什么相对贫瘠？",
+    "title": "Các nhân tố hình thành đất và quan sát phẫu diện đất",
+    "type": "Nguyên lý, hiện tượng",
+    "question": "Đất ở Đông Bắc vừa đen vừa màu mỡ, vì sao đất ở phía nam tương đối nghèo dinh dưỡng?",
     "textbook": [
-      "必修第一册 · 第五章 植被与土壤 · 第二节 土壤"
+      "Bắt buộc – Tập 1 · Chương 5 Thảm thực vật và đất · Bài 2 Đất"
     ],
     "steps": [
-      "剖面",
-      "母质",
-      "生物",
-      "气候",
-      "地貌",
-      "时间",
-      "人",
-      "考核"
+      "Mặt cắt",
+      "Vật liệu mẹ",
+      "Sinh vật",
+      "Khí hậu",
+      "Địa hình",
+      "Thời gian",
+      "Con người",
+      "Kiểm tra"
     ],
     "file": "courses/soil-step.html",
     "cover": "covers/soil-step.webp",
@@ -778,22 +778,22 @@
   {
     "slug": "projectile-step",
     "subject": "phys",
-    "title": "实验：探究平抛运动的特点",
-    "type": "原理与现象",
-    "question": "只靠一只斜槽和一块挡板，能不能把平抛拆成两个分运动、量出初速度？",
+    "title": "Thí nghiệm: Tìm hiểu đặc điểm của chuyển động ném ngang",
+    "type": "Nguyên lý, hiện tượng",
+    "question": "Chỉ với một máng nghiêng và một tấm chắn, liệu có thể tách chuyển động ném ngang thành hai chuyển động thành phần và đo được vận tốc ban đầu không?",
     "textbook": [
-      "必修第二册 · 第五章 抛体运动 · 第三节 实验：探究平抛运动的特点"
+      "Bắt buộc – Tập 2 · Chương 5 Chuyển động ném · Bài 3 Thí nghiệm: Tìm hiểu đặc điểm của chuyển động ném ngang"
     ],
     "steps": [
-      "认识器材",
-      "先做竖直",
-      "末端要水平",
-      "描四个点",
-      "定时间间隔",
-      "水平是匀速",
-      "换一条刻线",
-      "两种偏大",
-      "考核"
+      "Làm quen dụng cụ",
+      "Đứng trước",
+      "Đầu máng phải ngang",
+      "Vẽ bốn điểm",
+      "Định khoảng thời gian",
+      "Ngang là đều",
+      "Đổi vạch thả",
+      "Hai kiểu lệch lớn",
+      "Kiểm tra"
     ],
     "file": "courses/projectile-step.html",
     "cover": "covers/projectile-step.webp",
@@ -802,21 +802,21 @@
   {
     "slug": "transport-step",
     "subject": "bio",
-    "title": "物质跨膜运输",
-    "type": "原理与现象",
-    "question": "同一片细胞膜，为什么氧能自己穿过去、葡萄糖要好几个蛋白帮忙、K⁺ 还能逆着浓度往里走？",
+    "title": "Vận chuyển qua màng",
+    "type": "Nguyên lý, hiện tượng",
+    "question": "Cùng một màng tế bào, vì sao oxygen tự đi qua được, glucose cần nhiều protein giúp, còn K⁺ lại đi vào được ngược chiều nồng độ?",
     "textbook": [
-      "必修1 分子与细胞 · 第4章 细胞的物质输入和输出"
+      "Bắt buộc 1 Phân tử và tế bào · Chương 4 Sự vận chuyển các chất vào và ra khỏi tế bào"
     ],
     "steps": [
-      "自由扩散",
-      "选择透过",
-      "协助扩散",
-      "载体与通道",
-      "主动运输",
-      "胞吞胞吐",
-      "汇总",
-      "考核"
+      "Khuếch tán đơn giản",
+      "Thấm chọn lọc",
+      "Khuếch tán tăng cường",
+      "Protein mang, kênh",
+      "Vận chuyển chủ động",
+      "Nhập bào, xuất bào",
+      "Tổng hợp",
+      "Kiểm tra"
     ],
     "file": "courses/transport-step.html",
     "cover": "covers/transport-step.webp",
@@ -825,22 +825,22 @@
   {
     "slug": "nitric-lab-step",
     "subject": "chem",
-    "title": "浓、稀硝酸的性质与氮氧化物的转化",
-    "type": "原理与现象",
-    "question": "同样是铜和硝酸，为什么一瓶冒红棕色气体、另一瓶什么颜色都没有？",
+    "title": "Tính chất của nitric acid đặc, loãng và sự chuyển hoá các oxide của nitrogen",
+    "type": "Nguyên lý, hiện tượng",
+    "question": "Cùng là đồng với nitric acid, vì sao một bình thoát khí màu nâu đỏ, bình kia lại không có màu gì?",
     "textbook": [
-      "必修第二册 · 第五章 化工生产中的重要非金属元素 · 第二节 氮及其化合物 · 一氧化氮和二氧化氮、硝酸"
+      "Bắt buộc – Tập 2 · Chương 5 Các nguyên tố phi kim quan trọng trong sản xuất hoá học · Bài 2 Nitrogen và hợp chất · Nitrogen monoxide, nitrogen dioxide và nitric acid"
     ],
     "steps": [
-      "整套装置",
-      "铜丝插进去",
-      "换成稀硝酸",
-      "换成铁片",
-      "尾气去哪了",
-      "棕色瓶的道理",
-      "通入空气",
-      "振荡与看进去",
-      "考核 · 转化掉它"
+      "Toàn bộ thiết bị",
+      "Cắm dây đồng",
+      "Đổi HNO₃ loãng",
+      "Đổi lá sắt",
+      "Khí thải đi đâu",
+      "Lí do của lọ nâu",
+      "Hút không khí",
+      "Lắc và nhìn vào",
+      "Kiểm tra · chuyển hoá NO"
     ],
     "file": "courses/nitric-lab-step.html",
     "cover": "covers/nitric-lab-step.webp",
@@ -849,21 +849,21 @@
   {
     "slug": "centripetal-step",
     "subject": "phys",
-    "title": "探究向心力大小与半径、角速度、质量的关系",
-    "type": "原理与现象",
-    "question": "这台手摇的演示器只给你两个标尺上的格数——能不能用它把 F 与 m、r、ω 的定量关系量出来？",
+    "title": "Tìm hiểu mối liên hệ giữa độ lớn lực hướng tâm với bán kính, tốc độ góc và khối lượng",
+    "type": "Nguyên lý, hiện tượng",
+    "question": "Thiết bị quay tay này chỉ cho em số vạch trên hai thước chia vạch – liệu có dùng nó đo được mối liên hệ định lượng giữa F với m, r, ω không?",
     "textbook": [
-      "必修第二册 · 第六章 圆周运动 · 第二节 向心力 · 实验：探究向心力大小与半径、角速度、质量的关系"
+      "Bắt buộc – Tập 2 · Chương 6 Chuyển động tròn · Bài 2 Lực hướng tâm · Thí nghiệm: Tìm hiểu sự phụ thuộc của độ lớn lực hướng tâm vào bán kính, tốc độ góc và khối lượng"
     ],
     "steps": [
-      "认识演示器",
-      "仪器自检",
-      "质量关系",
-      "半径关系",
-      "角速度关系",
-      "三条合成一条式子",
-      "误差与错误操作",
-      "考核 · ω 是平方"
+      "Làm quen thiết bị",
+      "Kiểm tra thiết bị",
+      "Theo khối lượng",
+      "Theo bán kính",
+      "Theo tốc độ góc",
+      "Gộp ba thành một công thức",
+      "Sai số và thao tác sai",
+      "Kiểm tra · ω là bình phương"
     ],
     "file": "courses/centripetal-step.html",
     "cover": "covers/centripetal-step.webp",
@@ -872,23 +872,23 @@
   {
     "slug": "self-induction-step",
     "subject": "phys",
-    "title": "自感与涡流",
-    "type": "原理与实验",
-    "question": "线圈里只是多绕了几圈铜线，为什么两只灯泡亮得不一样？开关已经断开了，灯泡凭什么还能再亮一下？",
+    "title": "Tự cảm và dòng Foucault",
+    "type": "Nguyên lý và TN",
+    "question": "Cuộn dây chỉ là quấn thêm mấy vòng dây đồng, vì sao hai bóng đèn sáng khác nhau? Công tắc đã ngắt rồi, dựa vào đâu bóng đèn còn sáng lên một chút?",
     "textbook": [
-      "选择性必修第二册 · 第二章 电磁感应 · 第四节 互感和自感",
-      "选择性必修第二册 · 第二章 电磁感应 · 第三节 涡流、电磁阻尼和电磁驱动"
+      "Tự chọn bắt buộc – Tập 2 · Chương 2 Cảm ứng điện từ · Bài 4 Hỗ cảm và tự cảm",
+      "Tự chọn bắt buộc – Tập 2 · Chương 2 Cảm ứng điện từ · Bài 3 Dòng điện Foucault, hãm điện từ và dẫn động điện từ"
     ],
     "steps": [
-      "认识器材",
-      "通电自感",
-      "断电自感",
-      "I-t 曲线",
-      "换线圈",
-      "真实器材",
-      "涡流",
-      "电磁阻尼",
-      "考核"
+      "Làm quen dụng cụ",
+      "Tự cảm khi đóng mạch",
+      "Tự cảm khi ngắt mạch",
+      "Đường I-t",
+      "Đổi cuộn dây",
+      "Dụng cụ thực",
+      "Dòng Foucault",
+      "Hãm điện từ",
+      "Kiểm tra"
     ],
     "file": "courses/self-induction-step.html",
     "cover": "covers/self-induction-step.webp",
@@ -897,22 +897,22 @@
   {
     "slug": "emf-step",
     "subject": "phys",
-    "title": "测电源电动势和内阻",
-    "type": "原理与实验",
-    "question": "一节旧干电池的电动势和内阻，怎么用一只电压表、一只电流表和一个滑动变阻器「测」出来？换一种接法，测出来的还一样吗？",
+    "title": "Đo suất điện động và điện trở trong của nguồn điện",
+    "type": "Nguyên lý và TN",
+    "question": "Suất điện động và điện trở trong của một pin khô cũ, làm sao “đo” ra bằng một vôn kế, một ampe kế và một biến trở con chạy? Đổi cách mắc khác, đo ra có còn như cũ không?",
     "textbook": [
-      "必修第三册 · 第十二章 电能 能量守恒定律 · 第三节 实验：电池电动势和内阻的测量"
+      "Bắt buộc – Tập 3 · Chương 12 Điện năng, định luật bảo toàn năng lượng · Bài 3 Thí nghiệm: Đo suất điện động và điện trở trong của pin"
     ],
     "steps": [
-      "认识接法",
-      "先到最大",
-      "多测几组",
-      "作 U-I 图",
-      "纵轴起点",
-      "只测两组",
-      "换接法",
-      "误差分析",
-      "考核"
+      "Làm quen cách mắc",
+      "Lớn nhất trước",
+      "Đo nhiều lần",
+      "Vẽ đồ thị U-I",
+      "Gốc trục tung",
+      "Chỉ đo hai lần",
+      "Đổi cách mắc",
+      "Phân tích sai số",
+      "Kiểm tra"
     ],
     "file": "courses/emf-step.html",
     "cover": "covers/emf-step.webp",
@@ -921,22 +921,22 @@
   {
     "slug": "impulse-step",
     "subject": "bio",
-    "title": "神经冲动的产生和传导",
-    "type": "原理与现象",
-    "question": "发令枪响后 0.1 s 内起跑就算抢跑（教材 p.27）——兴奋在身体里怎样「跑」过去？",
+    "title": "Sự phát sinh và dẫn truyền xung thần kinh",
+    "type": "Nguyên lý, hiện tượng",
+    "question": "Xuất phát trong vòng 0.1 s sau tiếng súng lệnh bị coi là xuất phát sớm (SGK tr. 27) – hưng phấn “chạy” trong cơ thể như thế nào?",
     "textbook": [
-      "选择性必修1 稳态与调节 · 第2章 神经调节 · 第3节 神经冲动的产生和传导"
+      "Tự chọn bắt buộc 1 Cân bằng nội môi và điều hoà · Chương 2 Điều hoà thần kinh · Bài 3 Sự phát sinh và dẫn truyền xung thần kinh"
     ],
     "steps": [
-      "神经冲动",
-      "静息电位",
-      "动作电位",
-      "局部电流",
-      "突触",
-      "单向与延搁",
-      "可卡因",
-      "膜外 Na⁺",
-      "考核"
+      "Xung thần kinh",
+      "Điện thế nghỉ",
+      "Điện thế hoạt động",
+      "Dòng điện cục bộ",
+      "Synapse",
+      "Một chiều, chậm",
+      "Cocaine",
+      "Na⁺ ngoài màng",
+      "Kiểm tra"
     ],
     "file": "courses/impulse-step.html",
     "cover": "covers/impulse-step.webp",
@@ -945,20 +945,20 @@
   {
     "slug": "bromine-step",
     "subject": "chem",
-    "title": "海水提溴：空气吹出法",
-    "type": "工业流程",
-    "question": "海水里的溴只有 65 mg/L，怎么把它变成一瓶液溴？",
+    "title": "Tách bromine từ nước biển: phương pháp thổi khí",
+    "type": "Quy trình công nghiệp",
+    "question": "Bromine trong nước biển chỉ có 65 mg/L, làm sao biến nó thành một bình bromine lỏng?",
     "textbook": [
-      "必修第二册 · 第八章 化学与可持续发展 · 第一节 自然资源的开发利用 · 海水资源的开发利用"
+      "Bắt buộc – Tập 2 · Chương 8 Hoá học và phát triển bền vững · Bài 1 Khai thác và sử dụng tài nguyên thiên nhiên · Khai thác và sử dụng tài nguyên nước biển"
     ],
     "steps": [
-      "全场",
-      "酸化",
-      "氧化",
-      "吹出",
-      "吸收",
-      "提纯",
-      "考核"
+      "Toàn cảnh",
+      "Acid hoá",
+      "Oxi hoá",
+      "Thổi khí",
+      "Hấp thụ",
+      "Tinh chế",
+      "Kiểm tra"
     ],
     "file": "courses/bromine-step.html",
     "cover": "covers/bromine-step.webp",
@@ -967,22 +967,22 @@
   {
     "slug": "thermal-step",
     "subject": "geo",
-    "title": "大气热力环流",
-    "type": "原理与现象",
-    "question": "台湾海峡两岸的风向，为什么一天里会反过来？",
+    "title": "Hoàn lưu nhiệt",
+    "type": "Nguyên lý, hiện tượng",
+    "question": "Hướng gió hai bên eo biển Đài Loan vì sao trong một ngày lại đảo ngược?",
     "textbook": [
-      "必修第一册 · 第二章 地球上的大气 · 第二节 大气受热过程和大气运动 · 热力环流"
+      "Bắt buộc – Tập 1 · Chương 2 Khí quyển Trái Đất · Bài 2 Quá trình nhận nhiệt và chuyển động của khí quyển · Hoàn lưu nhiệt"
     ],
     "steps": [
-      "温差",
-      "高空",
-      "近地面",
-      "成环",
-      "强弱",
-      "海风",
-      "陆风",
-      "热岛",
-      "考核"
+      "Chênh nhiệt",
+      "Trên cao",
+      "Sát mặt đất",
+      "Khép vòng",
+      "Mạnh yếu",
+      "Gió biển",
+      "Gió đất",
+      "Đảo nhiệt",
+      "Kiểm tra"
     ],
     "file": "courses/thermal-step.html",
     "cover": "covers/thermal-step.webp",
@@ -991,22 +991,22 @@
   {
     "slug": "mitosis-step",
     "subject": "bio",
-    "title": "观察根尖分生区组织细胞的有丝分裂",
-    "type": "原理与现象",
-    "question": "一根洋葱根尖上，哪些细胞正在分裂？它们分裂一次各要多久？",
+    "title": "Quan sát nguyên phân ở tế bào mô phân sinh đầu rễ",
+    "type": "Nguyên lý, hiện tượng",
+    "question": "Trên một đầu rễ hành, những tế bào nào đang phân chia? Mỗi kì của một lần phân chia kéo dài bao lâu?",
     "textbook": [
-      "必修1 分子与细胞 · 第6章 细胞的生命历程 · 第1节 细胞的增殖 · 探究·实践：观察根尖分生区组织细胞的有丝分裂"
+      "Bắt buộc 1 Phân tử và tế bào · Chương 6 Chu trình sống của tế bào · Bài 1 Sự sinh sản của tế bào · Tìm hiểu · Thực hành: Quan sát nguyên phân ở tế bào mô phân sinh đầu rễ"
     ],
     "steps": [
-      "制片",
-      "找分生区",
-      "前期",
-      "中期",
-      "后期",
-      "末期",
-      "计数",
-      "算时长",
-      "考核"
+      "Làm tiêu bản",
+      "Tìm vùng phân sinh",
+      "Kì đầu",
+      "Kì giữa",
+      "Kì sau",
+      "Kì cuối",
+      "Đếm",
+      "Tính thời gian",
+      "Kiểm tra"
     ],
     "file": "courses/mitosis-step.html",
     "cover": "covers/mitosis-step.webp",
@@ -1015,22 +1015,22 @@
   {
     "slug": "sodium-step",
     "subject": "chem",
-    "title": "金属钠的性质（含钠着火扑救）",
-    "type": "原理与现象",
-    "question": "一块银白色的小金属，为什么必须泡在煤油里，着火时连水都不能浇？",
+    "title": "Tính chất của kim loại sodium (gồm cách dập cháy sodium)",
+    "type": "Nguyên lý, hiện tượng",
+    "question": "Một mẩu kim loại nhỏ màu trắng bạc, vì sao phải ngâm trong dầu hoả, khi cháy đến nước cũng không được dội?",
     "textbook": [
-      "必修第一册 · 第二章 海水中的重要元素——钠和氯 · 第一节 钠及其化合物 · 活泼的金属单质——钠"
+      "Bắt buộc – Tập 1 · Chương 2 Các nguyên tố quan trọng trong nước biển – sodium và chlorine · Bài 1 Sodium và hợp chất · Đơn chất kim loại hoạt động mạnh – sodium"
     ],
     "steps": [
-      "认识实验",
-      "银白变暗",
-      "泡在煤油里",
-      "加热燃烧",
-      "浮熔游响红",
-      "钠块大小",
-      "看进去",
-      "着火扑救",
-      "考核"
+      "Làm quen thí nghiệm",
+      "Trắng bạc xỉn đi",
+      "Ngâm trong dầu hoả",
+      "Đun nóng – đốt cháy",
+      "Nổi chảy chạy kêu đỏ",
+      "Cỡ mẩu sodium",
+      "Nhìn vào trong",
+      "Dập cháy",
+      "Kiểm tra"
     ],
     "file": "courses/sodium-step.html",
     "cover": "covers/sodium-step.webp",
@@ -1039,23 +1039,23 @@
   {
     "slug": "sulfur-step",
     "subject": "chem",
-    "title": "硫、二氧化硫、浓硫酸的性质与不同价态含硫物质的转化",
-    "type": "原理与现象",
-    "question": "同样是硫，为什么有时它是黄色固体、有时让品红褪成无色、有时又跑进铁粉里？",
+    "title": "Tính chất của sulfur, sulfur dioxide, sulfuric acid đặc và sự chuyển hoá giữa các chất chứa sulfur có số oxi hoá khác nhau",
+    "type": "Nguyên lý, hiện tượng",
+    "question": "Cùng là sulfur, vì sao có lúc nó là chất rắn màu vàng, có lúc làm fuchsin mất màu, có lúc lại đi vào bột sắt?",
     "textbook": [
-      "必修第二册 · 第五章 化工生产中的重要非金属元素 · 第一节 硫及其化合物",
-      "必修第二册 · 第五章 化工生产中的重要非金属元素 · 实验活动5 不同价态含硫物质的转化"
+      "Bắt buộc – Tập 2 · Chương 5 Các nguyên tố phi kim quan trọng trong sản xuất hoá học · Bài 1 Sulfur và hợp chất",
+      "Bắt buộc – Tập 2 · Chương 5 Các nguyên tố phi kim quan trọng trong sản xuất hoá học · Hoạt động thí nghiệm 5 Chuyển hoá giữa các chất chứa sulfur có số oxi hoá khác nhau"
     ],
     "steps": [
-      "整套装置",
-      "硫粉 + 铁粉",
-      "浓硫酸与铜",
-      "浓还是稀",
-      "加热复原",
-      "三支检验管与棉团",
-      "归中到零价",
-      "看进去 · 价态电梯",
-      "考核 · 漂白到底"
+      "Toàn bộ thiết bị",
+      "Bột S + bột Fe",
+      "H₂SO₄ đặc và Cu",
+      "Đặc hay loãng",
+      "Đun → hồi màu",
+      "Ba ống kiểm tra và nút bông",
+      "Quy trung về 0",
+      "Nhìn vào trong · thang máy số oxi hoá",
+      "Kiểm tra · tẩy màu"
     ],
     "file": "courses/sulfur-step.html",
     "cover": "covers/sulfur-step.webp",
@@ -1064,21 +1064,21 @@
   {
     "slug": "wind-step",
     "subject": "geo",
-    "title": "大气的水平运动——风",
-    "type": "原理与现象",
-    "question": "天气图上的风，为什么不是从高压直直吹向低压？",
+    "title": "Chuyển động ngang của không khí – gió",
+    "type": "Nguyên lý, hiện tượng",
+    "question": "Gió trên bản đồ thời tiết vì sao không thổi thẳng từ áp cao sang áp thấp?",
     "textbook": [
-      "必修第一册 · 第二章 地球上的大气 · 第二节 大气受热过程和大气运动 · 大气的水平运动——风"
+      "Bắt buộc – Tập 1 · Chương 2 Khí quyển Trái Đất · Bài 2 Quá trình nhận nhiệt và chuyển động của khí quyển · Chuyển động ngang của không khí – gió"
     ],
     "steps": [
-      "等压线",
-      "梯度力",
-      "地转偏向",
-      "高空风",
-      "近地面",
-      "南半球",
-      "疏密",
-      "考核"
+      "Đường đẳng áp",
+      "Lực gradient",
+      "Lực Coriolis",
+      "Gió trên cao",
+      "Sát mặt đất",
+      "Bán cầu Nam",
+      "Dày thưa",
+      "Kiểm tra"
     ],
     "file": "courses/wind-step.html",
     "cover": "covers/wind-step.webp",
@@ -1087,22 +1087,22 @@
   {
     "slug": "corrosion-step",
     "subject": "chem",
-    "title": "吸氧腐蚀与暖贴的设计",
-    "type": "原理与现象",
-    "question": "铁生锈这么慢的事，凭什么能做出一个 45 ℃ 以上的暖贴？又凭什么反过来用它保护铁不生锈？",
+    "title": "Ăn mòn hấp thụ oxygen và thiết kế miếng dán giữ nhiệt",
+    "type": "Nguyên lý, hiện tượng",
+    "question": "Sắt gỉ chậm như vậy, dựa vào đâu mà làm được miếng dán giữ nhiệt trên 45 ℃? Và dựa vào đâu mà dùng ngược lại nó để bảo vệ sắt khỏi gỉ?",
     "textbook": [
-      "选择性必修1 化学反应原理 · 第四章 化学反应与电能 · 第三节 金属的腐蚀与防护 · 研究与实践：暖贴的设计与制作"
+      "Tự chọn bắt buộc 1 Nguyên lý phản ứng hoá học · Chương 4 Phản ứng hoá học và điện năng · Bài 3 Ăn mòn kim loại và chống ăn mòn · Nghiên cứu và thực hành: Thiết kế và chế tạo miếng dán giữ nhiệt"
     ],
     "steps": [
-      "台面四站",
-      "液柱为什么升",
-      "碳粉的角色",
-      "换成酸性",
-      "看进去",
-      "暖贴发热",
-      "捂住的代价",
-      "让锌替它锈",
-      "考核 · 设计暖贴"
+      "Bốn trạm trên bàn",
+      "Vì sao cột dâng",
+      "Vai trò bột carbon",
+      "Đổi sang acid",
+      "Nhìn vào trong",
+      "Miếng dán toả nhiệt",
+      "Cái giá của bịt kín",
+      "Để kẽm gỉ thay",
+      "Kiểm tra · thiết kế miếng dán"
     ],
     "file": "courses/corrosion-step.html",
     "cover": "covers/corrosion-step.webp",
@@ -1111,21 +1111,21 @@
   {
     "slug": "enzyme-step",
     "subject": "bio",
-    "title": "影响酶活性的条件",
-    "type": "原理与现象",
-    "question": "同一支酶，为什么放进沸水里就再也救不回来，放进冰水里却还能醒过来？",
+    "title": "Các điều kiện ảnh hưởng đến hoạt tính enzyme",
+    "type": "Nguyên lý, hiện tượng",
+    "question": "Cùng một ống enzyme, vì sao cho vào nước sôi thì không cứu lại được nữa, còn cho vào nước đá lại có thể “tỉnh” lại?",
     "textbook": [
-      "必修1 分子与细胞 · 第5章 细胞的能量供应和利用 · 第1节 降低化学反应活化能的酶 · 探究·实践：影响酶活性的条件"
+      "Bắt buộc 1 Phân tử và tế bào · Chương 5 Sự cung cấp và sử dụng năng lượng của tế bào · Bài 1 Enzyme làm giảm năng lượng hoạt hoá của phản ứng hoá học · Tìm hiểu · Thực hành: Các điều kiện ảnh hưởng đến hoạt tính enzyme"
     ],
     "steps": [
-      "认识实验台",
-      "温度",
+      "Làm quen bàn TN",
+      "Nhiệt độ",
       "pH",
-      "高温不可逆",
-      "低温可恢复",
-      "看进去",
-      "过酸过碱",
-      "考核 · 当实验员"
+      "t° cao: không thuận nghịch",
+      "t° thấp: hồi phục được",
+      "Nhìn vào trong",
+      "Quá acid/base",
+      "Kiểm tra · Tự làm TN"
     ],
     "file": "courses/enzyme-step.html",
     "cover": "covers/enzyme-step.webp",
@@ -1134,21 +1134,21 @@
   {
     "slug": "chlor-alkali-step",
     "subject": "chem",
-    "title": "氯碱工业",
-    "type": "工业流程",
-    "question": "同样的电，怎样换来更多烧碱、更少电耗，又不出事故？",
+    "title": "Công nghiệp chlor-kiềm",
+    "type": "Quy trình công nghiệp",
+    "question": "Cùng một lượng điện, làm sao thu được nhiều xút hơn, tốn ít điện hơn mà không xảy ra sự cố?",
     "textbook": [
-      "选择性必修1 化学反应原理 · 第四章 化学反应与电能 · 第二节 电解池 · 电解饱和食盐水"
+      "Tự chọn bắt buộc 1 Nguyên lý phản ứng hoá học · Chương 4 Phản ứng hoá học và điện năng · Bài 2 Bình điện phân · Điện phân dung dịch muối ăn bão hoà"
     ],
     "steps": [
-      "三样产品",
-      "先洗盐",
-      "剖开槽",
-      "膜里看",
-      "多加电",
-      "调槽温",
-      "拆掉膜",
-      "值班考核"
+      "Ba sản phẩm",
+      "Rửa muối trước",
+      "Cắt bể",
+      "Nhìn vào màng",
+      "Tăng dòng",
+      "Chỉnh nhiệt bể",
+      "Bỏ màng",
+      "Kiểm tra ca trực"
     ],
     "file": "courses/chlor-alkali-step.html",
     "cover": "covers/chlor-alkali-step.webp",
@@ -1157,21 +1157,21 @@
   {
     "slug": "hou-soda-step",
     "subject": "chem",
-    "title": "侯氏制碱",
-    "type": "工业流程",
-    "question": "怎样用食盐和氨造出纯碱，还顺手拿到氮肥？",
+    "title": "Phương pháp Hầu Đức Bảng",
+    "type": "Quy trình công nghiệp",
+    "question": "Làm thế nào dùng muối ăn và ammonia để sản xuất soda, lại thu thêm được phân đạm?",
     "textbook": [
-      "必修第一册 · 第二章 海水中的重要元素——钠和氯 · 第一节 钠及其化合物 · 情境素材：侯氏制碱法"
+      "Bắt buộc – Tập 1 · Chương 2 Các nguyên tố quan trọng trong nước biển – sodium và chlorine · Bài 1 Sodium và hợp chất · Tư liệu tình huống: Phương pháp sản xuất soda Hầu Đức Bảng"
     ],
     "steps": [
-      "从盐到碱",
-      "先氨后碳",
-      "为什么它自己析出",
-      "碳化温度",
-      "过滤分两路",
-      "煅烧成碱",
-      "母液与循环",
-      "你来当班长"
+      "Từ muối đến soda",
+      "NH₃ trước CO₂ sau",
+      "Vì sao tự kết tinh",
+      "Nhiệt độ carbonate hoá",
+      "Lọc chia hai dòng",
+      "Nung thành soda",
+      "Nước cái và tuần hoàn",
+      "Em làm trưởng ca"
     ],
     "file": "courses/hou-soda-step.html",
     "cover": "covers/hou-soda-step.webp",
@@ -1180,22 +1180,22 @@
   {
     "slug": "current-field-step",
     "subject": "phys",
-    "title": "电流的磁场",
-    "type": "原理与现象",
-    "question": "磁场看不见摸不着，怎么把它画出来、又怎么判断它的方向？",
+    "title": "Từ trường của dòng điện",
+    "type": "Nguyên lý, hiện tượng",
+    "question": "Từ trường không nhìn thấy, không sờ được, làm sao vẽ được nó, lại làm sao xác định chiều của nó?",
     "textbook": [
-      "必修第三册 · 第十三章 电磁感应与电磁波初步 · 第一节 磁场 磁感线"
+      "Bắt buộc – Tập 3 · Chương 13 Cảm ứng điện từ và sóng điện từ (sơ lược) · Bài 1 Từ trường, đường sức từ"
     ],
     "steps": [
-      "铁屑显形",
-      "一圈圈同心圆",
-      "握导线定方向",
-      "疏密就是强弱",
-      "穿环绕回",
-      "多匝叠加",
-      "轴向衰减",
-      "内部匀强",
-      "考核 · 找管口"
+      "Mạt sắt hiện hình",
+      "Các vòng đồng tâm",
+      "Nắm dây xác định chiều",
+      "Dày thưa = mạnh yếu",
+      "Xuyên qua rồi vòng lại",
+      "Nhiều vòng chồng chập",
+      "Suy giảm dọc trục",
+      "Bên trong đều",
+      "Kiểm tra · Tìm miệng ống"
     ],
     "file": "courses/current-field-step.html",
     "cover": "covers/current-field-step.webp",
@@ -1204,22 +1204,22 @@
   {
     "slug": "brownian-step",
     "subject": "phys",
-    "title": "布朗运动与扩散",
-    "type": "原理与现象",
-    "question": "看不见的分子，凭什么说它在乱动？",
+    "title": "Chuyển động Brown và sự khuếch tán",
+    "type": "Nguyên lý, hiện tượng",
+    "question": "Phân tử thì không nhìn thấy, dựa vào đâu mà nói nó chuyển động hỗn loạn?",
     "textbook": [
-      "选择性必修第三册 · 第一章 分子动理论 · 第一节 分子动理论的基本内容"
+      "Tự chọn bắt buộc – Tập 3 · Chương 1 Thuyết động học phân tử · Bài 1 Nội dung cơ bản của thuyết động học phân tử"
     ],
     "steps": [
-      "看见它在动",
-      "30 秒一个点",
-      "越久越远",
-      "微粒越小越明显",
-      "温度越高越剧烈",
-      "撞出来的",
-      "单次不等于统计",
-      "扩散：浓度展开",
-      "考核 · 动得更明显"
+      "Thấy nó chuyển động",
+      "30 giây một điểm",
+      "Càng lâu càng xa",
+      "Hạt càng nhỏ càng rõ",
+      "Nhiệt độ càng cao càng mạnh",
+      "Do va chạm",
+      "Một lần ≠ thống kê",
+      "Khuếch tán: nồng độ lan ra",
+      "Kiểm tra · Chuyển động rõ hơn"
     ],
     "file": "courses/brownian-step.html",
     "cover": "covers/brownian-step.webp",
@@ -1228,22 +1228,22 @@
   {
     "slug": "water-cycle-step",
     "subject": "geo",
-    "title": "水循环的过程与地理意义",
-    "type": "原理与现象",
-    "question": "江河不断注入大海，为什么大海的水没有增多？",
+    "title": "Quá trình và ý nghĩa địa lý của vòng tuần hoàn nước",
+    "type": "Nguyên lý, hiện tượng",
+    "question": "Sông ngòi không ngừng đổ ra biển, vì sao nước biển không tăng lên?",
     "textbook": [
-      "必修第一册 · 第三章 地球上的水 · 第一节 水循环"
+      "Bắt buộc – Tập 1 · Chương 3 Nước trên Trái Đất · Bài 1 Vòng tuần hoàn nước"
     ],
     "steps": [
-      "全景",
-      "蒸发",
-      "蒸腾",
-      "输送",
-      "下渗",
-      "三类",
-      "砂田",
-      "意义",
-      "考核"
+      "Toàn cảnh",
+      "Bốc hơi",
+      "Thoát hơi nước",
+      "Vận chuyển",
+      "Thấm",
+      "Ba loại",
+      "Ruộng phủ sỏi",
+      "Ý nghĩa",
+      "Kiểm tra"
     ],
     "file": "courses/water-cycle-step.html",
     "cover": "covers/water-cycle-step.webp",
@@ -1252,20 +1252,20 @@
   {
     "slug": "circulation-step",
     "subject": "geo",
-    "title": "气压带、风带与三圈环流",
-    "type": "原理与现象",
-    "question": "麦哲伦船队为什么有的航段逆风、有的顺风，到了 30°S 附近却寸步难行？",
+    "title": "Đai khí áp, đới gió và hoàn lưu ba vòng",
+    "type": "Nguyên lý, hiện tượng",
+    "question": "Vì sao đoàn thuyền của Ma-gien-lăng có chặng gặp gió ngược, có chặng thuận gió, nhưng đến gần 30°S lại hầu như không nhích được bước nào?",
     "textbook": [
-      "选择性必修1 自然地理基础 · 第三章 大气的运动 · 第二节 气压带和风带"
+      "Tự chọn bắt buộc 1 Cơ sở địa lý tự nhiên · Chương 3 Chuyển động của khí quyển · Bài 2 Đai khí áp và đới gió"
     ],
     "steps": [
-      "赤道低压",
-      "30° 下沉",
-      "60° 爬升",
-      "七带六风",
-      "季节移动",
-      "海陆分布",
-      "考核 · 麦哲伦"
+      "Áp thấp xích đạo",
+      "30° giáng xuống",
+      "60° trượt lên",
+      "7 đai, 6 đới gió",
+      "Di chuyển theo mùa",
+      "Phân bố lục địa – đại dương",
+      "Kiểm tra · Ma-gien-lăng"
     ],
     "file": "courses/circulation-step.html",
     "cover": "covers/circulation-step.webp",
