@@ -20,6 +20,8 @@ export interface Database {
           referral_code: string | null
           referred_by: string | null
           tier: 'free' | 'pro' | 'school'
+          phone?: string | null
+          preferences?: Json | null
           created_at: string
           updated_at: string
         }

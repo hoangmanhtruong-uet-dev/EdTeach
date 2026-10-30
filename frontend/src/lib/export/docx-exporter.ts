@@ -12,6 +12,7 @@ import {
 } from "docx";
 import { saveAs } from "file-saver";
 import { ExamWithQuestions, Question } from "@/lib/api/exams";
+import { getUserPreferences } from "@/lib/preferences";
 
 function cleanMathSymbols(text: string): string {
   if (!text) return "";
@@ -25,6 +26,16 @@ export async function exportExamToDocx(
   isPro = false,
   fontFamily = "Times New Roman"
 ) {
+  const prefs = getUserPreferences();
+  const effectiveFont = fontFamily || prefs.export.docxFont || "Times New Roman";
+  const deptText = prefs.teaching.department || "SỞ GIÁO DỤC VÀ ĐÀO TẠO";
+  const schoolText = prefs.teaching.school
+    ? (prefs.teaching.school.toLowerCase().includes("trường")
+        ? prefs.teaching.school.toUpperCase()
+        : `TRƯỜNG ${prefs.teaching.school.toUpperCase()}`)
+    : "TRƯỜNG THPT ............................";
+  const teacherText = prefs.teaching.teacherTitle ? `(${prefs.teaching.teacherTitle})` : "";
+
   const children: (Paragraph | Table)[] = [];
 
   // 1. Header Information (Standard Vietnamese School Exam Header)
@@ -46,9 +57,10 @@ export async function exportExamToDocx(
                 alignment: AlignmentType.CENTER,
                 children: [
                   new TextRun({
-                    text: "SỞ GIÁO DỤC VÀ ĐÀO TẠO",
+                    text: deptText,
                     bold: true,
                     size: 22,
+                    font: effectiveFont,
                   }),
                 ],
               }),
@@ -56,12 +68,28 @@ export async function exportExamToDocx(
                 alignment: AlignmentType.CENTER,
                 children: [
                   new TextRun({
-                    text: "TRƯỜNG THPT ............................",
+                    text: schoolText,
                     bold: true,
                     size: 22,
+                    font: effectiveFont,
                   }),
                 ],
               }),
+              ...(teacherText
+                ? [
+                    new Paragraph({
+                      alignment: AlignmentType.CENTER,
+                      children: [
+                        new TextRun({
+                          text: teacherText,
+                          italics: true,
+                          size: 18,
+                          font: effectiveFont,
+                        }),
+                      ],
+                    }),
+                  ]
+                : []),
             ],
           }),
           new TableCell({
@@ -377,6 +405,26 @@ export async function exportExamToDocx(
     })
   );
 
+  // Watermark footer from Teacher Preferences
+  if (prefs.export.docxEnableWatermark && prefs.export.docxWatermarkText) {
+    children.push(
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { before: 200, after: 100 },
+        children: [
+          new TextRun({
+            text: `[ ${prefs.export.docxWatermarkText} ]`,
+            italics: true,
+            bold: true,
+            size: 18,
+            color: "374151",
+            font: effectiveFont,
+          }),
+        ],
+      })
+    );
+  }
+
   // Watermark footer for Free Tier (Lan tỏa thương hiệu tự nhiên)
   if (!isPro) {
     children.push(
@@ -400,7 +448,7 @@ export async function exportExamToDocx(
       default: {
         document: {
           run: {
-            font: fontFamily,
+            font: effectiveFont,
           },
         },
       },
@@ -435,6 +483,16 @@ export async function exportShuffledExamsToDocx(
   }>,
   isPro = false
 ) {
+  const prefs = getUserPreferences();
+  const effectiveFont = prefs.export.docxFont || "Times New Roman";
+  const deptText = prefs.teaching.department || "SỞ GIÁO DỤC VÀ ĐÀO TẠO";
+  const schoolText = prefs.teaching.school
+    ? (prefs.teaching.school.toLowerCase().includes("trường")
+        ? prefs.teaching.school.toUpperCase()
+        : `TRƯỜNG ${prefs.teaching.school.toUpperCase()}`)
+    : "TRƯỜNG THPT ............................";
+  const teacherText = prefs.teaching.teacherTitle ? `(${prefs.teaching.teacherTitle})` : "";
+
   const sections: any[] = [];
 
   // 1. Tạo section riêng cho từng mã đề thi (tự động phân trang)
@@ -460,9 +518,10 @@ export async function exportShuffledExamsToDocx(
                   alignment: AlignmentType.CENTER,
                   children: [
                     new TextRun({
-                      text: "SỞ GIÁO DỤC VÀ ĐÀO TẠO",
+                      text: deptText,
                       bold: true,
                       size: 22,
+                      font: effectiveFont,
                     }),
                   ],
                 }),
@@ -470,12 +529,28 @@ export async function exportShuffledExamsToDocx(
                   alignment: AlignmentType.CENTER,
                   children: [
                     new TextRun({
-                      text: "TRƯỜNG THPT ............................",
+                      text: schoolText,
                       bold: true,
                       size: 22,
+                      font: effectiveFont,
                     }),
                   ],
                 }),
+                ...(teacherText
+                  ? [
+                      new Paragraph({
+                        alignment: AlignmentType.CENTER,
+                        children: [
+                          new TextRun({
+                            text: teacherText,
+                            italics: true,
+                            size: 18,
+                            font: effectiveFont,
+                          }),
+                        ],
+                      }),
+                    ]
+                  : []),
               ],
             }),
             new TableCell({
@@ -603,6 +678,25 @@ export async function exportShuffledExamsToDocx(
     });
 
     // Kết thúc đề
+    if (prefs.export.docxEnableWatermark && prefs.export.docxWatermarkText) {
+      children.push(
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          spacing: { before: 200, after: 100 },
+          children: [
+            new TextRun({
+              text: `[ ${prefs.export.docxWatermarkText} ]`,
+              italics: true,
+              bold: true,
+              size: 18,
+              color: "374151",
+              font: effectiveFont,
+            }),
+          ],
+        })
+      );
+    }
+
     children.push(
       new Paragraph({
         alignment: AlignmentType.CENTER,

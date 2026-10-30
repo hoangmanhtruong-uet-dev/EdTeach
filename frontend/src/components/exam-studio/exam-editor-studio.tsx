@@ -88,6 +88,7 @@ import { clsx } from "clsx";
 import { useAuth } from "@/context/auth-context";
 import { LatexRenderer } from "@/components/ui/latex-renderer";
 import { exportExamToDocx } from "@/lib/export/docx-exporter";
+import { getUserPreferences } from "@/lib/preferences";
 import { ExamWithQuestions, Question, createExam, updateExam, getExamById } from "@/lib/api/exams";
 import { QuotaExhaustedModal } from "@/components/modals/quota-exhausted-modal";
 import {
@@ -696,7 +697,7 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
     };
   }, [isDraggingLeft, isDraggingRight]);
 
-  // Load existing exam if initialExamId is present
+  // Load existing exam if initialExamId is present, or load preferences for new exams
   useEffect(() => {
     if (initialExamId) {
       const idToLoad = initialExamId;
@@ -716,8 +717,15 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
         }
       }
       loadExam();
+    } else {
+      // Initialize defaults from teacher's settings preferences
+      const prefs = getUserPreferences(profile);
+      if (prefs.teaching.defaultSubject) setSubject(prefs.teaching.defaultSubject);
+      if (prefs.teaching.defaultGrade) setGrade(prefs.teaching.defaultGrade);
+      if (prefs.teaching.defaultDuration) setDuration(String(prefs.teaching.defaultDuration));
+      if (prefs.export.docxFont) setFontFamily(prefs.export.docxFont);
     }
-  }, [initialExamId]);
+  }, [initialExamId, profile]);
 
   // Handle suggestion click from right AI sidebar
   const handleSelectSuggestion = (promptText: string) => {

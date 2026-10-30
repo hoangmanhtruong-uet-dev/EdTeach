@@ -36,6 +36,7 @@ import {
 import { getUserExams, Exam } from "@/lib/api/exams";
 import { SessionDetailView } from "@/components/grading/session-detail-view";
 import { useAuth } from "@/context/auth-context";
+import { getUserPreferences } from "@/lib/preferences";
 
 interface ExamSession {
   id: string;
@@ -118,6 +119,18 @@ export default function GradingPage() {
   // Manual corrections tracking
   const [manualCorrections, setManualCorrections] = useState<Record<number, boolean>>({});
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+
+  // Initialize defaults from teacher settings preferences
+  useEffect(() => {
+    const prefs = getUserPreferences(profile);
+    if (prefs.teaching.defaultSubject) setCreateSubject(prefs.teaching.defaultSubject);
+    if (prefs.teaching.defaultGrade) setCreateGrade(prefs.teaching.defaultGrade);
+    if (prefs.gradingAndAi.defaultGradingSheet) {
+      const sheet = prefs.gradingAndAi.defaultGradingSheet;
+      const type = sheet === "gdpt_2025" ? "2025" : sheet === "sheet_50" ? "50" : sheet === "sheet_40" ? "40" : "20";
+      setCreateSheetType(type);
+    }
+  }, [profile]);
 
   // Tải file PDF phiếu thi chuẩn A4 từ OpenCV OMR ReportLab generator
   const handleDownloadPdf = async () => {
