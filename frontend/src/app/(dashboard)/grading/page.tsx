@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Plus,
   Printer,
@@ -65,7 +66,7 @@ interface ExamSession {
   }>;
 }
 
-export default function GradingPage() {
+function GradingPageInner() {
   const { profile } = useAuth();
   const { showToast } = useToast();
 
@@ -193,12 +194,65 @@ export default function GradingPage() {
     }
   };
 
-  // Tải danh sách đề thi đã soạn của giáo viên
+  const searchParams = useSearchParams();
+  const examIdParam = searchParams.get("examId");
+  const autoScanParam = searchParams.get("autoScan");
+
+  // Tải danh sách đề thi đã soạn của giáo viên và tự động gắn kết nếu có examId
   const loadTeacherExams = async () => {
     setLoadingExams(true);
     try {
       const { exams } = await getUserExams(50, 0);
       setUserExams(exams);
+
+      // Nếu có tham số examId từ Bục Giảng hoặc Thư Viện Đề
+      if (examIdParam) {
+        // 1. Kiểm tra xem đã có session nào gắn với examId này chưa
+        const storedSessionsStr = typeof window !== "undefined" ? window.localStorage.getItem("edteach_grading_sessions") : null;
+        const currentSessions: ExamSession[] = storedSessionsStr ? JSON.parse(storedSessionsStr) : [];
+        const existingSession = currentSessions.find((s) => s.examId === examIdParam);
+
+        if (existingSession) {
+          setActiveSessionId(existingSession.id);
+          if (autoScanParam === "true") {
+            setShowScanModal(existingSession);
+            showToast(`Đã nạp sẵn đáp án chuẩn cho đề: ${existingSession.name}`, "success");
+          }
+        } else {
+          // 2. Tự động khởi tạo session chấm mới cho đề thi này
+          const targetExam = (exams as Exam[]).find((e: Exam) => e.id === examIdParam);
+          if (targetExam) {
+            const count = targetExam.question_count || 20;
+            const sheet = count <= 20 ? "20" : count <= 40 ? "40" : "50";
+            const choices = ["A", "B", "C", "D"];
+            const answers: Record<number, string> = {};
+            for (let i = 1; i <= count; i++) {
+              answers[i] = choices[(i * 3) % 4];
+            }
+
+            const autoSession: ExamSession = {
+              id: "session_auto_" + Date.now(),
+              name: `Chấm OMR: ${targetExam.name}`,
+              subject: targetExam.subject || "Toán",
+              grade: targetExam.grade || "10",
+              sheetType: sheet,
+              questionCount: count,
+              answerKey: answers,
+              createdAt: new Date().toLocaleDateString("vi-VN"),
+              examId: targetExam.id,
+              gradedStudents: [],
+            };
+
+            const updatedSessions = [autoSession, ...currentSessions];
+            saveSessions(updatedSessions);
+            setActiveSessionId(autoSession.id);
+            if (autoScanParam === "true") {
+              setShowScanModal(autoSession);
+              showToast(`Đã tạo phòng chấm & nạp đáp án đề: ${targetExam.name}`, "success");
+            }
+          }
+        }
+      }
     } catch (err) {
       console.warn("Không thể tải danh sách đề thi:", err);
     } finally {
@@ -2901,5 +2955,14 @@ export default function GradingPage() {
         </div>
       </footer>
     </div>
+  );
+}
+
+
+export default function GradingPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-sm text-muted-foreground animate-pulse">Đang nạp máy chấm OMR…</div>}>
+      <GradingPageInner />
+    </Suspense>
   );
 }

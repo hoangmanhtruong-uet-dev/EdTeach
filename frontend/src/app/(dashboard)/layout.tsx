@@ -21,11 +21,13 @@ import {
   Store,
   Sun,
   Moon,
+  Search,
 } from "lucide-react";
 import { useState, useEffect, Suspense, useCallback } from "react";
 import { useAuth } from "@/context/auth-context";
 import { getUserWallet } from "@/lib/api/wallet";
 import { isMaxUser, isProUser } from "@/lib/payment/plans";
+import { CommandPalette } from "@/components/navigation/command-palette";
 
 const sidebarLinks = [
   { href: "/dashboard", label: "Trang chủ", icon: LayoutDashboard },
@@ -307,6 +309,21 @@ function DashboardLayoutInner({
 
           <div className="flex-1" />
 
+          {/* Command Palette Quick Launcher */}
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent("open-command-palette"))}
+            aria-label="Mở Thanh Lệnh Toàn Năng (Ctrl+K)"
+            title="Tìm kiếm đề thi & chuyển trang nhanh (Ctrl+K)"
+            className="hidden sm:inline-flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer shadow-2xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary mr-1"
+          >
+            <Search className="h-3.5 w-3.5" aria-hidden="true" />
+            <span>Tìm kiếm…</span>
+            <kbd className="rounded border border-border bg-muted px-1.5 py-0.2 text-[10px] font-mono text-muted-foreground">
+              Ctrl K
+            </kbd>
+          </button>
+
           {/* Theme Toggle Button (Light / Dark) */}
           <button
             type="button"
@@ -361,6 +378,7 @@ function DashboardLayoutInner({
 
         {/* Page content */}
         <main className="flex-1 overflow-y-auto p-4 lg:p-6">{children}</main>
+      <CommandPalette />
       </div>
     </div>
   );

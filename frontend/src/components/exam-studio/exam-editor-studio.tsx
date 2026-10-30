@@ -123,6 +123,7 @@ import {
   ChartSvgRenderer,
   ChartConfigData,
 } from "./chart-editor-modal";
+import { TeachingStepperBar } from "./teaching-stepper-bar";
 import {
   GeometryEditorModal,
   GeometrySvgRenderer,
@@ -4140,6 +4141,17 @@ export function ExamEditorStudio({ initialExamId }: ExamStudioProps) {
           </div>
         </div>
       </header>
+
+      {/* Teaching Stepper Bar: Hành trình Tiết dạy 360° */}
+      {examId && (
+        <TeachingStepperBar
+          examId={examId}
+          examName={title}
+          questionCount={questions.length}
+          onOpenShuffleModal={() => setShowShuffleModal(true)}
+          onExportDualTeaching={handleExportDualDocx}
+        />
+      )}
 
       {/* Hidden file input for image uploads */}
       <input
