@@ -104,7 +104,22 @@ export const CREDIT_PACKS = [
   { credits: 500, price: "349.000đ", amount: 349000, perCredit: "698đ", popular: false, isPro: false },
 ];
 
-export function isMaxUser(profile: any): boolean {
+// ==============================================================================
+// CHẾ ĐỘ THỬ NGHIỆM BETA: Mở khóa 100% tất cả tính năng sư phạm cao cấp
+// (Bục Giảng Số 4.0, Bảng trắng không giới hạn, 54+ Phòng TN 3D, Trộn đề ma trận GDPT 2025,
+// Xuất Word kép, Magic Link) cho mọi Thầy/Cô trải nghiệm.
+// Riêng các tính năng tiêu tốn API token (Soạn đề AI, Sinh câu tương tự, Giải đa cách)
+// được bảo vệ và kiểm soát qua số dư Credits (mỗi thành viên mới có sẵn 5.000 credits).
+// ==============================================================================
+export const IS_BETA_ALL_FEATURES_UNLOCKED = true;
+
+/**
+ * Kiểm tra xem người dùng có thực sự nạp tiền / đăng ký gói trả phí hay không
+ * Dùng để phân luồng API Key:
+ * - isRealPayingUser = true  -> Gọi GEMINI_API_KEY_PAID (Hạ tầng 2.000 RPM, bảo mật cao cấp)
+ * - isRealPayingUser = false -> Gọi GEMINI_API_KEY_FREE (Hạ tầng Free tier, dùng 5.000 credits thử nghiệm)
+ */
+export function isRealPayingUser(profile: any): boolean {
   if (!profile) return false;
   const email = (profile.email || profile.user_metadata?.email || "").toLowerCase();
   const id = profile.id;
@@ -116,26 +131,41 @@ export function isMaxUser(profile: any): boolean {
     return true;
   }
   return (
+    profile.tier === "pro" ||
     profile.tier === "max" ||
+    profile.tier === "school" ||
+    (profile as any).subscription_tier === "pro" ||
     (profile as any).subscription_tier === "max" ||
+    profile.preferences?.subscription_tier === "pro" ||
     profile.preferences?.subscription_tier === "max" ||
-    (profile as any).user_metadata?.subscription_tier === "max" ||
-    (profile as any).user_metadata?.tier === "max"
+    (profile as any).user_metadata?.subscription_tier === "pro" ||
+    (profile as any).user_metadata?.subscription_tier === "max"
   );
+}
+
+export function isMaxUser(profile: any): boolean {
+  if (IS_BETA_ALL_FEATURES_UNLOCKED) return true;
+  return isRealPayingUser(profile);
 }
 
 export function isProUser(profile: any): boolean {
-  if (!profile) return false;
-  return (
-    isMaxUser(profile) ||
-    profile.tier === "pro" ||
-    profile.tier === "school" ||
-    (profile as any).subscription_tier === "pro" ||
-    profile.preferences?.subscription_tier === "pro"
-  );
+  if (IS_BETA_ALL_FEATURES_UNLOCKED) return true;
+  return isRealPayingUser(profile);
 }
 
 export function getTierName(profile: any): string {
+  if (isRealPayingUser(profile)) {
+    const email = (profile?.email || profile?.user_metadata?.email || "").toLowerCase();
+    if (
+      email === "truongcri0101@gmail.com" ||
+      profile?.tier === "max" ||
+      (profile as any)?.subscription_tier === "max"
+    ) {
+      return "GÓI LUYỆN THI MAX VIP";
+    }
+    return "GÓI GIÁO VIÊN PRO";
+  }
+  if (IS_BETA_ALL_FEATURES_UNLOCKED) return "BETA VIP (MỞ TOÀN BỘ TÍNH NĂNG)";
   if (isMaxUser(profile)) return "GÓI LUYỆN THI MAX";
   if (isProUser(profile)) return "GÓI GIÁO VIÊN PRO";
   return "GÓI MIỄN PHÍ";

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { isProUser } from "@/lib/payment/plans";
 import { useRouter } from "next/navigation";
 import {
   Presentation,
@@ -41,7 +42,7 @@ export default function WhiteboardDashboardPage() {
   const [isCreating, setIsCreating] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const isPro = profile?.tier === "pro" || profile?.tier === "school";
+  const isPro = isProUser(profile) || isProUser(user);
 
   const loadBoards = async () => {
     setIsLoading(true);

@@ -542,7 +542,7 @@ export default function DashboardPage() {
                   ? "Tài khoản Giáo viên MAX VIP: Trộn 12 mã đề, AI phân tích câu bẫy, giao bài Magic Link & không giới hạn."
                   : isPro
                   ? "Tài khoản Giáo viên PRO: Mở khóa 54+ phòng thí nghiệm 3D, bục giảng số Split-Screen & chấm OMR không giới hạn."
-                  : "Tài khoản Miễn Phí: Nhận 100 credits & 3 lượt tạo đề mỗi ngày. Chấm OMR OpenCV 100% miễn phí."}
+                  : "Giai đoạn Beta: Mở khóa 100% tính năng Bục Giảng Số, 54+ Phòng TN 3D, Trộn đề, Bảng trắng & Xuất Word kép. Tặng 5.000 credits cho tài khoản mới để trải nghiệm tạo đề AI."}
               </p>
 
               <div className="mt-4 flex flex-col gap-2">

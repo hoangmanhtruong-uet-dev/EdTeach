@@ -1,10 +1,30 @@
 // Server-side Gemini AI caller with automatic fallback models, abort timeouts, and resilient JSON parsing
 
+/**
+ * Smart API Key Router:
+ * - isPaidUser = true: Sử dụng GEMINI_API_KEY_PAID (Prepaid thẻ Visa, 2.000 RPM, không train dữ liệu)
+ * - isPaidUser = false (Thành viên dùng thử 5.000 credits): Sử dụng GEMINI_API_KEY_FREE hoặc GEMINI_API_KEY
+ * - Có cơ chế Fallback tự động giữa các key nếu 1 trong 2 key chưa được cấu hình
+ */
+export function getGeminiApiKey(isPaidUser: boolean = false): string {
+  if (isPaidUser && process.env.GEMINI_API_KEY_PAID) {
+    return process.env.GEMINI_API_KEY_PAID;
+  }
+  return (
+    process.env.GEMINI_API_KEY_FREE ||
+    process.env.GEMINI_API_KEY ||
+    process.env.GOOGLE_AI_API_KEY ||
+    process.env.GEMINI_API_KEY_PAID ||
+    ""
+  );
+}
+
 export async function callGeminiJson<T = any>(
   prompt: string,
-  preferredModels: string[] = ["gemini-flash-lite-latest", "gemini-flash-latest", "gemini-3.8-flash"]
+  preferredModels: string[] = ["gemini-flash-lite-latest", "gemini-flash-latest", "gemini-3.8-flash"],
+  isPaidUser: boolean = false
 ): Promise<T> {
-  const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY;
+  const geminiKey = getGeminiApiKey(isPaidUser);
 
   if (!geminiKey) {
     throw new Error("Chưa cấu hình GEMINI_API_KEY trong hệ thống.");
@@ -58,10 +78,14 @@ export async function callGeminiJson<T = any>(
         lastError = new Error(`Hệ thống AI bận (${model} code ${res.status}).`);
       }
     } catch (e: any) {
-      console.warn(`Model ${model} error:`, e.message || e);
+      if (e.name === "AbortError") {
+        console.warn(`Model ${model} timed out after 12s, switching to next fallback model...`);
+      } else {
+        console.warn(`Model ${model} failed:`, e.message);
+      }
       lastError = e;
     }
   }
 
-  throw lastError || new Error("Hệ thống AI đang bận. Thầy/Cô vui lòng thử lại sau giây lát.");
+  throw lastError || new Error("Không thể kết nối đến máy chủ AI.");
 }

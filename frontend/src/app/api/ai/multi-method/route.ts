@@ -1,14 +1,50 @@
 import { NextRequest, NextResponse } from "next/server";
 import { callGeminiJson } from "@/lib/ai/gemini-client";
+import { createClient } from "@/lib/supabase/server";
+import { isRealPayingUser } from "@/lib/payment/plans";
+
+const COST_PER_CALL = 50; // 50 credits mỗi lượt gọi AI
 
 export async function POST(req: NextRequest) {
   try {
+    const db = await createClient();
+    const { data: { user } } = await db.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Vui lòng đăng nhập để sử dụng tính năng AI." }, { status: 401 });
+    }
+
+    // 1. Kiểm tra số dư ví credits
+    const { data: wallet } = await (db.from("wallets") as any)
+      .select("id, balance")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    const balance = wallet?.balance ?? 0;
+    if (balance < COST_PER_CALL) {
+      return NextResponse.json(
+        {
+          error: `Số dư credits không đủ để thực hiện tính năng AI này (Cần ${COST_PER_CALL} credits, số dư hiện tại: ${balance.toLocaleString()} credits). Thầy/Cô vui lòng nạp thêm credits tại mục Ví tài khoản.`,
+          remaining_credits: balance,
+          required_credits: COST_PER_CALL,
+        },
+        { status: 403 }
+      );
+    }
+
     const body = await req.json();
     const { question, options, subject, grade, currentAnswer, explanation } = body;
 
     if (!question) {
       return NextResponse.json({ error: "Thiếu nội dung câu hỏi." }, { status: 400 });
     }
+
+    // 2. Xác định hạng người dùng để định tuyến API Key Paid hay Free
+    const { data: profile } = await (db.from("users") as any)
+      .select("*")
+      .eq("id", user.id)
+      .maybeSingle();
+    const isPaid = isRealPayingUser(profile);
 
     const prompt = `
 Bạn là chuyên gia giảng dạy và thủ khoa luyện thi môn ${subject || "Toán"} lớp ${grade || "12"} chuẩn Bộ GD&ĐT 2025.
@@ -23,7 +59,7 @@ ${Array.isArray(options) ? options.join("\n") : "Không có"}
 [ĐÁP ÁN ĐÚNG]: ${currentAnswer || "Chưa rõ"}
 [LỜI GIẢI GỐC NẾU CÓ]: ${explanation || "Không có"}
 
-NHIỆM VỤ CỦA BẠN (TÍNH NĂNG GIẢI ĐA CÁCH CHUYÊN SÂU CHO GÓI MAX):
+NHIỆM VỤ CỦA BẠN (TÍNH NĂNG GIẢI ĐA CÁCH CHUYÊN SÂU):
 Hãy cung cấp 3 PHƯƠNG PHÁP GIẢI KHÁC NHAU cho câu hỏi này để giáo viên mở rộng góc nhìn cho học sinh:
 
 1. PHƯƠNG PHÁP 1: "Tự luận Bản chất"
@@ -58,21 +94,37 @@ TRẢ VỀ DUY NHẤT ĐỊNH DẠNG JSON với cấu trúc:
     {
       "id": "casio",
       "name": "Cách 3: Thủ thuật Casio fx-580 / Mẹo nhớ",
-      "badge": "Bấm máy & Quy tắc",
-      "summary": "Tóm tắt thao tác máy tính...",
-      "content": "Nội dung chi tiết các bước bấm máy tính hoặc mẹo..."
+      "badge": "Thủ thuật máy tính",
+      "summary": "Quy trình bấm phím hoặc mẹo nhớ...",
+      "content": "Chi tiết thao tác phím bấm..."
     }
   ]
 }
 `;
 
-    const result = await callGeminiJson(prompt);
-    return NextResponse.json({ success: true, data: result });
+    const result = await callGeminiJson(prompt, ["gemini-flash-lite-latest", "gemini-flash-latest"], isPaid);
+
+    // 3. Trừ ${COST_PER_CALL} credits sau khi sinh kết quả thành công
+    try {
+      await (db.rpc as any)("deduct_user_credits", {
+        p_user_id: user.id,
+        p_amount: COST_PER_CALL,
+        p_description: "Giải đa cách chuyên sâu trên Bục Giảng Số",
+      });
+    } catch {
+      if (wallet?.id) {
+        await (db.from("wallets") as any)
+          .update({ balance: Math.max(0, balance - COST_PER_CALL) })
+          .eq("id", wallet.id);
+      }
+    }
+
+    return NextResponse.json({ success: true, solutions: result });
   } catch (error: any) {
-    console.error("Multi-method generation error:", error);
+    console.error("Giải đa cách chuyên sâu error:", error);
     const msg = error.name === "AbortError"
       ? "Quá thời gian phản hồi từ máy chủ AI. Vui lòng bấm thử lại."
-      : error.message || "Không thể phân tích đa phương pháp giải.";
+      : error.message || "Không thể thực hiện yêu cầu AI.";
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

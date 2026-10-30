@@ -1,3 +1,5 @@
+import { isRealPayingUser } from "@/lib/payment/plans";
+import { getGeminiApiKey } from "@/lib/ai/gemini-client";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -347,7 +349,8 @@ export async function POST(req: NextRequest) {
 
     // 4. Gọi Python AI Service hoặc trực tiếp Google Gemini API
     let generatedQuestions: any[] = [];
-    const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY;
+    const isPaidUser = isRealPayingUser(userProfile);
+    const geminiKey = getGeminiApiKey(isPaidUser);
 
     try {
       const aiResponse = await fetch(`${AI_SERVICE_URL}/ai/generate`, {

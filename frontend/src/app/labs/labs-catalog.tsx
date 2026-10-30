@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { isProUser as checkIsPro } from "@/lib/payment/plans";
 import { useRouter } from "next/navigation";
 import {
   LABS,
@@ -32,7 +33,7 @@ interface LabsCatalogProps {
 export function LabsCatalog({ subjects }: LabsCatalogProps) {
   const router = useRouter();
   const { profile } = useAuth();
-  const isProUser = profile?.tier === "pro" || profile?.tier === "school";
+  const isProUser = checkIsPro(profile);
 
   const [selectedLockedLab, setSelectedLockedLab] = useState<LabLesson | null>(null);
 
