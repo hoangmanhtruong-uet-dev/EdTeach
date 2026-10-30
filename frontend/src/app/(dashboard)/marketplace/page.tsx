@@ -29,6 +29,7 @@ import {
   UserCheck,
   Layers,
   FileCheck,
+  Gift,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -41,32 +42,32 @@ export default function MarketplacePage() {
   const router = useRouter();
   const { user, profile, wallet, refreshWallet } = useAuth();
 
-  // State danh sách
+  // State danh sách đề
   const [items, setItems] = useState<MarketplaceItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("all");
   const [selectedGrade, setSelectedGrade] = useState("all");
-  const [priceFilter, setPriceFilter] = useState("all"); // 'all' | 'free' | 'paid'
-  const [activeTab, setActiveTab] = useState<"all" | "hot" | "purchased" | "my_listings">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "free" | "paid" | "purchased" | "my_listings">("all");
 
   // State Modal Xem Trước (Preview)
   const [previewItem, setPreviewItem] = useState<MarketplaceItem | null>(null);
-  const [previewTab, setPreviewTab] = useState<"matrix" | "questions">("questions");
+  const [previewTab, setPreviewTab] = useState<"questions" | "matrix">("questions");
 
-  // State Modal Mua Đề (Purchase)
+  // State Modal Mua Đề / Nhận Đề
   const [buyingItem, setBuyingItem] = useState<MarketplaceItem | null>(null);
   const [isProcessingBuy, setIsProcessingBuy] = useState(false);
   const [buyError, setBuyError] = useState<string | null>(null);
   const [buySuccessItem, setBuySuccessItem] = useState<MarketplaceItem | null>(null);
 
-  // State Modal Đăng Bán Đề (Sell Exam)
+  // State Modal Đăng Bán / Chia Sẻ Đề
   const [showSellModal, setShowSellModal] = useState(false);
   const [userExams, setUserExams] = useState<Exam[]>([]);
   const [selectedExamId, setSelectedExamId] = useState("");
   const [sellTitle, setSellTitle] = useState("");
   const [sellSubject, setSellSubject] = useState("Toán");
   const [sellGrade, setSellGrade] = useState("12");
+  const [sellPricingType, setSellPricingType] = useState<"free" | "paid">("free"); // 'free' = 0 cr, 'paid' = có phí
   const [sellPrice, setSellPrice] = useState(100);
   const [sellDescription, setSellDescription] = useState("");
   const [isSubmittingSell, setIsSubmittingSell] = useState(false);
@@ -115,7 +116,7 @@ export default function MarketplacePage() {
     loadItems();
   }, []);
 
-  // Load kho đề của giáo viên khi mở modal đăng bán
+  // Mở modal đăng đề thi
   const handleOpenSellModal = async () => {
     setShowSellModal(true);
     setSellError(null);
@@ -123,11 +124,11 @@ export default function MarketplacePage() {
       const res = await getUserExams(50);
       setUserExams(res.exams || []);
     } catch (err) {
-      console.warn("Không thể tải danh sách đề của bạn:", err);
+      console.warn("Không thể tải kho đề:", err);
     }
   };
 
-  // Load thông tin Payout
+  // Mở modal rút tiền & doanh thu
   const handleOpenPayoutModal = async () => {
     setShowPayoutModal(true);
     setPayoutMessage(null);
@@ -144,7 +145,7 @@ export default function MarketplacePage() {
     }
   };
 
-  // Xử lý gửi yêu cầu rút tiền
+  // Gửi lệnh rút tiền
   const handleSubmitPayout = async (e: React.FormEvent) => {
     e.preventDefault();
     setPayoutError(null);
@@ -176,7 +177,6 @@ export default function MarketplacePage() {
 
       setPayoutMessage(data.message);
       refreshWallet();
-      // Reload stats
       const statsRes = await fetch("/api/marketplace/payout");
       const statsData = await statsRes.json();
       if (statsData.success) {
@@ -190,7 +190,7 @@ export default function MarketplacePage() {
     }
   };
 
-  // Xử lý đăng bán đề mới
+  // Gửi form đăng bán / chia sẻ đề
   const handleSubmitSell = async (e: React.FormEvent) => {
     e.preventDefault();
     setSellError(null);
@@ -199,6 +199,8 @@ export default function MarketplacePage() {
       setSellError("Vui lòng nhập tiêu đề đề thi.");
       return;
     }
+
+    const finalPrice = sellPricingType === "free" ? 0 : Math.max(0, sellPrice);
 
     try {
       setIsSubmittingSell(true);
@@ -209,7 +211,7 @@ export default function MarketplacePage() {
           title: sellTitle,
           subject: sellSubject,
           grade: sellGrade,
-          price_credits: sellPrice,
+          price_credits: finalPrice,
           description: sellDescription,
           exam_id: selectedExamId || undefined,
         }),
@@ -225,7 +227,11 @@ export default function MarketplacePage() {
       setSellTitle("");
       setSellDescription("");
       loadItems();
-      alert("🎉 Chúc mừng Thầy/Cô đã đăng bán đề thi thành công lên Sàn!");
+      alert(
+        finalPrice === 0
+          ? "🎉 Chúc mừng Thầy/Cô đã chia sẻ thành công bộ đề MIỄN PHÍ lên Chợ!"
+          : "🎉 Chúc mừng Thầy/Cô đã đăng bán bộ đề có phí thành công lên Chợ!"
+      );
     } catch (err: any) {
       setSellError("Lỗi kết nối: " + err.message);
     } finally {
@@ -233,7 +239,7 @@ export default function MarketplacePage() {
     }
   };
 
-  // Xử lý Mua đề thi
+  // Mua đề hoặc nhận đề miễn phí
   const handleConfirmBuy = async () => {
     if (!buyingItem) return;
     try {
@@ -252,7 +258,6 @@ export default function MarketplacePage() {
         return;
       }
 
-      // Mua thành công
       refreshWallet();
       setBuySuccessItem(data.item);
       setBuyingItem(null);
@@ -264,7 +269,27 @@ export default function MarketplacePage() {
     }
   };
 
-  // Xử lý Sao chép vào Studio
+  // 1-Click nhận đề miễn phí trực tiếp
+  const handleClaimFreeExam = async (item: MarketplaceItem) => {
+    try {
+      const res = await fetch("/api/marketplace/buy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ item_id: item.id }),
+      });
+      const data = await res.json();
+      if (data.success && data.item) {
+        setBuySuccessItem(data.item);
+        loadItems();
+      } else {
+        alert(data.error || "Không thể nhận đề miễn phí.");
+      }
+    } catch (err: any) {
+      alert("Lỗi kết nối: " + err.message);
+    }
+  };
+
+  // Sao chép vào Studio
   const handleCloneToStudio = async (item: MarketplaceItem) => {
     try {
       setCloningId(item.id);
@@ -280,7 +305,6 @@ export default function MarketplacePage() {
         return;
       }
 
-      // Điều hướng ngay sang Studio chỉnh sửa
       router.push(`/exams/${data.exam_id}`);
     } catch (err: any) {
       alert("Lỗi kết nối: " + err.message);
@@ -289,12 +313,10 @@ export default function MarketplacePage() {
     }
   };
 
-  // Tải Word docx
+  // Tải file Word docx
   const handleDownloadDocx = async (item: MarketplaceItem) => {
     try {
       setDownloadingId(item.id);
-
-      // Nếu chưa có exam_data đầy đủ, gọi API lấy chi tiết
       let targetItem = item;
       if (!item.exam_data) {
         const res = await fetch(`/api/marketplace/items/${item.id}`);
@@ -303,7 +325,6 @@ export default function MarketplacePage() {
           targetItem = data.item;
         }
       }
-
       await exportMarketplaceExamToDocx(targetItem);
     } catch (err: any) {
       alert("Lỗi tải file Word: " + err.message);
@@ -344,7 +365,13 @@ export default function MarketplacePage() {
     }
   };
 
-  // Lọc danh sách items hiển thị
+  // Thống kê số lượng đề
+  const freeItemsCount = useMemo(() => items.filter((i) => i.price_credits === 0).length, [items]);
+  const paidItemsCount = useMemo(() => items.filter((i) => i.price_credits > 0).length, [items]);
+  const purchasedCount = useMemo(() => items.filter((i) => i.is_purchased).length, [items]);
+  const myListingsCount = useMemo(() => items.filter((i) => i.is_owner).length, [items]);
+
+  // Lọc danh sách items
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
       const matchSubject = selectedSubject === "all" || item.subject === selectedSubject;
@@ -355,18 +382,15 @@ export default function MarketplacePage() {
         item.seller_name.toLowerCase().includes(search.toLowerCase()) ||
         item.tags.some((t) => t.toLowerCase().includes(search.toLowerCase()));
 
-      let matchPrice = true;
-      if (priceFilter === "free") matchPrice = item.price_credits === 0;
-      if (priceFilter === "paid") matchPrice = item.price_credits > 0;
-
       let matchTab = true;
-      if (activeTab === "hot") matchTab = item.downloads_count >= 200 || item.rating >= 4.9;
+      if (activeTab === "free") matchTab = item.price_credits === 0;
+      if (activeTab === "paid") matchTab = item.price_credits > 0;
       if (activeTab === "purchased") matchTab = !!item.is_purchased;
       if (activeTab === "my_listings") matchTab = !!item.is_owner;
 
-      return matchSubject && matchGrade && matchSearch && matchPrice && matchTab;
+      return matchSubject && matchGrade && matchSearch && matchTab;
     });
-  }, [items, selectedSubject, selectedGrade, search, priceFilter, activeTab]);
+  }, [items, selectedSubject, selectedGrade, search, activeTab]);
 
   const userBalance = wallet?.balance ?? 0;
   const isProUser = (profile as any)?.subscription_tier === "pro";
@@ -383,13 +407,14 @@ export default function MarketplacePage() {
               <Store className="w-5 h-5" />
             </span>
             <h1 className="text-2xl font-black tracking-tight text-white">Chợ Đề Thi Giáo Viên</h1>
-            <span className="bg-amber-400 text-amber-950 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
-              Bản Quyền 2025
+            <span className="bg-emerald-400 text-emerald-950 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
+              Miễn Phí & Bản Quyền
             </span>
           </div>
           <p className="text-xs text-blue-100/80 leading-relaxed">
-            Sàn thương mại điện tử chuyên biệt cho giáo viên. Tải đề thi chuẩn ma trận Bộ GD&ĐT 2025,
-            xuất file Word (.docx) kèm lời giải hoặc sao chép thẳng vào Studio để chỉnh sửa.
+            Sàn chia sẻ & thương mại đề thi giữa các giáo viên toàn quốc. Thầy/Cô có thể chia sẻ đề thi{" "}
+            <strong>Miễn Phí (0 cr)</strong> để lan tỏa hoặc <strong>Đặt giá Credits</strong> để kiếm
+            thêm thu nhập bản quyền.
           </p>
         </div>
 
@@ -419,13 +444,13 @@ export default function MarketplacePage() {
             <span>Ví Bán Đề & Rút Tiền</span>
           </button>
 
-          {/* Nút Đăng bán đề mới */}
+          {/* Nút Đăng đề mới */}
           <button
             onClick={handleOpenSellModal}
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-neutral-950 text-xs font-black transition shadow-lg shadow-amber-500/20 cursor-pointer"
           >
             <PlusCircle className="w-4 h-4" />
-            <span>+ Đăng Bán Đề Thi</span>
+            <span>+ Đăng Đề Thi Mới</span>
           </button>
 
           {/* Nút Nhập link đề từ web */}
@@ -445,17 +470,17 @@ export default function MarketplacePage() {
       </div>
 
       {/* ========================================================= */}
-      {/* 2. CHÍNH SÁCH HOA HỒNG SÀN (KÍCH CẦU PRO) */}
+      {/* 2. CHÍNH SÁCH CHIA SẺ & BÁN ĐỀ THI */}
       {/* ========================================================= */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <div className="bg-white rounded-2xl p-4 border border-border flex items-center gap-3.5 shadow-2xs">
-          <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-            <ShieldCheck className="w-5 h-5" />
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+            <Gift className="w-5 h-5" />
           </div>
           <div>
-            <div className="text-xs font-bold text-foreground">Bản quyền & Chuẩn Ma Trận 2025</div>
+            <div className="text-xs font-bold text-foreground">Chia Sẻ Miễn Phí (0 Credits)</div>
             <div className="text-[11px] text-muted-foreground mt-0.5">
-              100% đề thi có cấu trúc Phần I, II, III và lời giải chi tiết từng bước.
+              Hàng trăm đề kiểm tra, đề ôn tập được giáo viên chia sẻ tự do cho cộng đồng.
             </div>
           </div>
         </div>
@@ -466,25 +491,25 @@ export default function MarketplacePage() {
           </div>
           <div>
             <div className="text-xs font-bold text-foreground flex items-center gap-1.5">
-              <span>Hoa hồng sàn ưu đãi: PRO nhận 90%</span>
+              <span>Đề bản quyền: PRO nhận 90%</span>
               <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-1.5 py-0.2 rounded">
                 PRO 10%
               </span>
             </div>
             <div className="text-[11px] text-muted-foreground mt-0.5">
-              Tài khoản PRO chiết khấu chỉ 10%. Tài khoản Thường chiết khấu 20%.
+              Đặt giá bán bằng Credits. Giáo viên PRO giữ 90% doanh thu (Sàn thu 10%).
             </div>
           </div>
         </div>
 
         <div className="bg-white rounded-2xl p-4 border border-border flex items-center gap-3.5 shadow-2xs">
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
             <Building className="w-5 h-5" />
           </div>
           <div>
             <div className="text-xs font-bold text-foreground">Rút tiền về VietQR 24/7</div>
             <div className="text-[11px] text-muted-foreground mt-0.5">
-              Quy đổi 1 Credit = 100 VNĐ. Rút tiền tự động về mọi ngân hàng từ 200.000đ.
+              Quy đổi 1 Credit = 100 VNĐ. Rút tiền nhanh từ 200.000đ về mọi ngân hàng.
             </div>
           </div>
         </div>
@@ -496,7 +521,7 @@ export default function MarketplacePage() {
       <div className="bg-white rounded-2xl p-4 border border-border shadow-2xs space-y-3">
         {/* Hàng Tabs */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
-          <div className="flex items-center gap-1">
+          <div className="flex flex-wrap items-center gap-1">
             <button
               onClick={() => setActiveTab("all")}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
@@ -508,37 +533,48 @@ export default function MarketplacePage() {
               Tất cả đề ({items.length})
             </button>
             <button
-              onClick={() => setActiveTab("hot")}
+              onClick={() => setActiveTab("free")}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
-                activeTab === "hot"
-                  ? "bg-amber-500 text-neutral-950 font-black"
-                  : "text-muted-foreground hover:bg-muted"
+                activeTab === "free"
+                  ? "bg-emerald-600 text-white font-black"
+                  : "text-emerald-700 bg-emerald-50 hover:bg-emerald-100"
               }`}
             >
-              <Star className="w-3.5 h-3.5 fill-amber-400" />
-              <span>Đề nổi bật ⭐</span>
+              <Gift className="w-3.5 h-3.5" />
+              <span>Đề miễn phí ({freeItemsCount})</span>
+            </button>
+            <button
+              onClick={() => setActiveTab("paid")}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
+                activeTab === "paid"
+                  ? "bg-amber-500 text-neutral-950 font-black"
+                  : "text-amber-800 bg-amber-50 hover:bg-amber-100"
+              }`}
+            >
+              <Coins className="w-3.5 h-3.5" />
+              <span>Đề có phí ({paidItemsCount})</span>
             </button>
             <button
               onClick={() => setActiveTab("purchased")}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
                 activeTab === "purchased"
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-primary text-primary-foreground font-bold"
                   : "text-muted-foreground hover:bg-muted"
               }`}
             >
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Đề tôi đã mua</span>
+              <span>Đã sở hữu ({purchasedCount})</span>
             </button>
             <button
               onClick={() => setActiveTab("my_listings")}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
                 activeTab === "my_listings"
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-primary text-primary-foreground font-bold"
                   : "text-muted-foreground hover:bg-muted"
               }`}
             >
               <UserCheck className="w-3.5 h-3.5" />
-              <span>Đề của tôi đang bán</span>
+              <span>Đề tôi đã đăng ({myListingsCount})</span>
             </button>
           </div>
 
@@ -555,7 +591,7 @@ export default function MarketplacePage() {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Tìm theo tên đề, giáo viên, chuyên đề..."
+              placeholder="Tìm theo tên đề, giáo viên, chủ đề..."
               className="w-full text-xs pl-9 pr-3 py-2 border border-border rounded-xl focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
@@ -585,21 +621,10 @@ export default function MarketplacePage() {
               className="text-xs border border-border rounded-xl px-3 py-2 bg-white text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
             >
               <option value="all">Tất cả khối lớp</option>
-              <option value="12">Lớp 12 (Ôn thi tốt nghiệp)</option>
+              <option value="12">Lớp 12</option>
               <option value="11">Lớp 11</option>
               <option value="10">Lớp 10</option>
-              <option value="9">Lớp 9 (Luyện thi vào 10)</option>
-            </select>
-
-            {/* Filter Mức giá */}
-            <select
-              value={priceFilter}
-              onChange={(e) => setPriceFilter(e.target.value)}
-              className="text-xs border border-border rounded-xl px-3 py-2 bg-white text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
-            >
-              <option value="all">Tất cả mức giá</option>
-              <option value="free">Miễn phí (0 cr)</option>
-              <option value="paid">Có phí (&gt; 0 cr)</option>
+              <option value="9">Lớp 9</option>
             </select>
           </div>
         </div>
@@ -611,12 +636,13 @@ export default function MarketplacePage() {
       {loading ? (
         <div className="py-20 text-center">
           <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-2" />
-          <p className="text-xs text-muted-foreground">Đang tải danh sách đề thi...</p>
+          <p className="text-xs text-muted-foreground">Đang tải dữ liệu từ Chợ Đề Thi...</p>
         </div>
       ) : filteredItems.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredItems.map((item) => {
-            const isOwnedOrPurchased = item.is_purchased || item.is_owner || item.price_credits === 0;
+            const isFree = item.price_credits === 0;
+            const isOwnedOrPurchased = item.is_purchased || item.is_owner;
 
             return (
               <div
@@ -624,17 +650,24 @@ export default function MarketplacePage() {
                 className="bg-white rounded-2xl p-5 border border-border shadow-xs hover:shadow-md transition-all flex flex-col justify-between group"
               >
                 <div>
-                  {/* Subject, Grade, Rating */}
+                  {/* Subject, Grade, Price Badge */}
                   <div className="flex items-center justify-between text-xs mb-2.5">
                     <div className="flex items-center gap-1.5">
                       <span className="font-bold px-2.5 py-0.5 rounded-lg bg-blue-50 text-blue-700 text-[11px]">
                         {item.subject} • Lớp {item.grade}
                       </span>
-                      {item.seller_tier === "pro" && (
-                        <span className="bg-amber-100 text-amber-900 text-[10px] font-black px-1.5 py-0.5 rounded flex items-center gap-0.5">
-                          <Award className="w-3 h-3 text-amber-600" />
-                          PRO
+                      {isFree ? (
+                        <span className="bg-emerald-100 text-emerald-800 text-[10px] font-black px-2 py-0.5 rounded flex items-center gap-0.5">
+                          <Gift className="w-3 h-3 text-emerald-600" />
+                          MIỄN PHÍ
                         </span>
+                      ) : (
+                        item.seller_tier === "pro" && (
+                          <span className="bg-amber-100 text-amber-900 text-[10px] font-black px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                            <Award className="w-3 h-3 text-amber-600" />
+                            PRO
+                          </span>
+                        )
                       )}
                     </div>
                     <div className="flex items-center gap-1 text-amber-500 font-bold text-xs">
@@ -677,7 +710,7 @@ export default function MarketplacePage() {
                           <span className="text-[10px] text-blue-600 font-bold">(Đề của bạn)</span>
                         )}
                       </div>
-                      <div className="text-[10px] text-muted-foreground">Giáo viên xác thực</div>
+                      <div className="text-[10px] text-muted-foreground">Giáo viên chia sẻ</div>
                     </div>
                     <div className="text-right">
                       <div className="font-bold text-foreground text-xs">
@@ -691,8 +724,11 @@ export default function MarketplacePage() {
                 {/* Footer Price & Buttons */}
                 <div className="flex items-center justify-between pt-1 gap-2">
                   <div>
-                    {item.price_credits === 0 ? (
-                      <span className="text-emerald-600 font-black text-sm">Miễn phí</span>
+                    {isFree ? (
+                      <span className="text-emerald-600 font-black text-sm flex items-center gap-1">
+                        <Gift className="w-4 h-4" />
+                        <span>Miễn phí (0 cr)</span>
+                      </span>
                     ) : (
                       <div className="flex items-baseline gap-1">
                         <span className="text-lg font-black text-primary">
@@ -737,6 +773,27 @@ export default function MarketplacePage() {
                           <span>Word</span>
                         </button>
                       </>
+                    ) : isFree ? (
+                      <>
+                        <button
+                          onClick={() => {
+                            setPreviewItem(item);
+                            setPreviewTab("questions");
+                          }}
+                          className="px-2.5 py-1.5 rounded-xl border border-border bg-white hover:bg-neutral-50 text-foreground font-semibold text-xs flex items-center gap-1 transition cursor-pointer"
+                        >
+                          <Eye className="w-3.5 h-3.5 text-muted-foreground" />
+                          <span>Xem thử</span>
+                        </button>
+
+                        <button
+                          onClick={() => handleClaimFreeExam(item)}
+                          className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center gap-1 transition shadow-sm cursor-pointer"
+                        >
+                          <Gift className="w-3.5 h-3.5" />
+                          <span>Lấy đề miễn phí</span>
+                        </button>
+                      </>
                     ) : (
                       <>
                         <button
@@ -769,23 +826,49 @@ export default function MarketplacePage() {
           })}
         </div>
       ) : (
-        <div className="rounded-2xl border border-dashed border-border bg-white p-12 text-center max-w-xl mx-auto shadow-2xs">
-          <div className="mx-auto w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mb-3">
-            <Store className="w-6 h-6" />
+        /* Empty State sạch sẽ khi chưa có đề thi nào */
+        <div className="rounded-3xl border border-dashed border-border bg-white p-12 text-center max-w-xl mx-auto shadow-2xs space-y-4">
+          <div className="mx-auto w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+            <Store className="w-7 h-7" />
           </div>
-          <h3 className="text-base font-bold text-foreground mb-1">
-            Không tìm thấy đề thi phù hợp
-          </h3>
-          <p className="text-xs text-muted-foreground mb-5">
-            Thầy/Cô hãy thử tìm từ khóa khác hoặc đăng tải bộ đề đầu tiên lên Sàn để kiếm thu nhập!
-          </p>
-          <button
-            onClick={handleOpenSellModal}
-            className="px-4 py-2 rounded-xl bg-primary text-primary-foreground font-bold text-xs inline-flex items-center gap-2"
-          >
-            <PlusCircle className="w-4 h-4" />
-            <span>Đăng bán đề ngay</span>
-          </button>
+          <div>
+            <h3 className="text-lg font-bold text-foreground">Chợ Đề Thi Đang Chờ Đón Bộ Đề Đầu Tiên</h3>
+            <p className="text-xs text-muted-foreground mt-1 max-w-md mx-auto leading-relaxed">
+              Hiện chưa có đề thi nào được chia sẻ công khai. Thầy Cô hãy là người tiên phong chia sẻ đề
+              thi chất lượng từ kho cá nhân: có thể chọn <strong>Chia sẻ Miễn Phí (0 cr)</strong> để lan
+              tỏa hoặc <strong>Bán có phí (Credits)</strong> để kiếm thêm thu nhập bản quyền!
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            <button
+              onClick={handleOpenSellModal}
+              className="px-4 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-xs inline-flex items-center gap-2 hover:bg-primary/90 transition shadow-xs cursor-pointer"
+            >
+              <PlusCircle className="w-4 h-4 text-amber-300" />
+              <span>+ Đăng Đề Từ Kho Của Tôi</span>
+            </button>
+
+            <Link
+              href="/exams/create"
+              className="px-4 py-2.5 rounded-xl border border-border bg-white hover:bg-neutral-50 text-foreground font-semibold text-xs inline-flex items-center gap-2 transition"
+            >
+              <Sparkles className="w-4 h-4 text-amber-500" />
+              <span>Soạn đề mới bằng AI</span>
+            </Link>
+
+            <button
+              onClick={() => {
+                setShowImportModal(true);
+                setImportError(null);
+                setImportSuccess(null);
+              }}
+              className="px-4 py-2.5 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-semibold text-xs inline-flex items-center gap-2 transition cursor-pointer"
+            >
+              <Globe className="w-4 h-4 text-emerald-600" />
+              <span>Cào link web giáo dục</span>
+            </button>
+          </div>
         </div>
       )}
 
@@ -802,12 +885,20 @@ export default function MarketplacePage() {
               <X className="w-5 h-5" />
             </button>
 
-            {/* Header Modal */}
             <div className="mb-4 pr-8">
               <div className="flex items-center gap-2 mb-1">
                 <span className="font-bold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 text-[11px]">
                   {previewItem.subject} - Lớp {previewItem.grade}
                 </span>
+                {previewItem.price_credits === 0 ? (
+                  <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded">
+                    Miễn phí
+                  </span>
+                ) : (
+                  <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded">
+                    {previewItem.price_credits} credits
+                  </span>
+                )}
                 <span className="text-xs text-muted-foreground">
                   Tác giả: <strong>{previewItem.seller_name}</strong>
                 </span>
@@ -871,17 +962,18 @@ export default function MarketplacePage() {
                     </div>
                   ))}
 
-                  {/* Banner Khóa Bản Quyền */}
-                  <div className="p-5 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 text-center space-y-2">
-                    <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center mx-auto">
-                      <Coins className="w-5 h-5" />
+                  {/* Banner */}
+                  <div className="p-5 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 text-center space-y-2">
+                    <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center mx-auto">
+                      <BookOpen className="w-5 h-5" />
                     </div>
-                    <div className="font-bold text-amber-950 text-sm">
+                    <div className="font-bold text-foreground text-sm">
                       Mở khóa toàn bộ {previewItem.question_count} câu hỏi & lời giải chi tiết
                     </div>
-                    <p className="text-[11px] text-amber-900/80 max-w-md mx-auto">
-                      Đáp án chính xác 100%, lời giải từng bước, file Word chuẩn Bộ GD&ĐT và quyền sao chép
-                      chỉnh sửa trong Studio.
+                    <p className="text-[11px] text-muted-foreground max-w-md mx-auto">
+                      {previewItem.price_credits === 0
+                        ? "Đề thi được chia sẻ Miễn Phí. Thầy/Cô có thể nhận ngay về kho Studio để sử dụng!"
+                        : "Toàn bộ đáp án chính xác, lời giải chi tiết từng bước và quyền tải file Word chuẩn Bộ GD&ĐT."}
                     </p>
                   </div>
                 </div>
@@ -957,7 +1049,7 @@ export default function MarketplacePage() {
                 <span className="text-xs text-muted-foreground">Giá bộ đề:</span>
                 <div className="text-base font-black text-primary">
                   {previewItem.price_credits === 0
-                    ? "Miễn phí"
+                    ? "Miễn phí (0 credits)"
                     : `${previewItem.price_credits} credits (~${(previewItem.price_credits * 100).toLocaleString("vi-VN")}đ)`}
                 </div>
               </div>
@@ -965,21 +1057,35 @@ export default function MarketplacePage() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setPreviewItem(null)}
-                  className="px-4 py-2 rounded-xl border border-border text-xs font-semibold hover:bg-neutral-50"
+                  className="px-4 py-2 rounded-xl border border-border text-xs font-semibold hover:bg-neutral-50 cursor-pointer"
                 >
                   Đóng
                 </button>
-                <button
-                  onClick={() => {
-                    const item = previewItem;
-                    setPreviewItem(null);
-                    setBuyingItem(item);
-                  }}
-                  className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-neutral-950 font-black text-xs flex items-center gap-1.5 shadow-md"
-                >
-                  <Coins className="w-4 h-4" />
-                  <span>Mua đề ngay</span>
-                </button>
+                {previewItem.price_credits === 0 ? (
+                  <button
+                    onClick={() => {
+                      const item = previewItem;
+                      setPreviewItem(null);
+                      handleClaimFreeExam(item);
+                    }}
+                    className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center gap-1.5 shadow-md cursor-pointer"
+                  >
+                    <Gift className="w-4 h-4" />
+                    <span>Lấy đề miễn phí</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      const item = previewItem;
+                      setPreviewItem(null);
+                      setBuyingItem(item);
+                    }}
+                    className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-neutral-950 font-black text-xs flex items-center gap-1.5 shadow-md cursor-pointer"
+                  >
+                    <Coins className="w-4 h-4" />
+                    <span>Mua đề ngay</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -1005,7 +1111,7 @@ export default function MarketplacePage() {
               </div>
               <div>
                 <h3 className="font-bold text-base text-foreground">Xác nhận mở khóa đề thi</h3>
-                <p className="text-xs text-muted-foreground">Thanh toán an toàn bằng Credits ví</p>
+                <p className="text-xs text-muted-foreground">Thanh toán bằng Credits ví</p>
               </div>
             </div>
 
@@ -1050,7 +1156,7 @@ export default function MarketplacePage() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setBuyingItem(null)}
-                className="flex-1 py-2.5 rounded-xl border border-border text-xs font-semibold hover:bg-neutral-50"
+                className="flex-1 py-2.5 rounded-xl border border-border text-xs font-semibold hover:bg-neutral-50 cursor-pointer"
               >
                 Hủy bỏ
               </button>
@@ -1077,7 +1183,7 @@ export default function MarketplacePage() {
       )}
 
       {/* ========================================================= */}
-      {/* 7. MODAL SAU KHI MUA THÀNH CÔNG */}
+      {/* 7. MODAL SAU KHI MUA / NHẬN ĐỀ THÀNH CÔNG */}
       {/* ========================================================= */}
       {buySuccessItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
@@ -1087,9 +1193,11 @@ export default function MarketplacePage() {
             </div>
 
             <div>
-              <h3 className="text-lg font-black text-foreground">Mở khóa thành công!</h3>
+              <h3 className="text-lg font-black text-foreground">
+                {buySuccessItem.price_credits === 0 ? "Nhận đề thành công!" : "Mở khóa thành công!"}
+              </h3>
               <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
-                Bộ đề <strong>{buySuccessItem.title}</strong> đã được thêm vào thư viện sở hữu của Thầy/Cô.
+                Bộ đề <strong>{buySuccessItem.title}</strong> đã được lưu vào thư viện của Thầy/Cô.
               </p>
             </div>
 
@@ -1112,7 +1220,7 @@ export default function MarketplacePage() {
 
               <button
                 onClick={() => setBuySuccessItem(null)}
-                className="w-full py-2 text-xs text-muted-foreground hover:text-foreground font-medium"
+                className="w-full py-2 text-xs text-muted-foreground hover:text-foreground font-medium cursor-pointer"
               >
                 Tiếp tục xem các đề khác
               </button>
@@ -1122,7 +1230,7 @@ export default function MarketplacePage() {
       )}
 
       {/* ========================================================= */}
-      {/* 8. MODAL ĐĂNG BÁN ĐỀ THI (SELL EXAM MODAL) */}
+      {/* 8. MODAL ĐĂNG BÁN / CHIA SẺ ĐỀ THI */}
       {/* ========================================================= */}
       {showSellModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
@@ -1139,8 +1247,10 @@ export default function MarketplacePage() {
                 <Store className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-bold text-base text-foreground">Đăng bán đề thi lên Sàn</h3>
-                <p className="text-xs text-muted-foreground">Kiếm thu nhập thụ động từ bộ đề độc quyền của bạn</p>
+                <h3 className="font-bold text-base text-foreground">Đăng đề thi lên Chợ</h3>
+                <p className="text-xs text-muted-foreground">
+                  Chia sẻ miễn phí cho cộng đồng hoặc đặt giá bán bằng credits
+                </p>
               </div>
             </div>
 
@@ -1148,7 +1258,7 @@ export default function MarketplacePage() {
               {/* Chọn đề từ kho */}
               <div>
                 <label className="block font-semibold text-foreground mb-1">
-                  Chọn đề từ "Kho đề thi của tôi" (hoặc nhập mới bên dưới)
+                  Chọn đề từ "Kho đề thi của tôi" (hoặc nhập đề mới)
                 </label>
                 <select
                   value={selectedExamId}
@@ -1164,7 +1274,7 @@ export default function MarketplacePage() {
                   }}
                   className="w-full text-xs p-2.5 border border-border rounded-xl bg-white focus:outline-none focus:ring-1 focus:ring-primary"
                 >
-                  <option value="">-- Nhập tiêu đề tùy ý --</option>
+                  <option value="">-- Nhập tiêu đề đề thi mới --</option>
                   {userExams.map((ex) => (
                     <option key={ex.id} value={ex.id}>
                       {ex.name} ({ex.subject} - Lớp {ex.grade})
@@ -1182,7 +1292,7 @@ export default function MarketplacePage() {
                   type="text"
                   value={sellTitle}
                   onChange={(e) => setSellTitle(e.target.value)}
-                  placeholder="Ví dụ: Đề thi thử Tốt nghiệp THPT 2025 môn Toán - Đề số 02"
+                  placeholder="Ví dụ: Đề kiểm tra 1 tiết Toán 12 - Chương 1 Khảo sát đồ thị"
                   className="w-full text-xs p-2.5 border border-border rounded-xl focus:outline-none focus:ring-1 focus:ring-primary"
                   required
                 />
@@ -1224,44 +1334,82 @@ export default function MarketplacePage() {
                 </div>
               </div>
 
-              {/* Giá bán Credits */}
-              <div>
-                <label className="block font-semibold text-foreground mb-1">
-                  Giá bán (Credits) <span className="text-muted-foreground font-normal">(1 cr = 100 VNĐ)</span>
+              {/* HÌNH THỨC CHIA SẺ: MIỄN PHÍ HOẶC CÓ PHÍ */}
+              <div className="p-3.5 rounded-2xl bg-neutral-50 border border-border space-y-3">
+                <label className="block font-bold text-foreground text-xs">
+                  Hình thức đăng tải trên Chợ:
                 </label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    min="0"
-                    step="10"
-                    value={sellPrice}
-                    onChange={(e) => setSellPrice(parseInt(e.target.value, 10) || 0)}
-                    className="w-40 text-xs p-2.5 border border-border rounded-xl focus:outline-none focus:ring-1 focus:ring-primary font-bold text-primary"
-                  />
-                  <span className="text-xs text-muted-foreground">
-                    = {(sellPrice * 100).toLocaleString("vi-VN")} VNĐ
-                  </span>
-                </div>
-              </div>
-
-              {/* Box Tính Toán Lợi Nhuận Bán Hàng */}
-              <div className="p-4 rounded-2xl bg-neutral-50 border border-border space-y-2 text-xs">
-                <div className="font-bold text-foreground flex items-center justify-between">
-                  <span>Ước tính thu nhập mỗi lượt tải:</span>
-                  <span className="text-emerald-600 font-black">
-                    +{Math.round(sellPrice * (isProUser ? 0.9 : 0.8))} credits (~
-                    {(Math.round(sellPrice * (isProUser ? 0.9 : 0.8)) * 100).toLocaleString("vi-VN")}đ)
-                  </span>
-                </div>
-                <div className="text-[11px] text-muted-foreground space-y-1">
-                  <p>• Loại tài khoản: <strong>{isProUser ? "Gói PRO (Hưởng 90% doanh thu)" : "Gói Thường (Hưởng 80% doanh thu)"}</strong></p>
-                  <p>• Phí vận hành sàn: <strong>{isProUser ? "10%" : "20%"}</strong></p>
-                  {!isProUser && (
-                    <p className="text-amber-700 font-medium pt-1">
-                      💡 Mẹo: Nâng cấp tài khoản PRO để giảm phí sàn còn 10% và nhận 90% doanh thu trọn đời!
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSellPricingType("free")}
+                    className={`p-3 rounded-xl border text-left transition cursor-pointer ${
+                      sellPricingType === "free"
+                        ? "border-emerald-500 bg-emerald-50/80 text-emerald-950 font-bold shadow-xs"
+                        : "border-border bg-white text-muted-foreground hover:bg-neutral-50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5 font-bold text-xs text-emerald-700">
+                      <Gift className="w-4 h-4" />
+                      <span>Miễn Phí (0 cr)</span>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Mọi giáo viên tải & mở Studio tự do
                     </p>
-                  )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSellPricingType("paid")}
+                    className={`p-3 rounded-xl border text-left transition cursor-pointer ${
+                      sellPricingType === "paid"
+                        ? "border-amber-500 bg-amber-50/80 text-amber-950 font-bold shadow-xs"
+                        : "border-border bg-white text-muted-foreground hover:bg-neutral-50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5 font-bold text-xs text-amber-700">
+                      <Coins className="w-4 h-4" />
+                      <span>Có phí (Credits)</span>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Bán bản quyền, kiếm thêm thu nhập
+                    </p>
+                  </button>
                 </div>
+
+                {sellPricingType === "paid" ? (
+                  <div className="space-y-2 pt-1 border-t border-border">
+                    <label className="block text-[11px] font-semibold text-foreground">
+                      Giá bán đề thi (Credits):
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="10"
+                        step="10"
+                        value={sellPrice}
+                        onChange={(e) => setSellPrice(parseInt(e.target.value, 10) || 0)}
+                        className="w-36 text-xs p-2 border border-border rounded-xl focus:outline-none focus:ring-1 focus:ring-primary font-bold text-primary bg-white"
+                      />
+                      <span className="text-xs text-muted-foreground">
+                        = {(sellPrice * 100).toLocaleString("vi-VN")} VNĐ
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-emerald-700 font-medium">
+                      👉 Bạn thực nhận:{" "}
+                      <strong>
+                        {Math.round(sellPrice * (isProUser ? 0.9 : 0.8))} credits (~
+                        {(Math.round(sellPrice * (isProUser ? 0.9 : 0.8)) * 100).toLocaleString("vi-VN")}đ)
+                      </strong>{" "}
+                      mỗi lượt bán (Sàn thu {isProUser ? "10% PRO" : "20% Thường"}).
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-[11px] text-emerald-700 bg-emerald-100/60 p-2.5 rounded-xl border border-emerald-200">
+                    ✨ Bộ đề sẽ được gắn nhãn <strong>MIỄN PHÍ</strong>. Đồng nghiệp toàn quốc có thể tải
+                    file Word và lấy vào Studio để giảng dạy!
+                  </div>
+                )}
               </div>
 
               {/* Mô tả đề thi */}
@@ -1271,7 +1419,7 @@ export default function MarketplacePage() {
                   rows={3}
                   value={sellDescription}
                   onChange={(e) => setSellDescription(e.target.value)}
-                  placeholder="Điểm nổi bật của đề, mức độ phân hóa, có lời giải chi tiết..."
+                  placeholder="Nêu đặc điểm nổi bật, số lượng câu hỏi, mức độ phân hóa kiến thức..."
                   className="w-full text-xs p-2.5 border border-border rounded-xl focus:outline-none focus:ring-1 focus:ring-primary"
                 />
               </div>
@@ -1285,17 +1433,19 @@ export default function MarketplacePage() {
               <button
                 type="submit"
                 disabled={isSubmittingSell}
-                className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-neutral-950 font-black text-xs transition flex items-center justify-center gap-2 shadow-md cursor-pointer disabled:opacity-50"
+                className="w-full py-3 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-black text-xs transition flex items-center justify-center gap-2 shadow-md cursor-pointer disabled:opacity-50"
               >
                 {isSubmittingSell ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Đang đăng bán lên Sàn...</span>
+                    <span>Đang đăng đề lên Chợ...</span>
                   </>
                 ) : (
                   <>
-                    <PlusCircle className="w-4 h-4" />
-                    <span>Đăng Bán Ngay Lên Chợ</span>
+                    <PlusCircle className="w-4 h-4 text-amber-300" />
+                    <span>
+                      {sellPricingType === "free" ? "Chia Sẻ Đề Miễn Phí" : `Đăng Bán Với Giá ${sellPrice} cr`}
+                    </span>
                   </>
                 )}
               </button>
@@ -1461,7 +1611,7 @@ export default function MarketplacePage() {
                 </button>
               </form>
 
-              {/* Lịch sử rút tiền gần nhất */}
+              {/* Lịch sử rút tiền */}
               <div>
                 <h4 className="font-bold text-foreground text-xs mb-2">Lịch sử rút tiền gần đây</h4>
                 {payoutHistory.length > 0 ? (
@@ -1503,7 +1653,7 @@ export default function MarketplacePage() {
       )}
 
       {/* ========================================================= */}
-      {/* 10. MODAL NHẬP LINK ĐỀ THI TỪ WEB GIÁO DỤC (AI CÀO & BÓC TÁCH) */}
+      {/* 10. MODAL BÓC TÁCH LINK TỪ WEB GIÁO DỤC */}
       {/* ========================================================= */}
       {showImportModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
@@ -1556,7 +1706,7 @@ export default function MarketplacePage() {
                       setImportSuccess(null);
                       setImportUrl("");
                     }}
-                    className="px-4 py-2.5 rounded-xl border border-border text-xs font-semibold hover:bg-muted"
+                    className="px-4 py-2.5 rounded-xl border border-border text-xs font-semibold hover:bg-muted cursor-pointer"
                   >
                     Nhập link khác
                   </button>

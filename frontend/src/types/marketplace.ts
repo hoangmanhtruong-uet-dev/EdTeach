@@ -92,3 +92,4 @@ export interface SellerDashboardStats {
   available_balance: number;
   commission_rate: number;
 }
+

@@ -257,3 +257,4 @@ export async function exportMarketplaceExamToDocx(exam: MarketplaceItem) {
   const cleanTitle = exam.title.replace(/[\\/:*?"<>|]/g, "_").slice(0, 50);
   saveAs(blob, `${cleanTitle}_${exam.subject}_Lop${exam.grade}.docx`);
 }
+

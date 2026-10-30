@@ -67,3 +67,4 @@ CREATE POLICY "Users can view their own payout requests"
 
 CREATE POLICY "Users can create payout requests"
     ON public.payout_requests FOR INSERT WITH CHECK (auth.uid() = user_id);
+

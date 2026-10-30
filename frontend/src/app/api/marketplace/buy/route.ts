@@ -163,7 +163,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `Mua đề thi thành công! Đã trừ ${price} credits.`,
+      message:
+        price === 0
+          ? "Nhận bộ đề thi miễn phí thành công! Đề đã được thêm vào thư viện của Thầy/Cô."
+          : `Mua đề thi thành công! Đã trừ ${price} credits.`,
       item: {
         ...item,
         is_owner: false,
