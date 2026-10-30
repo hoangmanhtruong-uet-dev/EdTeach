@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import {
@@ -22,6 +22,43 @@ type ExcalidrawEditorAPI = {
   getSceneElements: () => Record<string, unknown>[];
   updateScene: (sceneData: { elements?: Record<string, unknown>[]; appState?: Record<string, unknown> }) => void;
 };
+
+
+/**
+ * Xuất ảnh WebP thu nhỏ 360x225px nhẹ (~10-15KB) làm Thumbnail thật cho thẻ bảng vẽ
+ */
+async function generateThumbnailWebP(
+  elements: Record<string, unknown>[],
+  appState: Record<string, unknown>
+): Promise<string | null> {
+  if (!elements || elements.length === 0) return null;
+  try {
+    const { exportToBlob } = await import("@excalidraw/excalidraw");
+    const blob = await exportToBlob({
+      elements: elements as any,
+      appState: {
+        ...appState,
+        exportWithDarkMode: false,
+        exportBackground: true,
+        viewBackgroundColor: (appState?.viewBackgroundColor as string) || "#ffffff",
+      } as any,
+      files: null,
+      mimeType: "image/webp",
+      quality: 0.55,
+      maxWidthOrHeight: 360,
+    });
+    if (!blob) return null;
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch (err) {
+    console.warn("Lỗi sinh thumbnail WebP:", err);
+    return null;
+  }
+}
 
 // Dynamic import Canvas with ssr: false
 const WhiteboardCanvas = dynamic(
@@ -65,8 +102,10 @@ export default function WhiteboardEditor({
 
   // LocalStorage Key for offline redundancy
   const localCacheKey = `edteach_wb_${initialBoard.id}`;
+  const lastThumbHashRef = useRef<number>(initialBoard.elements?.length || 0);
+  const currentThumbUrlRef = useRef<string | null>(initialBoard.thumbnail_url);
 
-  // Auto-save logic
+  // Auto-save logic với tự động sinh Thumbnail ngầm (Sprint W-1)
   const performSave = useCallback(
     async (elements: Record<string, unknown>[], appState: Record<string, unknown>, newTitle?: string) => {
       setSaveStatus("saving");
@@ -84,8 +123,19 @@ export default function WhiteboardEditor({
           );
         }
 
-        // 2. Lưu lên Supabase
-        const { success, error } = await updateWhiteboard(board.id, {
+        // 2. Tự động sinh Thumbnail WebP nếu nét vẽ thay đổi
+        let nextThumbnailUrl = currentThumbUrlRef.current;
+        if (elements.length > 0 && elements.length !== lastThumbHashRef.current) {
+          const generatedThumb = await generateThumbnailWebP(elements, appState);
+          if (generatedThumb) {
+            nextThumbnailUrl = generatedThumb;
+            currentThumbUrlRef.current = generatedThumb;
+            lastThumbHashRef.current = elements.length;
+          }
+        }
+
+        // 3. Lưu lên Supabase
+        const updatePayload: any = {
           title: newTitle || title,
           elements,
           app_state: {
@@ -93,7 +143,13 @@ export default function WhiteboardEditor({
             currentItemStrokeColor: (appState?.currentItemStrokeColor as string) || "#1e1e1e",
             gridSize: (appState?.gridSize as number) ?? 20,
           },
-        });
+        };
+
+        if (nextThumbnailUrl) {
+          updatePayload.thumbnail_url = nextThumbnailUrl;
+        }
+
+        const { success, error } = await updateWhiteboard(board.id, updatePayload);
 
         if (success) {
           setSaveStatus("saved");
@@ -108,6 +164,15 @@ export default function WhiteboardEditor({
     },
     [board.id, title, localCacheKey]
   );
+
+  // Lưu trước khi người dùng chuyển trang hoặc unmount
+  useEffect(() => {
+    return () => {
+      if (latestDataRef.current?.elements?.length) {
+        performSave(latestDataRef.current.elements, latestDataRef.current.appState);
+      }
+    };
+  }, [performSave]);
 
   const handleCanvasChange = (elements: readonly Record<string, unknown>[], appState: Record<string, unknown>) => {
     latestDataRef.current = {

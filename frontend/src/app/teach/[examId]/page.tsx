@@ -41,6 +41,7 @@ import {
   GripVertical,
 } from "lucide-react";
 import { getExamById, ExamWithQuestions, Question } from "@/lib/api/exams";
+import { getTeachWhiteboard, saveTeachWhiteboard } from "@/lib/api/whiteboard";
 import { useAuth } from "@/context/auth-context";
 import { isProUser, isMaxUser, PricingPlan } from "@/lib/payment/plans";
 import { LatexRenderer } from "@/components/ui/latex-renderer";
@@ -241,6 +242,27 @@ function TeachingStudioContent() {
   const [timerSeconds, setTimerSeconds] = useState(120);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
 
+  // Teach Mode Persistence (Sprint W-1)
+  const teachSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const triggerTeachSave = useCallback((newMap: Record<string, unknown[]>) => {
+    if (!examId) return;
+    // Lưu tức thì LocalStorage
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem(`edteach_teach_drawings_${examId}`, JSON.stringify(newMap));
+      } catch {
+        // ignore
+      }
+    }
+    // Debounce lưu Supabase
+    if (teachSaveTimerRef.current) {
+      clearTimeout(teachSaveTimerRef.current);
+    }
+    teachSaveTimerRef.current = setTimeout(() => {
+      saveTeachWhiteboard(examId, newMap, exam?.name);
+    }, 3000);
+  }, [examId, exam?.name]);
+
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
     if (isTimerRunning && timerSeconds > 0) {
@@ -311,9 +333,21 @@ function TeachingStudioContent() {
             created_at: new Date().toISOString(),
           }));
 
+          // Tải nét vẽ đã lưu cho OMR virtual exam
+          const savedOMRDrawings = await getTeachWhiteboard(examId);
+          if (savedOMRDrawings && Object.keys(savedOMRDrawings).length > 0) {
+            drawingsMapRef.current = savedOMRDrawings;
+            const initMap: Record<string, boolean> = {};
+            for (const qId of Object.keys(savedOMRDrawings)) {
+              if (savedOMRDrawings[qId]?.length > 0) initMap[qId] = true;
+            }
+            setQuestionsWithDrawings(initMap);
+          }
+
           setExam({
             id: examId,
             name: `Chữa nóng OMR: ${hotfixPayload.sessionName}`,
+
             subject: hotfixPayload.subject || "Toán",
             grade: hotfixPayload.grade || "12",
             created_at: new Date().toISOString(),
@@ -325,6 +359,17 @@ function TeachingStudioContent() {
         }
 
         // Standard Exam from DB
+        // Tải nét vẽ đã lưu per-exam (Sprint W-1)
+        const savedExamDrawings = await getTeachWhiteboard(examId);
+        if (savedExamDrawings && Object.keys(savedExamDrawings).length > 0) {
+          drawingsMapRef.current = savedExamDrawings;
+          const initMap: Record<string, boolean> = {};
+          for (const qId of Object.keys(savedExamDrawings)) {
+            if (savedExamDrawings[qId]?.length > 0) initMap[qId] = true;
+          }
+          setQuestionsWithDrawings(initMap);
+        }
+
         const data: any = await getExamById(examId);
         if (!data) {
           setError("Không tìm thấy đề thi hoặc đề thi đã bị xóa.");
@@ -364,6 +409,7 @@ function TeachingStudioContent() {
       if (elements && elements.length > 0) {
         setQuestionsWithDrawings((prev) => ({ ...prev, [currentQ.id]: true }));
       }
+      triggerTeachSave(drawingsMapRef.current);
     } catch {
       // ignore
     }
@@ -1429,6 +1475,14 @@ function TeachingStudioContent() {
                 </button>
               </div>
 
+              {activeRightTab === "whiteboard" && (
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold shrink-0">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  <span className="hidden sm:inline">Tự lưu nét vẽ theo câu</span>
+                  <span className="sm:hidden">Đã tự lưu</span>
+                </div>
+              )}
+
               {activeRightTab === "lab3d" && (
                 <div className="flex items-center gap-2">
                   <select
@@ -1489,7 +1543,10 @@ function TeachingStudioContent() {
                   }}
                   onChange={(elements) => {
                     if (currentQ) {
-                      drawingsMapRef.current[currentQ.id] = elements as unknown[];
+                      const elList = elements as unknown[];
+                      drawingsMapRef.current[currentQ.id] = elList;
+                      setQuestionsWithDrawings((prev) => ({ ...prev, [currentQ.id]: elList.length > 0 }));
+                      triggerTeachSave(drawingsMapRef.current);
                     }
                   }}
                 />
