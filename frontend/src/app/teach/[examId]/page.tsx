@@ -171,8 +171,9 @@ function TeachingStudioContent() {
   // Right Column 3 Tabs: "whiteboard" | "lab3d" | "multi_method"
   const [activeRightTab, setActiveRightTab] = useState<"whiteboard" | "lab3d" | "multi_method">("whiteboard");
 
-  // Per-Question Drawing Storage
-  const [drawingsMap, setDrawingsMap] = useState<Record<string, unknown[]>>({});
+  // Per-Question Drawing Storage (using Ref to prevent React re-render loops with Excalidraw onChange)
+  const drawingsMapRef = useRef<Record<string, unknown[]>>({});
+  const [questionsWithDrawings, setQuestionsWithDrawings] = useState<Record<string, boolean>>({});
   const excalidrawApiRef = useRef<ExcalidrawAPI | null>(null);
   const currentIdxRef = useRef(currentIdx);
   currentIdxRef.current = currentIdx;
@@ -310,10 +311,10 @@ function TeachingStudioContent() {
 
     try {
       const elements = excalidrawApiRef.current.getSceneElements();
-      setDrawingsMap((prev) => ({
-        ...prev,
-        [currentQ.id]: elements,
-      }));
+      drawingsMapRef.current[currentQ.id] = elements;
+      if (elements && elements.length > 0) {
+        setQuestionsWithDrawings((prev) => ({ ...prev, [currentQ.id]: true }));
+      }
     } catch {
       // ignore
     }
@@ -337,7 +338,7 @@ function TeachingStudioContent() {
 
       const nextQ = exam.questions[newIdx];
       if (nextQ && excalidrawApiRef.current) {
-        const savedElements = drawingsMap[nextQ.id] || [];
+        const savedElements = drawingsMapRef.current[nextQ.id] || [];
         try {
           excalidrawApiRef.current.updateScene({ elements: savedElements });
         } catch {
@@ -353,7 +354,7 @@ function TeachingStudioContent() {
         }
       }
     },
-    [exam, drawingsMap, saveCurrentQuestionDrawing]
+    [exam, saveCurrentQuestionDrawing]
   );
 
   // Set initial lab when exam loads
@@ -408,10 +409,12 @@ function TeachingStudioContent() {
 
     if (confirm("Thầy/Cô có chắc chắn muốn xóa sạch nháp của câu này?")) {
       excalidrawApiRef.current.updateScene({ elements: [] });
-      setDrawingsMap((prev) => ({
-        ...prev,
-        [currentQ.id]: [],
-      }));
+      drawingsMapRef.current[currentQ.id] = [];
+      setQuestionsWithDrawings((prev) => {
+        const next = { ...prev };
+        delete next[currentQ.id];
+        return next;
+      });
     }
   };
 
@@ -1139,7 +1142,7 @@ function TeachingStudioContent() {
                   <div className="flex flex-wrap items-center justify-center gap-1.5 pt-2 max-h-24 overflow-y-auto">
                     {exam.questions?.map((q, idx) => {
                       const isCurrent = idx === currentIdx;
-                      const hasDrawing = drawingsMap[q.id]?.length > 0;
+                      const hasDrawing = !!questionsWithDrawings[q.id] || (drawingsMapRef.current[q.id]?.length || 0) > 0;
                       const hasCloned = !!clonedQuestionsMap[q.id];
 
                       return (
@@ -1276,16 +1279,20 @@ function TeachingStudioContent() {
                 <WhiteboardCanvas
                   height="100%"
                   isPro={isPro}
-                  initialElements={currentQ ? (drawingsMap[currentQ.id] as any) || [] : []}
+                  initialElements={[]}
                   onApiReady={(api) => {
                     excalidrawApiRef.current = api as unknown as ExcalidrawAPI;
+                    if (currentQ && drawingsMapRef.current[currentQ.id]) {
+                      try {
+                        api.updateScene({ elements: drawingsMapRef.current[currentQ.id] });
+                      } catch {
+                        // ignore
+                      }
+                    }
                   }}
                   onChange={(elements) => {
                     if (currentQ) {
-                      setDrawingsMap((prev) => ({
-                        ...prev,
-                        [currentQ.id]: elements as unknown[],
-                      }));
+                      drawingsMapRef.current[currentQ.id] = elements as unknown[];
                     }
                   }}
                 />
