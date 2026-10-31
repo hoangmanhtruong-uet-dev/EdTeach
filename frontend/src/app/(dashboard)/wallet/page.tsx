@@ -32,6 +32,8 @@ import {
   CREDIT_PACKS,
   isProUser,
   isMaxUser,
+  isRealPayingUser,
+  IS_BETA_ALL_FEATURES_UNLOCKED,
   getTierName,
   PricingPlan,
 } from "@/lib/payment/plans";
@@ -206,25 +208,48 @@ function WalletContent() {
             </div>
             <div>
               <p className="text-xs font-semibold text-muted-foreground">Hạng tài khoản</p>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <p
                   className={`text-xl font-black ${
-                    isUserMax ? "text-amber-600" : isUserPro ? "text-primary" : "text-slate-700 dark:text-slate-300"
+                    isRealPayingUser(profile) && ((profile as any)?.tier === "max" || (profile as any)?.subscription_tier === "max")
+                      ? "text-amber-600"
+                      : isRealPayingUser(profile)
+                      ? "text-primary"
+                      : "text-amber-600"
                   }`}
                 >
                   {getTierName(profile || user)}
                 </p>
-                {isUserMax && (
+                {isRealPayingUser(profile) ? (
+                  (profile as any)?.tier === "max" || (profile as any)?.subscription_tier === "max" ? (
+                    <span className="rounded-full bg-amber-500 px-2 py-0.5 text-[9px] font-black text-white">
+                      MAX VIP
+                    </span>
+                  ) : (
+                    <div className="flex items-center gap-1.5">
+                      <span className="rounded-full bg-blue-600 px-2 py-0.5 text-[9px] font-bold text-white">
+                        PRO
+                      </span>
+                      {IS_BETA_ALL_FEATURES_UNLOCKED && (
+                        <span className="rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-800 px-1.5 py-0.5 text-[9px] font-bold">
+                          + Mở khóa Beta MAX
+                        </span>
+                      )}
+                    </div>
+                  )
+                ) : (
                   <span className="rounded-full bg-amber-500 px-2 py-0.5 text-[9px] font-black text-white">
-                    MAX
-                  </span>
-                )}
-                {isUserPro && !isUserMax && (
-                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[9px] font-bold text-primary">
-                    PRO
+                    BETA MAX 14 NGÀY
                   </span>
                 )}
               </div>
+              {IS_BETA_ALL_FEATURES_UNLOCKED && (
+                <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1 font-medium">
+                  {isRealPayingUser(profile)
+                    ? "Tài khoản Giáo viên PRO được mở khóa thêm toàn bộ tính năng Gói MAX trong giai đoạn Beta."
+                    : "Tài khoản đang được kích hoạt dùng thử 100% tính năng Gói MAX trong giai đoạn Beta."}
+                </p>
+              )}
             </div>
           </div>
         </div>
